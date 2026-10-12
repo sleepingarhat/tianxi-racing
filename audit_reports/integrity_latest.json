@@ -1,9 +1,9 @@
 {
-  "scan_date": "2026-10-11",
+  "scan_date": "2026-10-12",
   "repo_root": "/home/runner/work/tianxi-racing/tianxi-racing",
   "overall_severity": "critical",
-  "critical_gap_count": 23,
-  "warn_gap_count": 11,
+  "critical_gap_count": 2,
+  "warn_gap_count": 12,
   "recommendation": "gha_next_delta_will_fix",
   "categories": {
     "race_artefacts": {
@@ -36,50 +36,26 @@
     },
     "horse_profiles": {
       "name": "horse_profiles",
-      "expected": 1191,
-      "present": 1186,
-      "missing": [
-        "L164",
-        "L400",
-        "L424",
-        "L534",
-        "L546"
-      ],
-      "stale": [
-        "J502",
-        "H276",
-        "J135",
-        "H087",
-        "K120",
-        "J331",
-        "K464",
-        "L138",
-        "K336",
-        "K500",
-        "H486",
-        "J294"
-      ],
+      "expected": 1196,
+      "present": 1196,
+      "missing": [],
+      "stale": [],
       "notes": [
-        "5 horses raced in last 180d have NO profile",
-        "total profiles in DB: 6090"
+        "total profiles in DB: 6098"
       ],
-      "severity": "critical"
+      "severity": "ok"
     },
     "horse_form_records": {
       "name": "horse_form_records",
-      "expected": 1191,
-      "present": 1186,
+      "expected": 1196,
+      "present": 1195,
       "missing": [
-        "L164",
-        "L400",
-        "L424",
-        "L534",
-        "L546"
+        "L160"
       ],
       "stale": [],
       "notes": [
-        "5 recent-cohort horses have NO form_records file",
-        "total form_records files: 6090"
+        "1 recent-cohort horses have NO form_records file",
+        "total form_records files: 6097"
       ],
       "severity": "critical"
     },
@@ -148,13 +124,14 @@
     "entries_upcoming": {
       "name": "entries_upcoming",
       "expected": 2,
-      "present": 1,
+      "present": 0,
       "missing": [
-        "2026-10-14"
+        "2026-10-14",
+        "2026-10-19"
       ],
       "stale": [],
       "notes": [
-        "1 upcoming race days lack entries file"
+        "2 upcoming race days lack entries file"
       ],
       "severity": "warn"
     }
