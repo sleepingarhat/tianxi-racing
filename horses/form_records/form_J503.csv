@@ -1,4 +1,5 @@
 ﻿horse_no,race_index,place,date,racecourse,track,course,distance_m,going,race_class,draw,rating,trainer,jockey,lbw,win_odds,actual_wt_lbs,running_position,finish_time,declared_wt_lbs,gear
+J503,092,09,11/10/26,沙田全天候,,,1200,好,4,3,58,方嘉柏,奧爾民,12-1/2,34,133,9 11 9,1.10.98,1206,PC2
 J503,032,11,16/09/26,跑馬地,草地,B,1200,好,4,9,60,方嘉柏,奧爾民,7-3/4,17,135,7 8 11,1.11.44,1190,--
 J503,864,05,15/07/26,跑馬地,草地,C,1650,好,3,1,61,方嘉柏,莫雷拉,5,3,121,3 3 2 5,1.40.21,1172,PC-
 J503,692,09,13/05/26,跑馬地,草地,C+3,1200,好/快,3,9,61,方嘉柏,莫雷拉,5,8.3,118,11 11 9,1.09.96,1187,PC

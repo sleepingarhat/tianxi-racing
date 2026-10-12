@@ -1,4 +1,5 @@
 ﻿horse_no,race_index,place,date,racecourse,track,course,distance_m,going,race_class,draw,rating,trainer,jockey,lbw,win_odds,actual_wt_lbs,running_position,finish_time,declared_wt_lbs,gear
+K250,089,04,11/10/26,沙田,草地,C,1000,好,5,3,28,韋達,黃寶妮,2,16,116,12 9 4,0.57.87,1189,B
 K250,011,10,09/09/26,跑馬地,草地,A,1200,好,5,7,30,韋達,梁家俊,4-1/2,15,125,1 1 10,1.12.16,1181,B/TT-
 K250,805,06,27/06/26,沙田,草地,B,1200,好,5,3,33,韋達,希威森,2-3/4,23,128,4 4 6,1.09.46,1192,B/TT
 K250,696,10,17/05/26,沙田,草地,C+3,1200,好/黏,5,12,35,韋達,布浩榮,6,53,126,12 12 10,1.11.59,1192,B/TT
