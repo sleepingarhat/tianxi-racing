@@ -1,8 +1,8 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-10-12T11:58:25+00:00",
+  "generated_at": "2026-10-13T11:47:42+00:00",
   "generator": "tools/build_manifest.py",
-  "git_head": "e1bbacfaa5c403e1ab140702b3cb759955a1dc5c",
+  "git_head": "e4d6bcb255afdb5efc226215590b9f144d965ced",
   "repo": "sleepingarhat/tianxi-database",
   "branch": "main",
   "base_url": {
@@ -18,7 +18,7 @@
     "race_days": 947,
     "race_artefact_files": 4729,
     "fixtures_rows": 231,
-    "horse_form_files": 6097,
+    "horse_form_files": 6098,
     "horse_profile_rows": 6098,
     "jockey_record_files": 59,
     "jockey_profile_rows": 66,
@@ -95,7 +95,7 @@
       "form_records": {
         "dir": "horses/form_records/",
         "path_template": "horses/form_records/form_{horse_id}.csv",
-        "count": 6097,
+        "count": 6098,
         "sample": [
           "form_A001.csv",
           "form_A002.csv",
@@ -133,11 +133,11 @@
     "trials": {
       "results": {
         "path": "trials/trial_results.csv",
-        "row_count": 9327
+        "row_count": 9427
       },
       "sessions": {
         "path": "trials/trial_sessions.csv",
-        "row_count": 1161
+        "row_count": 1171
       },
       "note": "HKJC retains ~176 days only; pre-2025-03-13 irrecoverable"
     },
@@ -145,8 +145,8 @@
       "format": "txt",
       "path_template": "entries/entries_{date}.txt",
       "today_pointer": "entries/today_entries.txt",
-      "count": 24,
-      "latest": "entries_2026-10-11.txt",
+      "count": 25,
+      "latest": "entries_2026-10-14.txt",
       "note": "TXT (not CSV); space-delimited; race_number=0 means meeting-level batch"
     },
     "news": {
@@ -175,10 +175,10 @@
   "integrity": {
     "latest_report": "audit_reports/integrity_latest.json",
     "raw_url": "https://raw.githubusercontent.com/sleepingarhat/tianxi-database/main/audit_reports/integrity_latest.json",
-    "scan_date": "2026-10-12",
+    "scan_date": "2026-10-13",
     "overall_severity": "critical",
-    "critical_gap_count": 2,
-    "warn_gap_count": 12,
+    "critical_gap_count": 1,
+    "warn_gap_count": 11,
     "recommendation": "gha_next_delta_will_fix"
   },
   "policy": {
