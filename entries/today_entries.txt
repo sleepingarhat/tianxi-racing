@@ -1,4 +1,4 @@
-# meeting=2026-10-14 racecourse=HV written=2026-10-12
+# meeting=2026-10-14 racecourse=HV written=2026-10-13
 G095
 G125
 G209
