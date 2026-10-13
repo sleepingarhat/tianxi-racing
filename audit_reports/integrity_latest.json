@@ -1,9 +1,9 @@
 {
-  "scan_date": "2026-10-12",
+  "scan_date": "2026-10-13",
   "repo_root": "/home/runner/work/tianxi-racing/tianxi-racing",
   "overall_severity": "critical",
-  "critical_gap_count": 2,
-  "warn_gap_count": 12,
+  "critical_gap_count": 1,
+  "warn_gap_count": 11,
   "recommendation": "gha_next_delta_will_fix",
   "categories": {
     "race_artefacts": {
@@ -36,8 +36,8 @@
     },
     "horse_profiles": {
       "name": "horse_profiles",
-      "expected": 1196,
-      "present": 1196,
+      "expected": 1189,
+      "present": 1189,
       "missing": [],
       "stale": [],
       "notes": [
@@ -47,17 +47,14 @@
     },
     "horse_form_records": {
       "name": "horse_form_records",
-      "expected": 1196,
-      "present": 1195,
-      "missing": [
-        "L160"
-      ],
+      "expected": 1189,
+      "present": 1189,
+      "missing": [],
       "stale": [],
       "notes": [
-        "1 recent-cohort horses have NO form_records file",
-        "total form_records files: 6097"
+        "total form_records files: 6098"
       ],
-      "severity": "critical"
+      "severity": "ok"
     },
     "jockey_profiles": {
       "name": "jockey_profiles",
@@ -117,21 +114,20 @@
       "missing": [],
       "stale": [],
       "notes": [
-        "trial rows: 9327"
+        "trial rows: 9427"
       ],
       "severity": "ok"
     },
     "entries_upcoming": {
       "name": "entries_upcoming",
       "expected": 2,
-      "present": 0,
+      "present": 1,
       "missing": [
-        "2026-10-14",
         "2026-10-19"
       ],
       "stale": [],
       "notes": [
-        "2 upcoming race days lack entries file"
+        "1 upcoming race days lack entries file"
       ],
       "severity": "warn"
     }
