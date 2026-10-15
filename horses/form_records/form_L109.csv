@@ -1,4 +1,5 @@
 ﻿horse_no,race_index,place,date,racecourse,track,course,distance_m,going,race_class,draw,rating,trainer,jockey,lbw,win_odds,actual_wt_lbs,running_position,finish_time,declared_wt_lbs,gear
+L109,106,12,14/10/26,跑馬地,草地,A,1800,好,3,7,70,游達榮,霍宏聲,11,9.5,125,4 4 3 6 12,1.51.64,1013,B/XB
 L109,075,08,04/10/26,沙田,草地,B,1800,好/快,3,8,72,游達榮,周俊樂,6,8.4,126,8 8 10 9 8,1.47.68,1027,B/XB2
 L109,845,03,08/07/26,跑馬地,草地,B,1800,好,2,11,74,游達榮,鍾易禮,3,22,119,10 11 11 11 3,1.48.72,1018,V-/B2
 L109,813,11,27/06/26,沙田全天候,,,1650,好,3,7,75,游達榮,艾道拿,13,12,125,7 9 11 11,1.39.90,1013,B-/XB-/V1

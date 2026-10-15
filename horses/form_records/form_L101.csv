@@ -1,4 +1,5 @@
 ﻿horse_no,race_index,place,date,racecourse,track,course,distance_m,going,race_class,draw,rating,trainer,jockey,lbw,win_odds,actual_wt_lbs,running_position,finish_time,declared_wt_lbs,gear
+L101,102,12,14/10/26,跑馬地,草地,A,1200,好,4,4,44,鄭俊偉,巫顯東,17-1/4,142,118,9 10 12,1.13.06,1144,TT
 L101,042,11,23/09/26,跑馬地,草地,C,1000,好,4,5,46,鄭俊偉,巫顯東,9-1/2,122,120,8 12 11,0.58.48,1147,TT
 L101,698,12,17/05/26,沙田,草地,C+3,1200,好/黏,4,2,50,鄭俊偉,蔡明紹,22-1/2,190,125,6 10 12,1.14.09,1123,TT
 L101,655,13,03/05/26,沙田,草地,B,1200,好,4,4,52,鄭俊偉,金誠剛,11-3/4,197,130,5 7 13,1.11.20,1124,TT

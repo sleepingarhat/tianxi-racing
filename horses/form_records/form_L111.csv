@@ -1,4 +1,5 @@
 ﻿horse_no,race_index,place,date,racecourse,track,course,distance_m,going,race_class,draw,rating,trainer,jockey,lbw,win_odds,actual_wt_lbs,running_position,finish_time,declared_wt_lbs,gear
+L111,100,10,14/10/26,跑馬地,草地,A,1650,好,4,8,55,游達榮,艾兆禮,23-1/4,97,131,2 2 2 10,1.44.34,988,XB/B1
 L111,062,12,01/10/26,沙田,草地,A,1800,好/快,4,6,57,游達榮,金誠剛,13-1/4,116,133,6 7 8 9 12,1.49.86,1001,CP-/XB2
 L111,689,09,13/05/26,跑馬地,草地,C+3,1800,好/快,3,6,61,游達榮,金誠剛,11,79,120,3 2 2 3 9,1.50.65,1007,XB-/CP1
 L111,643,14,26/04/26,沙田,草地,A,1600,好/快,3,2,63,游達榮,金誠剛,9-1/2,236,121,4 6 8 14,1.36.02,1042,XB

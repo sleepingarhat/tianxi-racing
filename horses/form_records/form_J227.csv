@@ -1,4 +1,5 @@
 ﻿horse_no,race_index,place,date,racecourse,track,course,distance_m,going,race_class,draw,rating,trainer,jockey,lbw,win_odds,actual_wt_lbs,running_position,finish_time,declared_wt_lbs,gear
+J227,101,06,14/10/26,跑馬地,草地,A,1650,好,4,10,51,羅富全,周俊樂,2-1/4,59,127,10 10 9 6,1.41.66,1121,CP
 J227,012,07,09/09/26,跑馬地,草地,A,1650,好,4,3,52,羅富全,艾兆禮,3-1/2,27,127,7 7 5 7,1.42.80,1102,CP
 J227,841,06,08/07/26,跑馬地,草地,B,1650,好,4,7,52,羅富全,潘頓,9,13,127,8 8 7 6,1.40.77,1133,CP
 J227,769,06,10/06/26,跑馬地,草地,C+3,1650,好,4,12,52,羅富全,潘頓,3-3/4,16,127,11 10 9 6,1.39.79,1134,CP

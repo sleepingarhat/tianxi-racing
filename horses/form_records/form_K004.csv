@@ -1,4 +1,5 @@
 ﻿horse_no,race_index,place,date,racecourse,track,course,distance_m,going,race_class,draw,rating,trainer,jockey,lbw,win_odds,actual_wt_lbs,running_position,finish_time,declared_wt_lbs,gear
+K004,106,08,14/10/26,跑馬地,草地,A,1800,好,3,11,71,徐雨石,巴度,4-1/4,34,126,12 10 9 10 8,1.50.56,1113,H
 K004,045,06,23/09/26,跑馬地,草地,C,1800,好,3,9,71,徐雨石,田泰安,6,11,126,11 11 9 8 6,1.48.97,1129,H
 K004,771,04,10/06/26,跑馬地,草地,C+3,1800,好,3,3,71,徐雨石,巴度,1-1/4,4.2,127,8 7 7 8 4,1.48.68,1133,H
 K004,689,02,13/05/26,跑馬地,草地,C+3,1800,好/快,3,2,70,徐雨石,巴度,1-1/4,6.4,129,7 6 6 6 2,1.49.08,1143,H
