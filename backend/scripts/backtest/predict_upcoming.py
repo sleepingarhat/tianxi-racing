@@ -148,6 +148,19 @@ def make_graded_label(df: pd.DataFrame) -> np.ndarray:
     return (5 - pos).clip(lower=0).to_numpy()
 
 
+def write_gate_record(args, status, reasons, alpha_set, diag):
+    """2026-10-16: persist the gate verdict next to the bundle (storage only)."""
+    if not getattr(args, 'save_bundle', None):
+        return
+    try:
+        import os as _os
+        _os.makedirs(args.save_bundle, exist_ok=True)
+        with open(_os.path.join(args.save_bundle, 'gate.json'), 'w') as fh:
+            json.dump({'status': status, 'reasons': list(reasons), 'alphaSet': alpha_set,
+                       'fittedAlpha': diag.get('alpha'), 'valRaces': diag.get('val_races')}, fh)
+    except Exception as e:
+        print(f'[gate] WARNING: could not write gate.json: {e}', flush=True)
+
 def evaluate_gates(diag: dict) -> tuple:
     """Plan A health gates. Returns (passed: bool, reasons: list[str]).
     Mirrors the manual α-reset checklist. NOTE: α≈1 is EXPECTED (LGB dominates
@@ -738,11 +751,13 @@ def main() -> int:
                   f'unavailable): reasons: {"; ".join(reasons)}', flush=True)
             print('[gate] α left UNCHANGED (no automatic pure-ELO fallback on a '
                   'non-verdict). Investigate the validation split.', flush=True)
+            write_gate_record(args, 'INDETERMINATE', reasons, None, diag)
             base = args.admin_url.rsplit('/', 1)[0]
             post_admin(f'{base}/refresh-race-day-report', args.token,
                        'refresh-race-day-report')
             return 5
         target = args.alpha_pass if passed else 0.0
+        write_gate_record(args, 'PASS' if passed else 'FAIL', reasons, target, diag)
         if passed:
             print(f'[gate] ALL Plan A health gates PASS → ensemble_alpha={target} '
                   f'(LGB+ELO ensemble LIVE)', flush=True)
