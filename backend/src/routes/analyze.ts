@@ -24,6 +24,7 @@ import { countPredictionLogRows, getMeetingLockState, isCancelledMeeting, LOCK_L
 import { postLockRaceNumbers } from '../lib/freeze-ledger';
 import { factorScores, paceEstimates, configFingerprint, PACE_METHOD, type FormRow } from '../lib/lock-telemetry';
 import { buildEngineHealth } from '../lib/engine-health';
+import { manifestFor, ensureModelManifestTable } from '../lib/model-manifest';
 import { computeFreezeLedger } from '../lib/freeze-ledger';
 
 import {
@@ -661,11 +662,13 @@ async function raceDayReportIsSettled(db: D1Database, value: any): Promise<boole
     } : null;
     const config = { lgbModelVersion: payload.lgbModelVersion ?? null, alpha, eloWeights: payload.eloWeights ?? null,
       probCalibration: payload.probCalibration?.version ?? null, paceMethod: PACE_METHOD };
+    const man = await manifestFor(db, payload.lgbModelVersion);
+    if (man && gate) Object.assign(gate, { retrain_gate: man.gate_status, retrain_run: man.run_id });
     await db.prepare(`${completion ? 'INSERT OR IGNORE' : 'INSERT OR REPLACE'} INTO prediction_lock_meta
       (date, engine, venue, written_at, training_start, training_end, gate_result, model_fingerprint, config)
       VALUES (?,?,?,?,?,?,?,?,?)`).bind(payload.date, engine, payload.venue ?? null, new Date().toISOString(),
-      payload.trainingStart ?? null, payload.trainingEnd ?? null, gate ? JSON.stringify(gate) : null,
-      await configFingerprint(config), JSON.stringify(config)).run();
+      man?.training_start ?? null, man?.training_end ?? null, gate ? JSON.stringify(gate) : null,
+      man?.bundle_fingerprint ?? await configFingerprint(config), JSON.stringify(config)).run();
   }
 
   // Join predictions with actual race_results. Idempotent — only updates rows whose actual_finish IS NULL.
@@ -3397,6 +3400,16 @@ analyzeRoutes.get('/factors', (c) => {
         await writeRaceDayReportCache(db, targetDate, cacheKey, meeting.venue, payload, computeMs).catch(() => {});
         return payload;
       }
+
+      // Public, read-only: retrain manifests (window / gate / bundle fingerprint) as recorded.
+      analyzeRoutes.get('/model-manifests', async (c) => {
+        await ensureModelManifestTable(c.env.DB).catch(() => {});
+        const { results } = await c.env.DB.prepare(`SELECT run_id, model_version, trained_on, training_start, training_end,
+          training_rows, bundle_fingerprint, fitted_alpha, live_alpha, gate_status, gate_reasons, source, recorded_at
+          FROM model_run_manifest ORDER BY trained_on DESC, recorded_at DESC LIMIT 200`).all<any>().catch(() => ({ results: [] }));
+        c.header('Cache-Control', 'public, max-age=300');
+        return c.json({ manifests: results ?? [] });
+      });
 
       analyzeRoutes.get('/today-picks', async (c) => {
         try {
