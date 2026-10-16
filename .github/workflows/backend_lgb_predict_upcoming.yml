@@ -336,12 +336,28 @@ jobs:
               'sha256': {p: sha(p) for p in ['model-bundle/model.txt', 'model-bundle/meta.json', 'upcoming-features.csv']},
           }
           man['bundleFingerprint'] = hashlib.sha256((man['sha256']['model-bundle/model.txt'] + man['sha256']['model-bundle/meta.json']).encode()).hexdigest()[:24]
+          # 2026-10-16: training window = actual date range of features.csv used to fit.
+          _dates = [r[1] for r in csv.reader(open('features.csv'))][1:]
+          man['trainingStart'], man['trainingEnd'], man['trainingRows'] = (min(_dates), max(_dates), len(_dates)) if _dates else (None, None, 0)
+          man['trainedOn'] = meta.get('trainedOn')
+          man['gate'] = json.load(open('model-bundle/gate.json')) if os.path.isfile('model-bundle/gate.json') else None
           json.dump(man, open('model-bundle/lock-manifest.json', 'w'), indent=2)
           print(json.dumps(man, indent=2))
           if errs:
               print('VERIFY FAILED:\n' + '\n'.join(errs)); sys.exit(1)
           print('lock-point bundle verified')
           PY
+
+      # 2026-10-16: publish the verified manifest (window/gate/fingerprint) to D1. Storage only.
+      - name: Publish model manifest
+        if: success()
+        working-directory: tianxi-backend
+        env:
+          ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN_2 }}
+        run: |
+          curl -fsS -X POST -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' \
+            --data @model-bundle/lock-manifest.json \
+            https://tianxi-backend.tianxi-entertainment.workers.dev/admin/api/model-manifest || echo "manifest publish failed (non-blocking)"
 
       - name: Upload artifacts
         if: always()
