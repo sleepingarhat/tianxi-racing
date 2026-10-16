@@ -22,6 +22,8 @@ import {
 import { freezeMeetingPayload } from '../lib/prediction-lock-db';
 import { countPredictionLogRows, getMeetingLockState, isCancelledMeeting, LOCK_LEAD_MINUTES, lockCompletionAllowed, loggedRaceNumbers, markLockCompletion } from '../lib/lock-window';
 import { postLockRaceNumbers } from '../lib/freeze-ledger';
+import { factorScores, paceEstimates, configFingerprint, PACE_METHOD, type FormRow } from '../lib/lock-telemetry';
+import { buildEngineHealth } from '../lib/engine-health';
 import { computeFreezeLedger } from '../lib/freeze-ledger';
 
 import {
@@ -567,6 +569,14 @@ async function raceDayReportIsSettled(db: D1Database, value: any): Promise<boole
       score_source TEXT,
       PRIMARY KEY (date, race_number, horse_id, engine, variant)
     )`).run();
+    // 2026-10-16 lock telemetry: additive nullable columns; old rows stay NULL.
+    for (const col of ['jockey_elo REAL', 'trainer_elo REAL', 'factor_scores TEXT', 'pace_estimate TEXT']) {
+      await db.prepare(`ALTER TABLE prediction_log ADD COLUMN ${col}`).run().catch(() => {});
+    }
+    await db.prepare(`CREATE TABLE IF NOT EXISTS prediction_lock_meta (
+      date TEXT NOT NULL, engine TEXT NOT NULL, venue TEXT, written_at TEXT NOT NULL,
+      training_start TEXT, training_end TEXT, gate_result TEXT, model_fingerprint TEXT, config TEXT,
+      PRIMARY KEY (date, engine))`).run().catch(() => {});
     await db.prepare(`CREATE INDEX IF NOT EXISTS idx_prediction_log_date ON prediction_log(date)`).run().catch(() => {});
     await db.prepare(`CREATE INDEX IF NOT EXISTS idx_prediction_log_join ON prediction_log(date, joined_at)`).run().catch(() => {});
   }
@@ -583,10 +593,21 @@ async function raceDayReportIsSettled(db: D1Database, value: any): Promise<boole
     const generatedAt = payload.generatedAt ?? new Date().toISOString();
     const completion = _guard.reason === 'locked-completion';
     const alreadyLogged = completion ? await loggedRaceNumbers(db, payload.date, engine) : new Set<number>();
+    // Pre-race form (race_date < meeting date) for pace estimate. Storage only.
+    const allIds = [...new Set(payload.races.flatMap((r: any) => (r?.picks ?? []).map((p: any) => p.horseId).filter(Boolean)))] as string[];
+    const formRows: FormRow[] = [];
+    for (let i = 0; i < allIds.length; i += 90) {
+      const ids = allIds.slice(i, i + 90);
+      const res = await db.prepare(`SELECT horse_id, race_date, distance, running_position FROM horse_form_records
+        WHERE horse_id IN (${ids.map(() => '?').join(',')}) AND race_date < ? AND running_position IS NOT NULL AND running_position != ''`)
+        .bind(...ids, payload.date).all<FormRow>().catch(() => ({ results: [] as FormRow[] }));
+      formRows.push(...(res.results ?? []));
+    }
     const stmts: D1PreparedStatement[] = [];
     for (const race of payload.races) {
       if (!race?.picks?.length || race.raceNumber == null || race.raceNumber === 0) continue;
       if (completion && alreadyLogged.has(Number(race.raceNumber))) continue; // 已鎖場次永不覆寫
+      const pace = paceEstimates(race.picks.map((p: any) => p.horseId).filter(Boolean), formRows, payload.date, Number(race.distance) || null);
       for (const p of race.picks) {
         if (!p.horseId) continue;
         stmts.push(
@@ -594,8 +615,9 @@ async function raceDayReportIsSettled(db: D1Database, value: any): Promise<boole
             (date, race_number, horse_id, engine, variant, horse_number, draw,
              horse_elo, elo_source, elo_confidence, elo_composite, factor_bonus, final_score,
              p_win, p_top3, predicted_rank, generated_at,
-             lgb_score, lgb_model_version, score_source)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).bind(
+             lgb_score, lgb_model_version, score_source,
+             jockey_elo, trainer_elo, factor_scores, pace_estimate)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).bind(
             payload.date, race.raceNumber, p.horseId, engine, variant,
             p.horseNumber ?? null, p.draw ?? null,
             p.horseElo ?? null, p.eloSource ?? null, p.horseConfidence ?? null,
@@ -610,7 +632,10 @@ async function raceDayReportIsSettled(db: D1Database, value: any): Promise<boole
             (p.scoreSource === 'lgb' || p.lgbScore != null)
               ? (p.lgbModelVersion ?? payload.lgbModelVersion ?? null)
               : null,
-            p.scoreSource ?? null
+            p.scoreSource ?? null,
+            p.jockeyElo ?? null, p.trainerElo ?? null,
+            factorScores(p.factorBreakdown, p.factorBonus),
+            pace.has(p.horseId) ? JSON.stringify(pace.get(p.horseId)) : null
           )
         );
       }
@@ -621,7 +646,26 @@ async function raceDayReportIsSettled(db: D1Database, value: any): Promise<boole
       await db.batch(stmts.slice(i, i + 50));
     }
     if (completion) await markLockCompletion(db, payload.date, engine, stmts.length);
+    await writeLockMeta(db, payload, engine, completion).catch(() => {});
     return { rows: stmts.length };
+  }
+
+  // One row per meeting lock: gate snapshot at write time + config fingerprint.
+  // training_start/end stay NULL until the retrain job publishes its window (never back-filled).
+  async function writeLockMeta(db: D1Database, payload: any, engine: string, completion: boolean): Promise<void> {
+    const health = await buildEngineHealth(db as any).catch(() => null);
+    const alpha = await getEnsembleAlpha(db).catch(() => null);
+    const gate = health ? {
+      status: health.checks.find((c) => c.id === 'gate_alpha')?.status ?? null,
+      checked_at: new Date().toISOString(), alpha, audit: health.overall, counts: health.counts,
+    } : null;
+    const config = { lgbModelVersion: payload.lgbModelVersion ?? null, alpha, eloWeights: payload.eloWeights ?? null,
+      probCalibration: payload.probCalibration?.version ?? null, paceMethod: PACE_METHOD };
+    await db.prepare(`${completion ? 'INSERT OR IGNORE' : 'INSERT OR REPLACE'} INTO prediction_lock_meta
+      (date, engine, venue, written_at, training_start, training_end, gate_result, model_fingerprint, config)
+      VALUES (?,?,?,?,?,?,?,?,?)`).bind(payload.date, engine, payload.venue ?? null, new Date().toISOString(),
+      payload.trainingStart ?? null, payload.trainingEnd ?? null, gate ? JSON.stringify(gate) : null,
+      await configFingerprint(config), JSON.stringify(config)).run();
   }
 
   // Join predictions with actual race_results. Idempotent — only updates rows whose actual_finish IS NULL.
