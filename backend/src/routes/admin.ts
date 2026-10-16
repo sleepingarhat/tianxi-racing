@@ -583,6 +583,9 @@ adminRoutes.get('/api/coverage', async (c) => {
 // analyze.ts (computeComposite) reads these scores and uses lgb_score as
 // the primary ranking signal when present; absence → falls back to ELO+factor.
 adminRoutes.post('/api/model-manifest', async (c) => {
+  if (!(await hasAdminAccess(c, ADMIN_AUTH_POLICY.BEARER_ONLY))) {
+    return c.json({ error: 'unauthorized (Bearer required)' }, 401);
+  }
   const { parseManifest, writeManifest } = await import('../lib/model-manifest');
   const row = parseManifest(await c.req.json().catch(() => null));
   if (!row) return c.json({ error: 'invalid manifest' }, 400);
