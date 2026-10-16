@@ -37,6 +37,9 @@ jobs:
       - name: Regression test — frozen prediction lock SSOT
         run: npx tsx scripts/test-prediction-lock.ts
 
+      - name: Regression test — lock telemetry storage
+        run: npx tsx scripts/test-lock-telemetry.ts
+
       - name: Deploy to Cloudflare Workers
         run: npx wrangler deploy
         env:
