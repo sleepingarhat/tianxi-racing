@@ -110,6 +110,7 @@ function requestEndpoint(endpoint: EndpointCase, headers: HeadersInit = {}): Pro
 
 const BEARER_ONLY_ADMIN_PATHS = new Set([
   '/api/set-alpha',
+  '/api/model-manifest',
   '/api/fix-dividend-pool-swap',
   '/api/refresh-race-dividends',
 ]);
