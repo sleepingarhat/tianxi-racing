@@ -1737,9 +1737,9 @@ async function fetchAxisEloReading(
       const row = await db.prepare(
         `SELECT rating, confidence, is_frozen, is_retired, is_provisional
            FROM ${table}
-          WHERE ${col} = ? AND axis_key = 'overall' AND as_of_date < ?
+          WHERE ${col} = ?${entityTable === 'horse' ? " AND axis_key = 'overall'" : ''} AND as_of_date < ?
             AND id LIKE 'v12:%'
-          ORDER BY as_of_date DESC LIMIT 1`
+          ORDER BY as_of_date DESC, CAST(substr(id, length(rtrim(id, '0123456789')) + 1) AS INTEGER) DESC LIMIT 1`
       ).bind(entityId, asOf).first<any>();
       if (row?.rating != null) {
         return {
@@ -1758,9 +1758,9 @@ async function fetchAxisEloReading(
   try {
     const row = await db.prepare(
       `SELECT rating FROM ${table}
-        WHERE ${col} = ? AND axis_key = 'overall' AND as_of_date < ?
+        WHERE ${col} = ?${entityTable === 'horse' ? " AND axis_key = 'overall'" : ''} AND as_of_date < ?
           AND id NOT LIKE 'v12:%'
-        ORDER BY as_of_date DESC LIMIT 1`
+        ORDER BY as_of_date DESC, CAST(substr(id, length(rtrim(id, '0123456789')) + 1) AS INTEGER) DESC LIMIT 1`
     ).bind(entityId, asOf).first<any>();
     return row?.rating != null
       ? { rating: row.rating, confidence: null, isFrozen: false, isRetired: false, isProvisional: false, engine: 'v11' }
@@ -2456,8 +2456,8 @@ analyzeRoutes.get('/factors', (c) => {
           const { results } = await db.prepare(
             `SELECT ${col}, rating, confidence, is_frozen, is_retired, is_provisional
              FROM ${table}
-             WHERE ${col} IN (${ph})${entityTable === 'horse' ? " AND axis_key = 'overall'" : ''} AND as_of_date <= ? AND id LIKE 'v12:%'
-             ORDER BY ${col}, as_of_date DESC`
+             WHERE ${col} IN (${ph})${entityTable === 'horse' ? " AND axis_key = 'overall'" : ''} AND as_of_date < ? AND id LIKE 'v12:%'
+             ORDER BY ${col}, as_of_date DESC, CAST(substr(id, length(rtrim(id, '0123456789')) + 1) AS INTEGER) DESC`
           ).bind(...chunk, asOf).all<any>();
           for (const row of (results ?? [])) {
             if (!map.has(row[col])) map.set(row[col], { rating: row.rating, confidence: row.confidence ?? null, isFrozen: !!row.is_frozen, isRetired: !!row.is_retired, isProvisional: !!row.is_provisional, engine: 'v12' });
@@ -2475,8 +2475,8 @@ analyzeRoutes.get('/factors', (c) => {
           const { results } = await db.prepare(
             `SELECT ${col}, rating
              FROM ${table}
-             WHERE ${col} IN (${ph2})${entityTable === 'horse' ? " AND axis_key = 'overall'" : ''} AND as_of_date <= ? AND id NOT LIKE 'v12:%'
-             ORDER BY ${col}, as_of_date DESC`
+             WHERE ${col} IN (${ph2})${entityTable === 'horse' ? " AND axis_key = 'overall'" : ''} AND as_of_date < ? AND id NOT LIKE 'v12:%'
+             ORDER BY ${col}, as_of_date DESC, CAST(substr(id, length(rtrim(id, '0123456789')) + 1) AS INTEGER) DESC`
           ).bind(...chunk, asOf).all<any>();
           for (const row of (results ?? [])) {
             if (!map.has(row[col])) map.set(row[col], { rating: row.rating, confidence: null, isFrozen: false, isRetired: false, isProvisional: false, engine: 'v11' });

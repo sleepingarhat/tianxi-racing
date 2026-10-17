@@ -64,7 +64,7 @@ jobs:
     needs: season_gate
     if: >-
       needs.season_gate.outputs.skip != 'true' &&
-      (github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success')
+      (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success')
     runs-on: ubuntu-latest
     timeout-minutes: 40
     steps:
@@ -102,6 +102,13 @@ jobs:
         working-directory: tianxi-backend
         run: npm ci --no-audit --no-fund
 
+      - name: Regression tests — restored v12 formulas and replay
+        working-directory: tianxi-backend
+        run: |
+          npx tsx scripts/test-elo-v12.ts
+          npx tsx scripts/test-elo-v12-integration.ts
+          npx tsx scripts/test-elo-asof.ts
+
       - name: Ingest CSVs into bulk-local.db
         working-directory: tianxi-backend
         run: |
@@ -114,11 +121,8 @@ jobs:
           ELO_SINCE: ${{ steps.resolve.outputs.since }}
           ELO_MODE: ${{ steps.resolve.outputs.mode }}
         run: |
-          if [ "$ELO_MODE" = "full" ]; then
-            npx tsx scripts/elo/compute.ts --engine v12 --full --db=./bulk-local.db
-          else
-            npx tsx scripts/elo/compute.ts --engine v12 --since "$ELO_SINCE" --db=./bulk-local.db
-          fi
+          # Always reconstruct state from full history; SINCE limits publication only.
+          npx tsx scripts/elo/compute_v12.ts --db=./bulk-local.db --reset
 
       - name: Verify ELO snapshots in bulk-local.db
         working-directory: tianxi-backend
@@ -131,10 +135,10 @@ jobs:
             const since = process.env.ELO_SINCE;
             const form = db.prepare('SELECT COUNT(*) AS n, MIN(race_date) AS min_d, MAX(race_date) AS max_d FROM horse_form_records').get();
             const formRecent = db.prepare('SELECT COUNT(*) AS n, MAX(race_date) AS max_d FROM horse_form_records WHERE race_date >= ?').get(since);
-            const hAll = db.prepare('SELECT COUNT(*) AS n, MAX(as_of_date) AS max_d FROM horse_elo_snapshots').get();
-            const jAll = db.prepare('SELECT COUNT(*) AS n, MAX(as_of_date) AS max_d FROM jockey_elo_snapshots').get();
-            const tAll = db.prepare('SELECT COUNT(*) AS n, MAX(as_of_date) AS max_d FROM trainer_elo_snapshots').get();
-            const hSince = db.prepare('SELECT COUNT(*) AS n FROM horse_elo_snapshots WHERE as_of_date >= ?').get(since);
+            const hAll = db.prepare('SELECT COUNT(*) AS n, MAX(as_of_date) AS max_d FROM horse_elo_snapshots WHERE id LIKE \'v12:%\'').get();
+            const jAll = db.prepare('SELECT COUNT(*) AS n, MAX(as_of_date) AS max_d FROM jockey_elo_snapshots WHERE id LIKE \'v12:%\'').get();
+            const tAll = db.prepare('SELECT COUNT(*) AS n, MAX(as_of_date) AS max_d FROM trainer_elo_snapshots WHERE id LIKE \'v12:%\'').get();
+            const hSince = db.prepare('SELECT COUNT(*) AS n FROM horse_elo_snapshots WHERE as_of_date >= ? AND id LIKE \'v12:%\'').get(since);
             console.log('form (source)     :', form);
             console.log('form since ' + since + ' :', formRecent);
             console.log('horse snapshots   :', hAll);
@@ -151,9 +155,9 @@ jobs:
             }
             for (const [axis, snap] of [['jockey', jAll], ['trainer', tAll]]) {
               if (snap.n === 0) {
-                console.log('::warning::No ' + axis + ' ELO snapshots in bulk-local.db at all - investigate compute_v12 ' + axis + ' code path.');
+                console.error('::error::No ' + axis + ' ELO snapshots in bulk-local.db at all - investigate compute_v12 ' + axis + ' code path.'); process.exit(1);
               } else if (form.max_d && snap.max_d && snap.max_d < form.max_d) {
-                console.log('::warning::' + axis + ' snapshot lag: snapshots reach ' + snap.max_d + ' but horse_form_records reach ' + form.max_d + ' (gap is known/pre-existing — #ELO-2026-002).');
+                console.error('::error::' + axis + ' snapshot lag: snapshots reach ' + snap.max_d + ' but horse_form_records reach ' + form.max_d + ' '); process.exit(1);
               }
             }
             if (hSince.n === 0) {
@@ -172,6 +176,7 @@ jobs:
             --db=./bulk-local.db \
             --since="$SINCE" \
             --include=elo \
+            --elo-version=v12 \
             --out=/tmp/d1-delta
           ls -la /tmp/d1-delta/ | head -40 || echo "(no chunks)"
 
@@ -202,12 +207,24 @@ jobs:
           done
           if [ "$FAILED" -eq 1 ]; then exit 1; fi
 
-      - name: Verify D1 ELO snapshots post-push
+      - name: Verify D1 v12 snapshots post-push
+        working-directory: tianxi-backend
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          ELO_SINCE: ${{ steps.resolve.outputs.since }}
         run: |
           set -eu
-          wrangler d1 execute tianxi-db --remote \
-            --command="SELECT 'horse' AS axis, COUNT(*) AS rows, MAX(as_of_date) AS max_d FROM horse_elo_snapshots UNION ALL SELECT 'jockey', COUNT(*), MAX(as_of_date) FROM jockey_elo_snapshots UNION ALL SELECT 'trainer', COUNT(*), MAX(as_of_date) FROM trainer_elo_snapshots" \
-            --json | tail -40
+          npx wrangler d1 execute tianxi-db --remote --command="SELECT 'horse' AS axis, COUNT(*) AS n, MAX(as_of_date) AS latest FROM horse_elo_snapshots WHERE id LIKE 'v12:%' AND as_of_date >= '$ELO_SINCE' UNION ALL SELECT 'jockey', COUNT(*), MAX(as_of_date) FROM jockey_elo_snapshots WHERE id LIKE 'v12:%' AND as_of_date >= '$ELO_SINCE' UNION ALL SELECT 'trainer', COUNT(*), MAX(as_of_date) FROM trainer_elo_snapshots WHERE id LIKE 'v12:%' AND as_of_date >= '$ELO_SINCE'" --json > /tmp/elo-remote.json
+          python3 - <<'PY'
+          import json, sqlite3, os
+          db = sqlite3.connect('bulk-local.db')
+          rows = json.load(open('/tmp/elo-remote.json'))[0]['results']
+          for row in rows:
+              kind = row['axis']
+              if kind not in ['horse', 'jockey', 'trainer']: raise ValueError('unexpected axis')
+              local = db.execute(f"SELECT COUNT(*), MAX(as_of_date) FROM {kind}_elo_snapshots WHERE id LIKE 'v12:%' AND as_of_date >= ?", (os.environ['ELO_SINCE'],)).fetchone()
+              if (row['n'], row['latest']) != local: raise ValueError(f'{kind} incomplete: remote={row}, local={local}')
+          if len(rows) != 3: raise ValueError('missing axis')
+          print('v12 count and latest date match complete replay for all three axes')
+          PY

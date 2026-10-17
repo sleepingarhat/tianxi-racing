@@ -19,7 +19,7 @@ finalScore = 1500 + blendZ · 100        （顯示用，唔包 factor）
 
 ## 2. Elo 更新
 
-詳見 [ELO.md](ELO.md)。重點：K = 40、初始 1500、兩兩對決期望勝率；綜合分 = 馬 0.7／騎師 0.2／練馬師 0.1；正式預測只讀馬匹 overall 軸。
+詳見 [ELO.md](ELO.md)。重點：馬／騎師／練馬師 K = 28／18／11、時間加權與暫定倍率、初始一般1500、兩兩對決期望勝率；綜合分 = 馬 0.7／騎師 0.2／練馬師 0.1；正式預測只讀馬匹 overall 軸。
 
 ## 3. LightGBM 設定
 
@@ -126,3 +126,6 @@ finalScore = 1500 + blendZ · 100        （顯示用，唔包 factor）
 
 
 網頁版：https://tianxi.racing/model
+
+## 正式訓練特徵重要性
+每次保存production refit的model.txt及meta.json後，從實際序列化模型輸出feature-importance.json，逐項保存gain、split及各自百分比，保留零值與訓練欄序；綁定兩檔SHA-256及既有bundle fingerprint。它只描述LightGBM樹的使用情況，不是因果、單馬SHAP或Elo／融合貢獻，也不作自動升版依據。保存失敗不改推論，但CI證據驗證不過不可推廣新後備cache。舊cache無sidecar仍能推論。

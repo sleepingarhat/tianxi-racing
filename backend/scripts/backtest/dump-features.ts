@@ -43,7 +43,7 @@
   const DB_PATH = arg('db', 'bulk-local.db');
   const FROM = arg('from', '2024-09-01');
   const TO = arg('to', '2026-04-30');
-  const ENGINE = 'v12' as const;
+  const ENGINE = 'v12' as const; // v12-first explicit ordering; historical v1 fallback only when no v12 exists
   const W_HORSE = argNum('w-horse', 0.7);
   const W_JOCKEY = argNum('w-jockey', 0.2);
   const W_TRAINER = argNum('w-trainer', 0.1);
@@ -113,8 +113,8 @@
         // horse_elo_snapshots has axis_key NOT NULL — filter to 'overall'.
         // jockey/trainer snapshot tables have no axis_key column.
         const sql = entity === 'horse'
-          ? `SELECT rating FROM ${table} WHERE ${col}=? AND axis_key='overall' AND as_of_date<? ORDER BY as_of_date DESC LIMIT 1`
-          : `SELECT rating FROM ${table} WHERE ${col}=? AND as_of_date<? ORDER BY as_of_date DESC LIMIT 1`;
+          ? `SELECT rating FROM ${table} WHERE ${col}=? AND axis_key='overall' AND as_of_date<? ORDER BY (id LIKE 'v12:%') DESC, as_of_date DESC, CAST(substr(id, length(rtrim(id, '0123456789')) + 1) AS INTEGER) DESC LIMIT 1`
+          : `SELECT rating FROM ${table} WHERE ${col}=? AND as_of_date<? ORDER BY (id LIKE 'v12:%') DESC, as_of_date DESC, CAST(substr(id, length(rtrim(id, '0123456789')) + 1) AS INTEGER) DESC LIMIT 1`;
         s = db.prepare(sql);
         eloStmtCache.set(entity, s);
         return s;

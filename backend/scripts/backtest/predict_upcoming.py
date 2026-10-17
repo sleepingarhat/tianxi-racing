@@ -278,6 +278,8 @@ def save_bundle(dir_path: str, booster, model_version: str,
     }
     with open(os.path.join(dir_path, 'meta.json'), 'w', encoding='utf-8') as fh:
         json.dump(meta, fh, indent=2)
+    from feature_importance import write_report
+    write_report(dir_path)
     print(f'[predict] saved carry-over bundle to {dir_path} '
           f'(trainedOn={meta["trainedOn"]}, α={alpha:.3f})', flush=True)
 

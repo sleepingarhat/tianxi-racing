@@ -44,7 +44,10 @@ function main() {
   const include = (arg('include', 'race') || 'race').toLowerCase();
   const wantRace    = include === 'race'    || include === 'all';
   const wantPoolA   = include === 'pool-a'  || include === 'all';
+  const eloV12Only = process.argv.includes('--elo-version=v12');
   const wantElo     = include === 'elo'     || include === 'all';
+  const until = arg('until', '9999-12-31');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(until) || until < since) throw new Error('invalid --until date');
   const wantEntries = include === 'entries' || include === 'all';
   const wantOdds    = include === 'odds'    || include === 'all';
 
@@ -125,9 +128,9 @@ function main() {
     // prefixed "horse_K059" used by tianxi-backend ingest. The FK parent subquery
     // `('horse_' || horse_id) IN (SELECT id FROM horses)` would always miss here,
     // producing 0 rows. Trust D1 to have the horses/jockeys/trainers already.
-    plan.push({ table: 'horse_elo_snapshots',   where: `as_of_date >= '${since}'` });
-    plan.push({ table: 'jockey_elo_snapshots',  where: `as_of_date >= '${since}'` });
-    plan.push({ table: 'trainer_elo_snapshots', where: `as_of_date >= '${since}'` });
+    plan.push({ table: 'horse_elo_snapshots',   where: `as_of_date >= '${since}'${eloV12Only ? " AND id LIKE 'v12:%'" : ''}` });
+    plan.push({ table: 'jockey_elo_snapshots',  where: `as_of_date >= '${since}'${eloV12Only ? " AND id LIKE 'v12:%'" : ''}` });
+    plan.push({ table: 'trainer_elo_snapshots', where: `as_of_date >= '${since}'${eloV12Only ? " AND id LIKE 'v12:%'" : ''}` });
   }
 
   if (wantRace) {
@@ -206,7 +209,9 @@ function main() {
     trainers: ['name_ch', 'name_en'],
   };
 
-  for (const { table, where } of plan) {
+  for (const entry of plan) {
+    const { table } = entry;
+    const where = entry.where + (table.endsWith("_elo_snapshots") ? ` AND as_of_date <= '${until}'${eloV12Only ? " AND id LIKE 'v12:%'" : ""}` : "");
     const tableInfo = db.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string; pk: number }>;
     const cols = tableInfo.map((r) => r.name);
     if (!cols.length) {

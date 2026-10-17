@@ -87,11 +87,15 @@ jobs:
       - name: Install python deps
         run: pip install --quiet lightgbm pandas numpy scikit-learn scipy
 
+      - name: Test production feature-importance provenance
+        working-directory: tianxi-backend
+        run: python -m unittest discover -s tests -p test_feature_importance.py
+
       - name: Compute data signature (cache key — must match lgb_walkforward.yml)
         id: sig
         run: |
           DATA_SHA=$(cd hkjc-data && git rev-parse HEAD)
-          SCRIPTS_HASH=$(find tianxi-backend/scripts/ingest tianxi-backend/scripts/elo tianxi-backend/scripts/import-csv.ts tianxi-backend/src/db/schema.sql -type f 2>/dev/null | sort | xargs sha256sum | sha256sum | head -c12)
+          SCRIPTS_HASH=$(find tianxi-backend/scripts/ingest tianxi-backend/scripts/elo tianxi-backend/scripts/import-csv.ts tianxi-backend/src/db/schema.sql tianxi-backend/src/db/schema_v2.sql tianxi-backend/src/db/schema_v12.sql -type f 2>/dev/null | sort | xargs sha256sum | sha256sum | head -c12)
           KEY="lgb-db-${DATA_SHA:0:12}-${SCRIPTS_HASH}"
           echo "key=$KEY" >> $GITHUB_OUTPUT
           echo "Cache key: $KEY"
@@ -143,11 +147,11 @@ jobs:
         if: steps.db-cache.outputs.cache-hit != 'true'
         working-directory: tianxi-backend
         run: |
-          npx tsx scripts/elo/compute.ts --db=./bulk-local.db --reset
+          npx tsx scripts/elo/compute_v12.ts --db=./bulk-local.db --reset
           ls -lh bulk-local.db
 
       - name: Save bulk-local.db cache
-        if: always() && steps.db-cache.outputs.cache-hit != 'true' && hashFiles('tianxi-backend/bulk-local.db') != ''
+        if: success() && steps.db-cache.outputs.cache-hit != 'true' && hashFiles('tianxi-backend/bulk-local.db') != ''
         uses: actions/cache/save@v4
         with:
           path: tianxi-backend/bulk-local.db
@@ -232,7 +236,7 @@ jobs:
           echo "training rows: $(wc -l < features.csv)"
 
       - name: Save features.csv cache
-        if: always() && steps.feat-cache.outputs.cache-hit != 'true' && hashFiles('tianxi-backend/features.csv') != ''
+        if: success() && steps.feat-cache.outputs.cache-hit != 'true' && hashFiles('tianxi-backend/features.csv') != ''
         uses: actions/cache/save@v4
         with:
           path: tianxi-backend/features.csv
@@ -282,13 +286,6 @@ jobs:
       # 2026-09-13 韌性：把今次嘅生產模型（booster + τ/α + FEAT_COLS）凍結入
       # cache，供 lgb_fast_predict.yml 喺重訓失敗／未跑完時「用昨日模型」頂住，
       # 而唔係全站退回 ELO 基準（紅燈初稿）。
-      - name: Save model bundle cache (carry-over fallback)
-        if: always() && hashFiles('tianxi-backend/model-bundle/model.txt') != ''
-        uses: actions/cache/save@v4
-        with:
-          path: tianxi-backend/model-bundle
-          key: lgb-model-v1-${{ github.run_id }}
-
       # 2026-09-24 鎖點 bundle 驗證：model.txt／meta.json／特徵檔／run_id 必須互相對應，
       # 缺檔或指紋不符即 fail。只讀驗證，唔改訓練、POST、α、四揀。
       - name: Verify lock-point bundle (fail-closed)
@@ -301,12 +298,15 @@ jobs:
           python - <<'PY'
           import csv, hashlib, json, os, sys
           errs = []
-          need = ['model-bundle/model.txt', 'model-bundle/meta.json', 'upcoming-features.csv', 'features.csv']
+          need = ['model-bundle/feature-importance.json', 'model-bundle/model.txt', 'model-bundle/meta.json', 'upcoming-features.csv', 'features.csv']
           for f in need:
               if not os.path.isfile(f) or os.path.getsize(f) == 0:
                   errs.append(f'missing/empty: {f}')
           if errs:
               print('\n'.join(errs)); sys.exit(1)
+          sys.path.insert(0, 'scripts/backtest')
+          from feature_importance import verify_report
+          verify_report('model-bundle')
           meta = json.load(open('model-bundle/meta.json'))
           cols = meta.get('featCols') or []
           booster_cols = []
@@ -333,7 +333,7 @@ jobs:
               'runId': os.environ['RUN_ID'], 'runAttempt': os.environ['RUN_ATTEMPT'],
               'headSha': os.environ['HEAD_SHA'], 'modelVersion': meta.get('modelVersion'),
               'alpha': meta.get('alpha'), 'nFeatures': len(cols),
-              'sha256': {p: sha(p) for p in ['model-bundle/model.txt', 'model-bundle/meta.json', 'upcoming-features.csv']},
+              'sha256': {p: sha(p) for p in ['model-bundle/model.txt', 'model-bundle/meta.json', 'model-bundle/feature-importance.json', 'upcoming-features.csv']},
           }
           man['bundleFingerprint'] = hashlib.sha256((man['sha256']['model-bundle/model.txt'] + man['sha256']['model-bundle/meta.json']).encode()).hexdigest()[:24]
           # 2026-10-16: training window = actual date range of features.csv used to fit.
@@ -347,6 +347,13 @@ jobs:
               print('VERIFY FAILED:\n' + '\n'.join(errs)); sys.exit(1)
           print('lock-point bundle verified')
           PY
+
+      - name: Save model bundle cache (carry-over fallback)
+        if: success() && hashFiles('tianxi-backend/model-bundle/model.txt') != ''
+        uses: actions/cache/save@v4
+        with:
+          path: tianxi-backend/model-bundle
+          key: lgb-model-v1-${{ github.run_id }}
 
       # 2026-10-16: publish the verified manifest (window/gate/fingerprint) to D1. Storage only.
       - name: Publish model manifest
@@ -369,6 +376,7 @@ jobs:
             tianxi-backend/upcoming-features.csv
             tianxi-backend/features.csv
             tianxi-backend/model-bundle/model.txt
+            tianxi-backend/model-bundle/feature-importance.json
             tianxi-backend/model-bundle/meta.json
             tianxi-backend/model-bundle/lock-manifest.json
           if-no-files-found: warn

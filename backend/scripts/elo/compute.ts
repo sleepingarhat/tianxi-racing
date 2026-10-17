@@ -78,6 +78,9 @@ function raceKeyStr(k: RaceKey): string {
 }
 
 async function main(): Promise<void> {
+  if (process.argv.some(x => x === '--engine' || x.startsWith('--engine=') || x === '--since' || x.startsWith('--since=') || x === '--full')) {
+    throw new Error('Legacy Elo driver: use compute_v12.ts for v12; unknown flags refused');
+  }
   const args = parseArgs(process.argv);
   log('elo', `db=${args.db}`);
   log('elo', `run=${args.runLabel} k=${args.k} from=${args.fromDate} to=${args.toDate} reset=${args.reset}`);

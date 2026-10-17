@@ -65,7 +65,7 @@ jobs:
         id: sig
         run: |
           DATA_SHA=$(cd hkjc-data && git rev-parse HEAD)
-          SCRIPTS_HASH=$(find tianxi-backend/scripts/ingest tianxi-backend/scripts/elo tianxi-backend/scripts/import-csv.ts tianxi-backend/src/db/schema.sql -type f 2>/dev/null | sort | xargs sha256sum | sha256sum | head -c12)
+          SCRIPTS_HASH=$(find tianxi-backend/scripts/ingest tianxi-backend/scripts/elo tianxi-backend/scripts/import-csv.ts tianxi-backend/src/db/schema.sql tianxi-backend/src/db/schema_v2.sql tianxi-backend/src/db/schema_v12.sql -type f 2>/dev/null | sort | xargs sha256sum | sha256sum | head -c12)
           KEY="lgb-db-${DATA_SHA:0:12}-${SCRIPTS_HASH}"
           echo "key=$KEY" >> $GITHUB_OUTPUT
           echo "Cache key: $KEY"
@@ -96,11 +96,11 @@ jobs:
         if: steps.db-cache.outputs.cache-hit != 'true'
         working-directory: tianxi-backend
         run: |
-          npx tsx scripts/elo/compute.ts --db=./bulk-local.db --reset
+          npx tsx scripts/elo/compute_v12.ts --db=./bulk-local.db --reset
           ls -lh bulk-local.db
 
       - name: Save bulk-local.db cache
-        if: always() && steps.db-cache.outputs.cache-hit != 'true' && hashFiles('tianxi-backend/bulk-local.db') != ''
+        if: success() && steps.db-cache.outputs.cache-hit != 'true' && hashFiles('tianxi-backend/bulk-local.db') != ''
         uses: actions/cache/save@v4
         with:
           path: tianxi-backend/bulk-local.db
