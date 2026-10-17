@@ -19,6 +19,7 @@
  *                                   [--reset]
  */
 import { resolve } from 'node:path';
+import { randomUUID } from 'node:crypto';
 import { openDb, ensureSchema } from '../ingest/lib/db.js';
 import {
   V12_DEFAULTS,
@@ -48,7 +49,7 @@ function parseArgs(argv: string[]): Args {
   const now = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
   const a: Args = {
     db: resolve(process.cwd(), 'bulk-local.db'),
-    runLabel: `v12_${now}`,
+    runLabel: `v12_${now}_${randomUUID()}`,
     fromDate: '2016-01-01',
     toDate: '9999-12-31',
     reset: false,
