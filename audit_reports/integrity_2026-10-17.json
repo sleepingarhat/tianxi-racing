@@ -1,0 +1,136 @@
+{
+  "scan_date": "2026-10-17",
+  "repo_root": "/home/runner/work/tianxi-racing/tianxi-racing",
+  "overall_severity": "critical",
+  "critical_gap_count": 1,
+  "warn_gap_count": 12,
+  "recommendation": "gha_next_delta_will_fix",
+  "categories": {
+    "race_artefacts": {
+      "name": "race_artefacts",
+      "expected": 775,
+      "present": 770,
+      "missing": [
+        "results_2026-09-20",
+        "commentary_2026-09-20",
+        "dividends_2026-09-20",
+        "sectional_times_2026-09-20",
+        "video_links_2026-09-20"
+      ],
+      "stale": [],
+      "notes": [
+        "days with any missing artefact: 1"
+      ],
+      "severity": "warn"
+    },
+    "fixtures_cache": {
+      "name": "fixtures_cache",
+      "expected": 1,
+      "present": 231,
+      "missing": [],
+      "stale": [],
+      "notes": [
+        "total cached race days: 231"
+      ],
+      "severity": "ok"
+    },
+    "horse_profiles": {
+      "name": "horse_profiles",
+      "expected": 1182,
+      "present": 1182,
+      "missing": [],
+      "stale": [],
+      "notes": [
+        "total profiles in DB: 6099"
+      ],
+      "severity": "ok"
+    },
+    "horse_form_records": {
+      "name": "horse_form_records",
+      "expected": 1182,
+      "present": 1182,
+      "missing": [],
+      "stale": [],
+      "notes": [
+        "total form_records files: 6099"
+      ],
+      "severity": "ok"
+    },
+    "jockey_profiles": {
+      "name": "jockey_profiles",
+      "expected": 32,
+      "present": 32,
+      "missing": [],
+      "stale": [],
+      "notes": [
+        "total jockey profiles: 64"
+      ],
+      "severity": "ok"
+    },
+    "jockey_records": {
+      "name": "jockey_records",
+      "expected": 64,
+      "present": 59,
+      "missing": [
+        "BA",
+        "BEP",
+        "BHW",
+        "CJR",
+        "HCY"
+      ],
+      "stale": [],
+      "notes": [
+        "5 jockey profiles have no records file"
+      ],
+      "severity": "warn"
+    },
+    "trainer_profiles": {
+      "name": "trainer_profiles",
+      "expected": 35,
+      "present": 34,
+      "missing": [
+        "甘敏斯"
+      ],
+      "stale": [],
+      "notes": [
+        "1 trainers active recently but NO profile",
+        "total trainer profiles: 67"
+      ],
+      "severity": "critical"
+    },
+    "trainer_records": {
+      "name": "trainer_records",
+      "expected": 67,
+      "present": 67,
+      "missing": [],
+      "stale": [],
+      "notes": [],
+      "severity": "ok"
+    },
+    "trial_results": {
+      "name": "trial_results",
+      "expected": 1,
+      "present": 1,
+      "missing": [],
+      "stale": [],
+      "notes": [
+        "trial rows: 9573"
+      ],
+      "severity": "ok"
+    },
+    "entries_upcoming": {
+      "name": "entries_upcoming",
+      "expected": 2,
+      "present": 0,
+      "missing": [
+        "2026-10-19",
+        "2026-10-21"
+      ],
+      "stale": [],
+      "notes": [
+        "2 upcoming race days lack entries file"
+      ],
+      "severity": "warn"
+    }
+  }
+}
