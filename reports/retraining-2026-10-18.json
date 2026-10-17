@@ -1,0 +1,1538 @@
+{
+  "createdAt": "2026-10-17T17:04:45.693153+00:00",
+  "trainingStart": "2016-09-03",
+  "trainingEnd": "2026-10-14",
+  "trainingRows": 102252,
+  "trainingRaces": 8408,
+  "features": 52,
+  "validationRows": 969,
+  "validationRaces": 79,
+  "bestIteration": 870,
+  "dataScope": "現存完整訓練CSV重擬合；並非用修復後v12重新生成全歷史特徵",
+  "baselineVersion": "lgb-ensemble-20261017",
+  "baselineRun": "39043221749",
+  "sourceCommit": "e406754dd49cbd82abde1bf576e4376de9428f71",
+  "candidateVersion": "lgb-retrain-audit-20261018",
+  "raceDate": "2026-10-19",
+  "frozen": false,
+  "scope": "正式lgb_predictions全11場145匹原始log(p)；公開草稿接口只提供第1場13匹，非全日公開四揀",
+  "modelSha256": "cfaec217114330c37dcf637d3faeb79d892aa0ef5e76341db99e7c42293dfa1b",
+  "trainingSha256": "c2fa1ede4328449a6a790d4302d8f5a7e80945102bc799fe06d4ce567a340f84",
+  "upcomingSha256": "7df714072f23fe71c9830290de44aeb57a2a0d303b2880280622d57943496bf1",
+  "libraryVersion": "4.7.0",
+  "summary": {
+    "races": 11,
+    "runners": 145,
+    "top4ChangedRaces": 0,
+    "rankChangedRunners": 0,
+    "meanAbsoluteScoreDelta": 0.0,
+    "maxAbsoluteScoreDelta": 0.0
+  },
+  "races": [
+    {
+      "race": 1,
+      "runners": 13,
+      "oldTop4": [
+        "horse_K500",
+        "horse_H486",
+        "horse_K502",
+        "horse_H087"
+      ],
+      "newTop4": [
+        "horse_K500",
+        "horse_H486",
+        "horse_K502",
+        "horse_H087"
+      ],
+      "retained": 4,
+      "rankChanges": 0
+    },
+    {
+      "race": 2,
+      "runners": 14,
+      "oldTop4": [
+        "horse_K111",
+        "horse_L277",
+        "horse_K199",
+        "horse_K484"
+      ],
+      "newTop4": [
+        "horse_K111",
+        "horse_L277",
+        "horse_K199",
+        "horse_K484"
+      ],
+      "retained": 4,
+      "rankChanges": 0
+    },
+    {
+      "race": 3,
+      "runners": 14,
+      "oldTop4": [
+        "horse_K443",
+        "horse_H382",
+        "horse_L125",
+        "horse_K547"
+      ],
+      "newTop4": [
+        "horse_K443",
+        "horse_H382",
+        "horse_L125",
+        "horse_K547"
+      ],
+      "retained": 4,
+      "rankChanges": 0
+    },
+    {
+      "race": 4,
+      "runners": 14,
+      "oldTop4": [
+        "horse_K332",
+        "horse_K477",
+        "horse_K231",
+        "horse_L216"
+      ],
+      "newTop4": [
+        "horse_K332",
+        "horse_K477",
+        "horse_K231",
+        "horse_L216"
+      ],
+      "retained": 4,
+      "rankChanges": 0
+    },
+    {
+      "race": 5,
+      "runners": 12,
+      "oldTop4": [
+        "horse_K279",
+        "horse_L194",
+        "horse_K353",
+        "horse_K017"
+      ],
+      "newTop4": [
+        "horse_K279",
+        "horse_L194",
+        "horse_K353",
+        "horse_K017"
+      ],
+      "retained": 4,
+      "rankChanges": 0
+    },
+    {
+      "race": 6,
+      "runners": 14,
+      "oldTop4": [
+        "horse_L098",
+        "horse_J223",
+        "horse_K322",
+        "horse_K284"
+      ],
+      "newTop4": [
+        "horse_L098",
+        "horse_J223",
+        "horse_K322",
+        "horse_K284"
+      ],
+      "retained": 4,
+      "rankChanges": 0
+    },
+    {
+      "race": 7,
+      "runners": 12,
+      "oldTop4": [
+        "horse_L341",
+        "horse_K058",
+        "horse_J217",
+        "horse_K134"
+      ],
+      "newTop4": [
+        "horse_L341",
+        "horse_K058",
+        "horse_J217",
+        "horse_K134"
+      ],
+      "retained": 4,
+      "rankChanges": 0
+    },
+    {
+      "race": 8,
+      "runners": 12,
+      "oldTop4": [
+        "horse_K296",
+        "horse_E058",
+        "horse_J256",
+        "horse_K032"
+      ],
+      "newTop4": [
+        "horse_K296",
+        "horse_E058",
+        "horse_J256",
+        "horse_K032"
+      ],
+      "retained": 4,
+      "rankChanges": 0
+    },
+    {
+      "race": 9,
+      "runners": 12,
+      "oldTop4": [
+        "horse_L232",
+        "horse_J427",
+        "horse_L004",
+        "horse_K165"
+      ],
+      "newTop4": [
+        "horse_L232",
+        "horse_J427",
+        "horse_L004",
+        "horse_K165"
+      ],
+      "retained": 4,
+      "rankChanges": 0
+    },
+    {
+      "race": 10,
+      "runners": 14,
+      "oldTop4": [
+        "horse_L322",
+        "horse_K582",
+        "horse_L112",
+        "horse_K554"
+      ],
+      "newTop4": [
+        "horse_L322",
+        "horse_K582",
+        "horse_L112",
+        "horse_K554"
+      ],
+      "retained": 4,
+      "rankChanges": 0
+    },
+    {
+      "race": 11,
+      "runners": 14,
+      "oldTop4": [
+        "horse_L230",
+        "horse_K438",
+        "horse_J180",
+        "horse_K585"
+      ],
+      "newTop4": [
+        "horse_L230",
+        "horse_K438",
+        "horse_J180",
+        "horse_K585"
+      ],
+      "retained": 4,
+      "rankChanges": 0
+    }
+  ],
+  "rows": [
+    {
+      "race": 1,
+      "horseId": "horse_J463",
+      "oldRank": 6,
+      "newRank": 6,
+      "oldScore": -2.57831168612924,
+      "newScore": -2.57831168612924,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 1,
+      "horseId": "horse_K500",
+      "oldRank": 1,
+      "newRank": 1,
+      "oldScore": -1.6956570072555641,
+      "newScore": -1.6956570072555641,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 1,
+      "horseId": "horse_H087",
+      "oldRank": 4,
+      "newRank": 4,
+      "oldScore": -2.3066985079144184,
+      "newScore": -2.3066985079144184,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 1,
+      "horseId": "horse_H486",
+      "oldRank": 2,
+      "newRank": 2,
+      "oldScore": -1.7539458759399873,
+      "newScore": -1.7539458759399873,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 1,
+      "horseId": "horse_K464",
+      "oldRank": 10,
+      "newRank": 10,
+      "oldScore": -3.218337190229746,
+      "newScore": -3.218337190229746,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 1,
+      "horseId": "horse_K502",
+      "oldRank": 3,
+      "newRank": 3,
+      "oldScore": -2.1228285932459885,
+      "newScore": -2.1228285932459885,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 1,
+      "horseId": "horse_J015",
+      "oldRank": 11,
+      "newRank": 11,
+      "oldScore": -3.5509812993938845,
+      "newScore": -3.5509812993938845,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 1,
+      "horseId": "horse_K457",
+      "oldRank": 5,
+      "newRank": 5,
+      "oldScore": -2.393640469457456,
+      "newScore": -2.393640469457456,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 1,
+      "horseId": "horse_J501",
+      "oldRank": 12,
+      "newRank": 12,
+      "oldScore": -3.8648004245426706,
+      "newScore": -3.8648004245426706,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 1,
+      "horseId": "horse_K029",
+      "oldRank": 13,
+      "newRank": 13,
+      "oldScore": -4.16076427268473,
+      "newScore": -4.16076427268473,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 1,
+      "horseId": "horse_J213",
+      "oldRank": 8,
+      "newRank": 8,
+      "oldScore": -3.0948446062349104,
+      "newScore": -3.0948446062349104,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 1,
+      "horseId": "horse_H354",
+      "oldRank": 9,
+      "newRank": 9,
+      "oldScore": -3.2182721388142124,
+      "newScore": -3.2182721388142124,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 1,
+      "horseId": "horse_J331",
+      "oldRank": 7,
+      "newRank": 7,
+      "oldScore": -2.712601385928039,
+      "newScore": -2.712601385928039,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 10,
+      "horseId": "horse_L112",
+      "oldRank": 3,
+      "newRank": 3,
+      "oldScore": -1.8759308827730445,
+      "newScore": -1.8759308827730445,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 10,
+      "horseId": "horse_K474",
+      "oldRank": 12,
+      "newRank": 12,
+      "oldScore": -3.5088960322795173,
+      "newScore": -3.5088960322795173,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 10,
+      "horseId": "horse_K554",
+      "oldRank": 4,
+      "newRank": 4,
+      "oldScore": -2.293525285504179,
+      "newScore": -2.293525285504179,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 10,
+      "horseId": "horse_H376",
+      "oldRank": 5,
+      "newRank": 5,
+      "oldScore": -2.5758761859398502,
+      "newScore": -2.5758761859398502,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 10,
+      "horseId": "horse_L219",
+      "oldRank": 6,
+      "newRank": 6,
+      "oldScore": -2.78977046795551,
+      "newScore": -2.78977046795551,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 10,
+      "horseId": "horse_L413",
+      "oldRank": 14,
+      "newRank": 14,
+      "oldScore": -5.097144155686666,
+      "newScore": -5.097144155686666,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 10,
+      "horseId": "horse_L322",
+      "oldRank": 1,
+      "newRank": 1,
+      "oldScore": -1.7350046712725609,
+      "newScore": -1.7350046712725609,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 10,
+      "horseId": "horse_K098",
+      "oldRank": 9,
+      "newRank": 9,
+      "oldScore": -3.1062641569003526,
+      "newScore": -3.1062641569003526,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 10,
+      "horseId": "horse_L410",
+      "oldRank": 13,
+      "newRank": 13,
+      "oldScore": -4.261537012431044,
+      "newScore": -4.261537012431044,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 10,
+      "horseId": "horse_L300",
+      "oldRank": 11,
+      "newRank": 11,
+      "oldScore": -3.397198773276004,
+      "newScore": -3.397198773276004,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 10,
+      "horseId": "horse_K031",
+      "oldRank": 8,
+      "newRank": 8,
+      "oldScore": -2.9772884015020753,
+      "newScore": -2.9772884015020753,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 10,
+      "horseId": "horse_L166",
+      "oldRank": 10,
+      "newRank": 10,
+      "oldScore": -3.2835292230739435,
+      "newScore": -3.2835292230739435,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 10,
+      "horseId": "horse_L238",
+      "oldRank": 7,
+      "newRank": 7,
+      "oldScore": -2.953242309723579,
+      "newScore": -2.953242309723579,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 10,
+      "horseId": "horse_K582",
+      "oldRank": 2,
+      "newRank": 2,
+      "oldScore": -1.8141303867111722,
+      "newScore": -1.8141303867111722,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 11,
+      "horseId": "horse_K491",
+      "oldRank": 8,
+      "newRank": 8,
+      "oldScore": -2.9224091479221954,
+      "newScore": -2.9224091479221954,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 11,
+      "horseId": "horse_K585",
+      "oldRank": 4,
+      "newRank": 4,
+      "oldScore": -2.1371075192349083,
+      "newScore": -2.1371075192349083,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 11,
+      "horseId": "horse_L153",
+      "oldRank": 10,
+      "newRank": 10,
+      "oldScore": -3.637649107492494,
+      "newScore": -3.637649107492494,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 11,
+      "horseId": "horse_K122",
+      "oldRank": 14,
+      "newRank": 14,
+      "oldScore": -4.395340263102869,
+      "newScore": -4.395340263102869,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 11,
+      "horseId": "horse_K033",
+      "oldRank": 6,
+      "newRank": 6,
+      "oldScore": -2.8369527970085624,
+      "newScore": -2.8369527970085624,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 11,
+      "horseId": "horse_J180",
+      "oldRank": 3,
+      "newRank": 3,
+      "oldScore": -2.08329742712554,
+      "newScore": -2.08329742712554,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 11,
+      "horseId": "horse_L564",
+      "oldRank": 13,
+      "newRank": 13,
+      "oldScore": -4.165881646167801,
+      "newScore": -4.165881646167801,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 11,
+      "horseId": "horse_L230",
+      "oldRank": 1,
+      "newRank": 1,
+      "oldScore": -1.5998478340301103,
+      "newScore": -1.5998478340301103,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 11,
+      "horseId": "horse_J114",
+      "oldRank": 9,
+      "newRank": 9,
+      "oldScore": -2.9555586737129107,
+      "newScore": -2.9555586737129107,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 11,
+      "horseId": "horse_K469",
+      "oldRank": 5,
+      "newRank": 5,
+      "oldScore": -2.2393031456238113,
+      "newScore": -2.2393031456238113,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 11,
+      "horseId": "horse_J092",
+      "oldRank": 7,
+      "newRank": 7,
+      "oldScore": -2.8534614780810985,
+      "newScore": -2.8534614780810985,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 11,
+      "horseId": "horse_K234",
+      "oldRank": 11,
+      "newRank": 11,
+      "oldScore": -3.77730891519071,
+      "newScore": -3.77730891519071,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 11,
+      "horseId": "horse_K438",
+      "oldRank": 2,
+      "newRank": 2,
+      "oldScore": -2.051739285685352,
+      "newScore": -2.051739285685352,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 11,
+      "horseId": "horse_K174",
+      "oldRank": 12,
+      "newRank": 12,
+      "oldScore": -3.846079597924453,
+      "newScore": -3.846079597924453,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 2,
+      "horseId": "horse_L381",
+      "oldRank": 14,
+      "newRank": 14,
+      "oldScore": -4.1091827933600165,
+      "newScore": -4.1091827933600165,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 2,
+      "horseId": "horse_K484",
+      "oldRank": 4,
+      "newRank": 4,
+      "oldScore": -2.3720845599870404,
+      "newScore": -2.3720845599870404,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 2,
+      "horseId": "horse_J467",
+      "oldRank": 8,
+      "newRank": 8,
+      "oldScore": -2.9025137568462904,
+      "newScore": -2.9025137568462904,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 2,
+      "horseId": "horse_L332",
+      "oldRank": 11,
+      "newRank": 11,
+      "oldScore": -3.4296365947086294,
+      "newScore": -3.4296365947086294,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 2,
+      "horseId": "horse_K546",
+      "oldRank": 5,
+      "newRank": 5,
+      "oldScore": -2.5968859035737037,
+      "newScore": -2.5968859035737037,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 2,
+      "horseId": "horse_L440",
+      "oldRank": 12,
+      "newRank": 12,
+      "oldScore": -3.543444338666091,
+      "newScore": -3.543444338666091,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 2,
+      "horseId": "horse_L445",
+      "oldRank": 10,
+      "newRank": 10,
+      "oldScore": -3.4271562738259567,
+      "newScore": -3.4271562738259567,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 2,
+      "horseId": "horse_K199",
+      "oldRank": 3,
+      "newRank": 3,
+      "oldScore": -2.224525925277243,
+      "newScore": -2.224525925277243,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 2,
+      "horseId": "horse_L115",
+      "oldRank": 6,
+      "newRank": 6,
+      "oldScore": -2.6282876738496155,
+      "newScore": -2.6282876738496155,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 2,
+      "horseId": "horse_L277",
+      "oldRank": 2,
+      "newRank": 2,
+      "oldScore": -1.7226633684726962,
+      "newScore": -1.7226633684726962,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 2,
+      "horseId": "horse_K111",
+      "oldRank": 1,
+      "newRank": 1,
+      "oldScore": -1.6976638582359445,
+      "newScore": -1.6976638582359445,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 2,
+      "horseId": "horse_L209",
+      "oldRank": 7,
+      "newRank": 7,
+      "oldScore": -2.873208212072699,
+      "newScore": -2.873208212072699,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 2,
+      "horseId": "horse_J170",
+      "oldRank": 9,
+      "newRank": 9,
+      "oldScore": -3.0453224103369507,
+      "newScore": -3.0453224103369507,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 2,
+      "horseId": "horse_L046",
+      "oldRank": 13,
+      "newRank": 13,
+      "oldScore": -3.8636430999496243,
+      "newScore": -3.8636430999496243,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 3,
+      "horseId": "horse_L215",
+      "oldRank": 8,
+      "newRank": 8,
+      "oldScore": -2.779586719189018,
+      "newScore": -2.779586719189018,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 3,
+      "horseId": "horse_K547",
+      "oldRank": 4,
+      "newRank": 4,
+      "oldScore": -2.192379968054451,
+      "newScore": -2.192379968054451,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 3,
+      "horseId": "horse_H382",
+      "oldRank": 2,
+      "newRank": 2,
+      "oldScore": -2.0823670112155406,
+      "newScore": -2.0823670112155406,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 3,
+      "horseId": "horse_L303",
+      "oldRank": 14,
+      "newRank": 14,
+      "oldScore": -4.6789171754143135,
+      "newScore": -4.6789171754143135,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 3,
+      "horseId": "horse_K444",
+      "oldRank": 5,
+      "newRank": 5,
+      "oldScore": -2.463608482017058,
+      "newScore": -2.463608482017058,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 3,
+      "horseId": "horse_L125",
+      "oldRank": 3,
+      "newRank": 3,
+      "oldScore": -2.1518731872894645,
+      "newScore": -2.1518731872894645,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 3,
+      "horseId": "horse_H388",
+      "oldRank": 7,
+      "newRank": 7,
+      "oldScore": -2.613772330708265,
+      "newScore": -2.613772330708265,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 3,
+      "horseId": "horse_H168",
+      "oldRank": 10,
+      "newRank": 10,
+      "oldScore": -2.8785496904979175,
+      "newScore": -2.8785496904979175,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 3,
+      "horseId": "horse_K443",
+      "oldRank": 1,
+      "newRank": 1,
+      "oldScore": -1.919257629623816,
+      "newScore": -1.919257629623816,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 3,
+      "horseId": "horse_L257",
+      "oldRank": 13,
+      "newRank": 13,
+      "oldScore": -4.428770038277912,
+      "newScore": -4.428770038277912,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 3,
+      "horseId": "horse_K387",
+      "oldRank": 9,
+      "newRank": 9,
+      "oldScore": -2.8753748282671876,
+      "newScore": -2.8753748282671876,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 3,
+      "horseId": "horse_K397",
+      "oldRank": 11,
+      "newRank": 11,
+      "oldScore": -3.433606657558827,
+      "newScore": -3.433606657558827,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 3,
+      "horseId": "horse_J224",
+      "oldRank": 12,
+      "newRank": 12,
+      "oldScore": -3.4624912447757756,
+      "newScore": -3.4624912447757756,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 3,
+      "horseId": "horse_J182",
+      "oldRank": 6,
+      "newRank": 6,
+      "oldScore": -2.4909402701574193,
+      "newScore": -2.4909402701574193,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 4,
+      "horseId": "horse_K093",
+      "oldRank": 10,
+      "newRank": 10,
+      "oldScore": -3.0493453741753895,
+      "newScore": -3.0493453741753895,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 4,
+      "horseId": "horse_L313",
+      "oldRank": 13,
+      "newRank": 13,
+      "oldScore": -3.6639168114923053,
+      "newScore": -3.6639168114923053,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 4,
+      "horseId": "horse_L216",
+      "oldRank": 4,
+      "newRank": 4,
+      "oldScore": -2.3349052764520386,
+      "newScore": -2.3349052764520386,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 4,
+      "horseId": "horse_K477",
+      "oldRank": 2,
+      "newRank": 2,
+      "oldScore": -2.103862146776242,
+      "newScore": -2.103862146776242,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 4,
+      "horseId": "horse_L486",
+      "oldRank": 12,
+      "newRank": 12,
+      "oldScore": -3.2356389175522975,
+      "newScore": -3.2356389175522975,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 4,
+      "horseId": "horse_L448",
+      "oldRank": 11,
+      "newRank": 11,
+      "oldScore": -3.182918222830052,
+      "newScore": -3.182918222830052,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 4,
+      "horseId": "horse_L464",
+      "oldRank": 9,
+      "newRank": 9,
+      "oldScore": -2.972852064844745,
+      "newScore": -2.972852064844745,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 4,
+      "horseId": "horse_E471",
+      "oldRank": 8,
+      "newRank": 8,
+      "oldScore": -2.8515573900991518,
+      "newScore": -2.8515573900991518,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 4,
+      "horseId": "horse_L307",
+      "oldRank": 14,
+      "newRank": 14,
+      "oldScore": -3.7227411985023386,
+      "newScore": -3.7227411985023386,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 4,
+      "horseId": "horse_L335",
+      "oldRank": 5,
+      "newRank": 5,
+      "oldScore": -2.4638212937309207,
+      "newScore": -2.4638212937309207,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 4,
+      "horseId": "horse_K144",
+      "oldRank": 7,
+      "newRank": 7,
+      "oldScore": -2.8109947174709538,
+      "newScore": -2.8109947174709538,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 4,
+      "horseId": "horse_K332",
+      "oldRank": 1,
+      "newRank": 1,
+      "oldScore": -1.8305586301330385,
+      "newScore": -1.8305586301330385,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 4,
+      "horseId": "horse_J288",
+      "oldRank": 6,
+      "newRank": 6,
+      "oldScore": -2.5892881970035884,
+      "newScore": -2.5892881970035884,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 4,
+      "horseId": "horse_K231",
+      "oldRank": 3,
+      "newRank": 3,
+      "oldScore": -2.1746867735051634,
+      "newScore": -2.1746867735051634,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 5,
+      "horseId": "horse_K534",
+      "oldRank": 9,
+      "newRank": 9,
+      "oldScore": -3.355193424632562,
+      "newScore": -3.355193424632562,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 5,
+      "horseId": "horse_K353",
+      "oldRank": 3,
+      "newRank": 3,
+      "oldScore": -1.8586196817037752,
+      "newScore": -1.8586196817037752,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 5,
+      "horseId": "horse_L510",
+      "oldRank": 10,
+      "newRank": 10,
+      "oldScore": -3.4145142933188817,
+      "newScore": -3.4145142933188817,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 5,
+      "horseId": "horse_K572",
+      "oldRank": 6,
+      "newRank": 6,
+      "oldScore": -2.6996292860196793,
+      "newScore": -2.6996292860196793,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 5,
+      "horseId": "horse_L308",
+      "oldRank": 12,
+      "newRank": 12,
+      "oldScore": -3.6243783973096266,
+      "newScore": -3.6243783973096266,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 5,
+      "horseId": "horse_K447",
+      "oldRank": 8,
+      "newRank": 8,
+      "oldScore": -2.8812247953689716,
+      "newScore": -2.8812247953689716,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 5,
+      "horseId": "horse_L001",
+      "oldRank": 11,
+      "newRank": 11,
+      "oldScore": -3.5277494310721984,
+      "newScore": -3.5277494310721984,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 5,
+      "horseId": "horse_L178",
+      "oldRank": 7,
+      "newRank": 7,
+      "oldScore": -2.7998373110996506,
+      "newScore": -2.7998373110996506,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 5,
+      "horseId": "horse_K417",
+      "oldRank": 5,
+      "newRank": 5,
+      "oldScore": -2.5503524184100534,
+      "newScore": -2.5503524184100534,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 5,
+      "horseId": "horse_L194",
+      "oldRank": 2,
+      "newRank": 2,
+      "oldScore": -1.8498322824985496,
+      "newScore": -1.8498322824985496,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 5,
+      "horseId": "horse_K017",
+      "oldRank": 4,
+      "newRank": 4,
+      "oldScore": -1.9974478722786626,
+      "newScore": -1.9974478722786626,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 5,
+      "horseId": "horse_K279",
+      "oldRank": 1,
+      "newRank": 1,
+      "oldScore": -1.8008073640186855,
+      "newScore": -1.8008073640186855,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 6,
+      "horseId": "horse_K322",
+      "oldRank": 3,
+      "newRank": 3,
+      "oldScore": -2.050637724127626,
+      "newScore": -2.050637724127626,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 6,
+      "horseId": "horse_L316",
+      "oldRank": 13,
+      "newRank": 13,
+      "oldScore": -3.6066580554452496,
+      "newScore": -3.6066580554452496,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 6,
+      "horseId": "horse_L098",
+      "oldRank": 1,
+      "newRank": 1,
+      "oldScore": -1.7347026446169869,
+      "newScore": -1.7347026446169869,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 6,
+      "horseId": "horse_K175",
+      "oldRank": 7,
+      "newRank": 7,
+      "oldScore": -2.891606578878942,
+      "newScore": -2.891606578878942,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 6,
+      "horseId": "horse_L452",
+      "oldRank": 11,
+      "newRank": 11,
+      "oldScore": -3.486788528859242,
+      "newScore": -3.486788528859242,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 6,
+      "horseId": "horse_L342",
+      "oldRank": 12,
+      "newRank": 12,
+      "oldScore": -3.5425231658149787,
+      "newScore": -3.5425231658149787,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 6,
+      "horseId": "horse_L317",
+      "oldRank": 9,
+      "newRank": 9,
+      "oldScore": -3.005907185363715,
+      "newScore": -3.005907185363715,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 6,
+      "horseId": "horse_K284",
+      "oldRank": 4,
+      "newRank": 4,
+      "oldScore": -2.117355547837164,
+      "newScore": -2.117355547837164,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 6,
+      "horseId": "horse_L231",
+      "oldRank": 14,
+      "newRank": 14,
+      "oldScore": -4.510770480217885,
+      "newScore": -4.510770480217885,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 6,
+      "horseId": "horse_J223",
+      "oldRank": 2,
+      "newRank": 2,
+      "oldScore": -1.9770095868788997,
+      "newScore": -1.9770095868788997,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 6,
+      "horseId": "horse_L296",
+      "oldRank": 5,
+      "newRank": 5,
+      "oldScore": -2.536711499422431,
+      "newScore": -2.536711499422431,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 6,
+      "horseId": "horse_L043",
+      "oldRank": 6,
+      "newRank": 6,
+      "oldScore": -2.817094643372176,
+      "newScore": -2.817094643372176,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 6,
+      "horseId": "horse_K002",
+      "oldRank": 10,
+      "newRank": 10,
+      "oldScore": -3.214745309505335,
+      "newScore": -3.214745309505335,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 6,
+      "horseId": "horse_K295",
+      "oldRank": 8,
+      "newRank": 8,
+      "oldScore": -2.912517349927426,
+      "newScore": -2.912517349927426,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 7,
+      "horseId": "horse_J217",
+      "oldRank": 3,
+      "newRank": 3,
+      "oldScore": -2.030992186822041,
+      "newScore": -2.030992186822041,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 7,
+      "horseId": "horse_K293",
+      "oldRank": 5,
+      "newRank": 5,
+      "oldScore": -2.5510058035552965,
+      "newScore": -2.5510058035552965,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 7,
+      "horseId": "horse_K058",
+      "oldRank": 2,
+      "newRank": 2,
+      "oldScore": -1.858827211236409,
+      "newScore": -1.858827211236409,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 7,
+      "horseId": "horse_L341",
+      "oldRank": 1,
+      "newRank": 1,
+      "oldScore": -1.3733625932418683,
+      "newScore": -1.3733625932418683,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 7,
+      "horseId": "horse_L247",
+      "oldRank": 12,
+      "newRank": 12,
+      "oldScore": -4.466570634881888,
+      "newScore": -4.466570634881888,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 7,
+      "horseId": "horse_L443",
+      "oldRank": 8,
+      "newRank": 8,
+      "oldScore": -2.8896596333897215,
+      "newScore": -2.8896596333897215,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 7,
+      "horseId": "horse_K275",
+      "oldRank": 7,
+      "newRank": 7,
+      "oldScore": -2.8414898350921862,
+      "newScore": -2.8414898350921862,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 7,
+      "horseId": "horse_L364",
+      "oldRank": 9,
+      "newRank": 9,
+      "oldScore": -3.1026176178965037,
+      "newScore": -3.1026176178965037,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 7,
+      "horseId": "horse_K460",
+      "oldRank": 11,
+      "newRank": 11,
+      "oldScore": -3.774670937060763,
+      "newScore": -3.774670937060763,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 7,
+      "horseId": "horse_K134",
+      "oldRank": 4,
+      "newRank": 4,
+      "oldScore": -2.3402900122688775,
+      "newScore": -2.3402900122688775,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 7,
+      "horseId": "horse_K215",
+      "oldRank": 6,
+      "newRank": 6,
+      "oldScore": -2.6918189949037856,
+      "newScore": -2.6918189949037856,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 7,
+      "horseId": "horse_L180",
+      "oldRank": 10,
+      "newRank": 10,
+      "oldScore": -3.7161070898377595,
+      "newScore": -3.7161070898377595,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 8,
+      "horseId": "horse_E436",
+      "oldRank": 6,
+      "newRank": 6,
+      "oldScore": -2.5560685450232272,
+      "newScore": -2.5560685450232272,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 8,
+      "horseId": "horse_J256",
+      "oldRank": 3,
+      "newRank": 3,
+      "oldScore": -2.1489860291503855,
+      "newScore": -2.1489860291503855,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 8,
+      "horseId": "horse_H302",
+      "oldRank": 11,
+      "newRank": 11,
+      "oldScore": -3.340381257154924,
+      "newScore": -3.340381257154924,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 8,
+      "horseId": "horse_K296",
+      "oldRank": 1,
+      "newRank": 1,
+      "oldScore": -1.7661987195017592,
+      "newScore": -1.7661987195017592,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 8,
+      "horseId": "horse_E058",
+      "oldRank": 2,
+      "newRank": 2,
+      "oldScore": -2.1207753647345555,
+      "newScore": -2.1207753647345555,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 8,
+      "horseId": "horse_H485",
+      "oldRank": 12,
+      "newRank": 12,
+      "oldScore": -3.4492322655285177,
+      "newScore": -3.4492322655285177,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 8,
+      "horseId": "horse_K130",
+      "oldRank": 5,
+      "newRank": 5,
+      "oldScore": -2.2932103174455962,
+      "newScore": -2.2932103174455962,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 8,
+      "horseId": "horse_K478",
+      "oldRank": 9,
+      "newRank": 9,
+      "oldScore": -2.920879110626072,
+      "newScore": -2.920879110626072,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 8,
+      "horseId": "horse_J127",
+      "oldRank": 7,
+      "newRank": 7,
+      "oldScore": -2.7087762969494764,
+      "newScore": -2.7087762969494764,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 8,
+      "horseId": "horse_K032",
+      "oldRank": 4,
+      "newRank": 4,
+      "oldScore": -2.172631069403805,
+      "newScore": -2.172631069403805,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 8,
+      "horseId": "horse_K507",
+      "oldRank": 8,
+      "newRank": 8,
+      "oldScore": -2.7123634496086884,
+      "newScore": -2.7123634496086884,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 8,
+      "horseId": "horse_K129",
+      "oldRank": 10,
+      "newRank": 10,
+      "oldScore": -3.079747842008443,
+      "newScore": -3.079747842008443,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 9,
+      "horseId": "horse_L232",
+      "oldRank": 1,
+      "newRank": 1,
+      "oldScore": -1.2344951390508334,
+      "newScore": -1.2344951390508334,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 9,
+      "horseId": "horse_L004",
+      "oldRank": 3,
+      "newRank": 3,
+      "oldScore": -2.3103789910140513,
+      "newScore": -2.3103789910140513,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 9,
+      "horseId": "horse_K165",
+      "oldRank": 4,
+      "newRank": 4,
+      "oldScore": -2.5702779939449747,
+      "newScore": -2.5702779939449747,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 9,
+      "horseId": "horse_K426",
+      "oldRank": 12,
+      "newRank": 12,
+      "oldScore": -3.7261220961097288,
+      "newScore": -3.7261220961097288,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 9,
+      "horseId": "horse_M021",
+      "oldRank": 11,
+      "newRank": 11,
+      "oldScore": -3.675824130341429,
+      "newScore": -3.675824130341429,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 9,
+      "horseId": "horse_L336",
+      "oldRank": 9,
+      "newRank": 9,
+      "oldScore": -3.2363738446258377,
+      "newScore": -3.2363738446258377,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 9,
+      "horseId": "horse_K180",
+      "oldRank": 6,
+      "newRank": 6,
+      "oldScore": -2.8145212149848993,
+      "newScore": -2.8145212149848993,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 9,
+      "horseId": "horse_L519",
+      "oldRank": 10,
+      "newRank": 10,
+      "oldScore": -3.256303488312187,
+      "newScore": -3.256303488312187,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 9,
+      "horseId": "horse_J285",
+      "oldRank": 8,
+      "newRank": 8,
+      "oldScore": -3.206848728461787,
+      "newScore": -3.206848728461787,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 9,
+      "horseId": "horse_J427",
+      "oldRank": 2,
+      "newRank": 2,
+      "oldScore": -1.6583231347522902,
+      "newScore": -1.6583231347522902,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 9,
+      "horseId": "horse_K365",
+      "oldRank": 5,
+      "newRank": 5,
+      "oldScore": -2.8082398323424544,
+      "newScore": -2.8082398323424544,
+      "scoreDelta": 0.0
+    },
+    {
+      "race": 9,
+      "horseId": "horse_K283",
+      "oldRank": 7,
+      "newRank": 7,
+      "oldScore": -2.903287862184672,
+      "newScore": -2.903287862184672,
+      "scoreDelta": 0.0
+    }
+  ]
+}

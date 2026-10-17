@@ -1,0 +1,488 @@
+{
+  "schema": 1,
+  "modelVersion": "lgb-retrain-audit-20261018",
+  "featCols": [
+    "distance",
+    "field_size",
+    "draw",
+    "actual_weight",
+    "h_elo",
+    "j_elo",
+    "t_elo",
+    "days_since_last",
+    "dist_starts",
+    "dist_top3",
+    "going_starts",
+    "going_top3",
+    "draw_starts",
+    "draw_top3",
+    "combo_starts",
+    "combo_top3",
+    "weight_avg5",
+    "factor_bonus",
+    "form_n",
+    "form_avgpos_w",
+    "form_top3rate_w",
+    "form_pos_slope",
+    "tv_starts",
+    "tv_top3",
+    "jv_starts",
+    "jv_top3",
+    "jdb_starts",
+    "jdb_top3",
+    "jg_starts",
+    "jg_top3",
+    "tg_starts",
+    "tg_top3",
+    "horse_pace_n",
+    "horse_pace_early",
+    "horse_pace_style",
+    "race_n_leaders",
+    "race_n_closers",
+    "horse_pace_clash",
+    "class_now_num",
+    "last_class_num",
+    "class_delta",
+    "sect_n",
+    "sect_early_avg",
+    "sect_late_kick",
+    "is_sprint",
+    "is_middle",
+    "is_distance",
+    "draw_x_sprint",
+    "paceclash_x_distance",
+    "sire_top3_sm",
+    "sire_dist_top3_sm",
+    "damsire_top3_sm"
+  ],
+  "scope": "serialized-production-lgb-only",
+  "importanceIteration": -1,
+  "numTrees": 870,
+  "sha256": {
+    "model.txt": "cfaec217114330c37dcf637d3faeb79d892aa0ef5e76341db99e7c42293dfa1b",
+    "meta.json": "179c61788caec1a54ca7c78262969ba18bda54e69b60649f0d96877406142d88"
+  },
+  "bundleFingerprint": "8602f6a50e655ae40bbd13db",
+  "totals": {
+    "gain": 326546.5771050453,
+    "split": 6090
+  },
+  "features": [
+    {
+      "index": 0,
+      "name": "distance",
+      "gain": 429.6027002334595,
+      "split": 24,
+      "gainPct": 0.1315593946940263,
+      "splitPct": 0.39408866995073893
+    },
+    {
+      "index": 1,
+      "name": "field_size",
+      "gain": 237.31682109832764,
+      "split": 18,
+      "gainPct": 0.0726747232208734,
+      "splitPct": 0.2955665024630542
+    },
+    {
+      "index": 2,
+      "name": "draw",
+      "gain": 23567.7266831398,
+      "split": 518,
+      "gainPct": 7.217263427495185,
+      "splitPct": 8.505747126436782
+    },
+    {
+      "index": 3,
+      "name": "actual_weight",
+      "gain": 516.2854962348938,
+      "split": 42,
+      "gainPct": 0.15810470310604793,
+      "splitPct": 0.6896551724137931
+    },
+    {
+      "index": 4,
+      "name": "h_elo",
+      "gain": 1820.8994512557983,
+      "split": 106,
+      "gainPct": 0.557623193419676,
+      "splitPct": 1.7405582922824303
+    },
+    {
+      "index": 5,
+      "name": "j_elo",
+      "gain": 52583.054152965546,
+      "split": 520,
+      "gainPct": 16.102773031379943,
+      "splitPct": 8.538587848932677
+    },
+    {
+      "index": 6,
+      "name": "t_elo",
+      "gain": 5548.721877574921,
+      "split": 258,
+      "gainPct": 1.699212996432658,
+      "splitPct": 4.236453201970443
+    },
+    {
+      "index": 7,
+      "name": "days_since_last",
+      "gain": 1251.4442982673645,
+      "split": 99,
+      "gainPct": 0.3832360790187652,
+      "splitPct": 1.625615763546798
+    },
+    {
+      "index": 8,
+      "name": "dist_starts",
+      "gain": 9804.906610965729,
+      "split": 253,
+      "gainPct": 3.0026058450496733,
+      "splitPct": 4.154351395730706
+    },
+    {
+      "index": 9,
+      "name": "dist_top3",
+      "gain": 7056.2642159461975,
+      "split": 165,
+      "gainPct": 2.160875265789817,
+      "splitPct": 2.70935960591133
+    },
+    {
+      "index": 10,
+      "name": "going_starts",
+      "gain": 6404.066659927368,
+      "split": 234,
+      "gainPct": 1.9611495293264924,
+      "splitPct": 3.8423645320197046
+    },
+    {
+      "index": 11,
+      "name": "going_top3",
+      "gain": 809.8106775283813,
+      "split": 48,
+      "gainPct": 0.24799239505360882,
+      "splitPct": 0.7881773399014779
+    },
+    {
+      "index": 12,
+      "name": "draw_starts",
+      "gain": 1112.5931377410889,
+      "split": 80,
+      "gainPct": 0.34071499006501105,
+      "splitPct": 1.3136288998357963
+    },
+    {
+      "index": 13,
+      "name": "draw_top3",
+      "gain": 1790.6429500579834,
+      "split": 122,
+      "gainPct": 0.5483575929451434,
+      "splitPct": 2.0032840722495897
+    },
+    {
+      "index": 14,
+      "name": "combo_starts",
+      "gain": 1675.2580261230469,
+      "split": 111,
+      "gainPct": 0.5130226875978371,
+      "splitPct": 1.8226600985221675
+    },
+    {
+      "index": 15,
+      "name": "combo_top3",
+      "gain": 1560.4952354431152,
+      "split": 78,
+      "gainPct": 0.4778783012449481,
+      "splitPct": 1.2807881773399015
+    },
+    {
+      "index": 16,
+      "name": "weight_avg5",
+      "gain": 10119.655739307404,
+      "split": 200,
+      "gainPct": 3.0989930530039076,
+      "splitPct": 3.284072249589491
+    },
+    {
+      "index": 17,
+      "name": "factor_bonus",
+      "gain": 4425.641550540924,
+      "split": 218,
+      "gainPct": 1.3552864616667715,
+      "splitPct": 3.5796387520525452
+    },
+    {
+      "index": 18,
+      "name": "form_n",
+      "gain": 918.3074951171875,
+      "split": 11,
+      "gainPct": 0.2812179209650026,
+      "splitPct": 0.180623973727422
+    },
+    {
+      "index": 19,
+      "name": "form_avgpos_w",
+      "gain": 133923.4561972618,
+      "split": 903,
+      "gainPct": 41.012053283345416,
+      "splitPct": 14.827586206896552
+    },
+    {
+      "index": 20,
+      "name": "form_top3rate_w",
+      "gain": 19238.70597934723,
+      "split": 178,
+      "gainPct": 5.891565653483612,
+      "splitPct": 2.922824302134647
+    },
+    {
+      "index": 21,
+      "name": "form_pos_slope",
+      "gain": 2696.377107143402,
+      "split": 141,
+      "gainPct": 0.8257251173929827,
+      "splitPct": 2.315270935960591
+    },
+    {
+      "index": 22,
+      "name": "tv_starts",
+      "gain": 1842.41286611557,
+      "split": 139,
+      "gainPct": 0.5642113546095731,
+      "splitPct": 2.2824302134646963
+    },
+    {
+      "index": 23,
+      "name": "tv_top3",
+      "gain": 1990.075358390808,
+      "split": 125,
+      "gainPct": 0.6094307819832482,
+      "splitPct": 2.052545155993432
+    },
+    {
+      "index": 24,
+      "name": "jv_starts",
+      "gain": 1530.5094323158264,
+      "split": 86,
+      "gainPct": 0.4686955980014709,
+      "splitPct": 1.4121510673234812
+    },
+    {
+      "index": 25,
+      "name": "jv_top3",
+      "gain": 15038.675412654877,
+      "split": 287,
+      "gainPct": 4.605369177646334,
+      "splitPct": 4.712643678160919
+    },
+    {
+      "index": 26,
+      "name": "jdb_starts",
+      "gain": 607.4461197853088,
+      "split": 41,
+      "gainPct": 0.1860212791604005,
+      "splitPct": 0.6732348111658456
+    },
+    {
+      "index": 27,
+      "name": "jdb_top3",
+      "gain": 1822.7130661010742,
+      "split": 90,
+      "gainPct": 0.5581785858115835,
+      "splitPct": 1.477832512315271
+    },
+    {
+      "index": 28,
+      "name": "jg_starts",
+      "gain": 562.7724018096924,
+      "split": 48,
+      "gainPct": 0.17234062191031838,
+      "splitPct": 0.7881773399014779
+    },
+    {
+      "index": 29,
+      "name": "jg_top3",
+      "gain": 1021.9007911682129,
+      "split": 60,
+      "gainPct": 0.3129418168237244,
+      "splitPct": 0.9852216748768473
+    },
+    {
+      "index": 30,
+      "name": "tg_starts",
+      "gain": 674.6188054084778,
+      "split": 47,
+      "gainPct": 0.20659190838538866,
+      "splitPct": 0.7717569786535303
+    },
+    {
+      "index": 31,
+      "name": "tg_top3",
+      "gain": 629.9616622924805,
+      "split": 42,
+      "gainPct": 0.1929163269378968,
+      "splitPct": 0.6896551724137931
+    },
+    {
+      "index": 32,
+      "name": "horse_pace_n",
+      "gain": 1187.4329648017883,
+      "split": 62,
+      "gainPct": 0.36363356655850304,
+      "splitPct": 1.0180623973727423
+    },
+    {
+      "index": 33,
+      "name": "horse_pace_early",
+      "gain": 1045.5230641365051,
+      "split": 66,
+      "gainPct": 0.32017578423434995,
+      "splitPct": 1.083743842364532
+    },
+    {
+      "index": 34,
+      "name": "horse_pace_style",
+      "gain": 0.0,
+      "split": 0,
+      "gainPct": 0.0,
+      "splitPct": 0.0
+    },
+    {
+      "index": 35,
+      "name": "race_n_leaders",
+      "gain": 91.50645065307617,
+      "split": 9,
+      "gainPct": 0.028022480426625286,
+      "splitPct": 0.1477832512315271
+    },
+    {
+      "index": 36,
+      "name": "race_n_closers",
+      "gain": 93.46059989929199,
+      "split": 8,
+      "gainPct": 0.028620909374660837,
+      "splitPct": 0.13136288998357964
+    },
+    {
+      "index": 37,
+      "name": "horse_pace_clash",
+      "gain": 49.990299224853516,
+      "split": 3,
+      "gainPct": 0.01530878065482596,
+      "splitPct": 0.04926108374384237
+    },
+    {
+      "index": 38,
+      "name": "class_now_num",
+      "gain": 95.73659896850586,
+      "split": 7,
+      "gainPct": 0.029317900012073555,
+      "splitPct": 0.11494252873563218
+    },
+    {
+      "index": 39,
+      "name": "last_class_num",
+      "gain": 338.15781593322754,
+      "split": 21,
+      "gainPct": 0.1035557680411536,
+      "splitPct": 0.3448275862068966
+    },
+    {
+      "index": 40,
+      "name": "class_delta",
+      "gain": 163.11089897155762,
+      "split": 12,
+      "gainPct": 0.0499502706222173,
+      "splitPct": 0.19704433497536947
+    },
+    {
+      "index": 41,
+      "name": "sect_n",
+      "gain": 720.2452373504639,
+      "split": 23,
+      "gainPct": 0.2205643200231039,
+      "splitPct": 0.37766830870279144
+    },
+    {
+      "index": 42,
+      "name": "sect_early_avg",
+      "gain": 2211.077365398407,
+      "split": 108,
+      "gainPct": 0.6771093376633788,
+      "splitPct": 1.7733990147783252
+    },
+    {
+      "index": 43,
+      "name": "sect_late_kick",
+      "gain": 2427.511134147644,
+      "split": 149,
+      "gainPct": 0.7433889387751104,
+      "splitPct": 2.4466338259441707
+    },
+    {
+      "index": 44,
+      "name": "is_sprint",
+      "gain": 49.51739978790283,
+      "split": 4,
+      "gainPct": 0.0151639622827753,
+      "splitPct": 0.06568144499178982
+    },
+    {
+      "index": 45,
+      "name": "is_middle",
+      "gain": 0.0,
+      "split": 0,
+      "gainPct": 0.0,
+      "splitPct": 0.0
+    },
+    {
+      "index": 46,
+      "name": "is_distance",
+      "gain": 0.0,
+      "split": 0,
+      "gainPct": 0.0,
+      "splitPct": 0.0
+    },
+    {
+      "index": 47,
+      "name": "draw_x_sprint",
+      "gain": 1218.7284116744995,
+      "split": 58,
+      "gainPct": 0.37321732859029544,
+      "splitPct": 0.9523809523809523
+    },
+    {
+      "index": 48,
+      "name": "paceclash_x_distance",
+      "gain": 27.49124050140381,
+      "split": 4,
+      "gainPct": 0.00841878078929006,
+      "splitPct": 0.06568144499178982
+    },
+    {
+      "index": 49,
+      "name": "sire_top3_sm",
+      "gain": 1382.6493582725525,
+      "split": 99,
+      "gainPct": 0.42341566416963977,
+      "splitPct": 1.625615763546798
+    },
+    {
+      "index": 50,
+      "name": "sire_dist_top3_sm",
+      "gain": 975.6828570365906,
+      "split": 75,
+      "gainPct": 0.29878826649673546,
+      "splitPct": 1.2315270935960592
+    },
+    {
+      "index": 51,
+      "name": "damsire_top3_sm",
+      "gain": 1256.4364290237427,
+      "split": 90,
+      "gainPct": 0.3847648443179257,
+      "splitPct": 1.477832512315271
+    }
+  ]
+}
