@@ -1,5 +1,7 @@
 # 天喜數據庫 · Tianxi Database
 
+> 模型說明：[MODEL.md](MODEL.md)（特徵、訓練）· [ELO.md](ELO.md)（Elo 公式）· 網頁版 https://tianxi.racing/model
+
 > **香港賽馬 AI 數據平台** — 2016–2026 全量歷史賽果 + 每日自動爬取 + Elo rating pipeline + Data Integrity Audit。以 GitHub 為 backend，CSV 為介面，下游即開即用。
 
 [![Pool A](https://github.com/sleepingarhat/tianxi-database/actions/workflows/capy_pool_a.yml/badge.svg)](https://github.com/sleepingarhat/tianxi-database/actions/workflows/capy_pool_a.yml)
