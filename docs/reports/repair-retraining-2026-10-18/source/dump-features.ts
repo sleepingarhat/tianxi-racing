@@ -1,0 +1,1253 @@
+// scripts/backtest/dump-features.ts
+  //
+  // Export per-runner feature CSV for LightGBM walk-forward training.
+  // Mirrors the SQL queries in composite-backtest.ts verbatim so features
+  // match what analyze.ts uses at inference time.
+  //
+  // Usage:
+  //   pnpm tsx scripts/backtest/dump-features.ts \
+  //     --db=bulk-local.db \
+  //     --from=2024-09-01 --to=2026-04-30 \
+  //     --out=features.csv
+  //
+  // One row per (race, runner). Columns:
+  //   race_id, race_date, venue, race_no, distance, going, field_size,
+  //   horse_id, jockey_id, trainer_id, draw, actual_weight, win_odds,
+  //   h_elo, j_elo, t_elo, days_since_last,
+  //   dist_starts, dist_top3, going_starts, going_top3,
+  //   draw_starts, draw_top3, combo_starts, combo_top3, weight_avg5,
+  //   elo_composite, factor_bonus, baseline_score,
+  //   finishing_position, is_top1, is_top3
+  //
+  // 'baseline_score' = elo_composite + factor_bonus, identical to analyze.ts
+  // finalScore — included so the LGB script can compute the ELO baseline
+  // hit-rate over the SAME race set for an apples-to-apples comparison.
+
+  import Database from 'better-sqlite3';
+  import { writeFileSync, appendFileSync } from 'node:fs';
+
+  function arg(name: string, fallback?: string): string {
+    const hit = process.argv.find(a => a.startsWith(`--${name}=`));
+    if (hit) return hit.slice(name.length + 3);
+    const ix = process.argv.indexOf(`--${name}`);
+    if (ix >= 0 && ix + 1 < process.argv.length) return process.argv[ix + 1];
+    if (fallback !== undefined) return fallback;
+    throw new Error(`missing --${name}`);
+  }
+  function argNum(name: string, fallback: number): number {
+    const v = arg(name, String(fallback));
+    const n = Number(v);
+    return Number.isFinite(n) ? n : fallback;
+  }
+
+  const DB_PATH = arg('db', 'bulk-local.db');
+  const FROM = arg('from', '2024-09-01');
+  const TO = arg('to', '2026-04-30');
+  const ENGINE = 'v12' as const; // v12-first explicit ordering; historical v1 fallback only when no v12 exists
+  const W_HORSE = argNum('w-horse', 0.7);
+  const W_JOCKEY = argNum('w-jockey', 0.2);
+  const W_TRAINER = argNum('w-trainer', 0.1);
+  const OUT = arg('out', 'features.csv');
+  // ── Stage 7: upcoming-prediction mode ────────────────────────────────────
+  // When set, ignore --from/--to and read race+runner list from the JSON
+  // produced by /admin/api/entries-upcoming-export. Same feature columns
+  // are computed; finishing_position / is_top1 / is_top3 emitted as 0.
+  const UPCOMING_JSON = arg('upcoming-json', '');
+
+  const db = new Database(DB_PATH, { readonly: true });
+  db.pragma('cache_size = -200000'); // 200MB cache
+
+  // ── ELO readers ────────────────────────────────────────────────────────
+    // FIX 2026-05-06: previous query had two bugs that returned null for ALL ELOs:
+    //   1) jockey_elo_snapshots & trainer_elo_snapshots have NO axis_key column
+    //      (only horse_elo_snapshots does — see src/db/schema_v2.sql L255 vs L273/L288).
+    //      The old WHERE axis_key='overall' threw a SQL error → caught → null.
+    //   2) Old WHERE id LIKE 'v12:%' never matched: compute.ts builds horse snap
+    //      ids as `${id}|overall|${date}|...` — no engine prefix.
+    // Result: feature_importance for h_elo / j_elo / t_elo was 0.0 in Stage 3
+    // because every value in the column was null.
+    //
+    // Fix: per-entity query that matches actual schema. Since neither engine
+    // tags rows with a prefix and the workflow only ever runs one engine into
+    // the cached DB, the ENGINE arg is now informational only — the same row
+    // set is read regardless.
+    // ── ELO ID-bridge ──────────────────────────────────────────────────
+      // compute.ts writes ELO snapshots keyed by:
+      //   horse_elo_snapshots.horse_id     = horse_form_records.horse_id  ≡ horses.code      (e.g. 'A001')
+      //   jockey_elo_snapshots.jockey_id   = horse_form_records.jockey_name ≡ jockeys.name_ch  (中文名)
+      //   trainer_elo_snapshots.trainer_id = horse_form_records.trainer_name ≡ trainers.name_ch
+      //
+      // race_results uses prefixed surrogate IDs (horse_A001 / jockey_郭能 / trainer_方嘉柏)
+      // which never match snapshot keys directly. Without this translation step every
+      // readElo returned null — h_elo/j_elo/t_elo were 100% null and LGB importance was 0.
+      const horseCodeStmt = db.prepare('SELECT code FROM horses WHERE id=?');
+      const jockeyNameStmt = db.prepare('SELECT name_ch FROM jockeys WHERE id=?');
+      const trainerNameStmt = db.prepare('SELECT name_ch FROM trainers WHERE id=?');
+      const bridgeCache: Record<'horse' | 'jockey' | 'trainer', Map<string, string | null>> = {
+        horse: new Map(), jockey: new Map(), trainer: new Map(),
+      };
+      function bridgeId(entity: 'horse' | 'jockey' | 'trainer', rawId: string): string | null {
+        const cache = bridgeCache[entity];
+        if (cache.has(rawId)) return cache.get(rawId)!;
+        let bridged: string | null = null;
+        if (entity === 'horse') {
+          const row = horseCodeStmt.get(rawId) as { code: string | null } | undefined;
+          bridged = row?.code ?? null;
+        } else if (entity === 'jockey') {
+          const row = jockeyNameStmt.get(rawId) as { name_ch: string | null } | undefined;
+          bridged = row?.name_ch ?? null;
+        } else {
+          const row = trainerNameStmt.get(rawId) as { name_ch: string | null } | undefined;
+          bridged = row?.name_ch ?? null;
+        }
+        cache.set(rawId, bridged);
+        return bridged;
+      }
+
+      const eloStmtCache = new Map<string, Database.Statement>();
+      function eloStmt(entity: 'horse' | 'jockey' | 'trainer'): Database.Statement {
+        let s = eloStmtCache.get(entity);
+        if (s) return s;
+        const table = `${entity}_elo_snapshots`;
+        const col = `${entity}_id`;
+        // horse_elo_snapshots has axis_key NOT NULL — filter to 'overall'.
+        // jockey/trainer snapshot tables have no axis_key column.
+        const sql = entity === 'horse'
+          ? `SELECT rating FROM ${table} WHERE ${col}=? AND axis_key='overall' AND as_of_date<? ORDER BY (id LIKE 'v12:%') DESC, as_of_date DESC, CAST(substr(id, length(rtrim(id, '0123456789')) + 1) AS INTEGER) DESC LIMIT 1`
+          : `SELECT rating FROM ${table} WHERE ${col}=? AND as_of_date<? ORDER BY (id LIKE 'v12:%') DESC, as_of_date DESC, CAST(substr(id, length(rtrim(id, '0123456789')) + 1) AS INTEGER) DESC LIMIT 1`;
+        s = db.prepare(sql);
+        eloStmtCache.set(entity, s);
+        return s;
+      }
+      function readElo(entity: 'horse' | 'jockey' | 'trainer', id: string | null, asOf: string): number | null {
+        if (!id) return null;
+        const key = bridgeId(entity, id);
+        if (!key) return null;
+        try {
+          const row = eloStmt(entity).get(key, asOf) as { rating: number } | undefined;
+          return row?.rating ?? null;
+        } catch (e) {
+          if (process.env.DEBUG_ELO) console.error(`[readElo] ${entity} ${id}->${key} ${asOf}:`, (e as Error).message);
+          return null;
+        }
+      }
+
+    // ── Factor queries (verbatim from composite-backtest.ts) ────────────────
+  const qDistFit = db.prepare(`
+    SELECT COUNT(*) AS starts,
+           SUM(CASE WHEN rr.finishing_position BETWEEN 1 AND 3 THEN 1 ELSE 0 END) AS top3
+      FROM race_results rr
+      JOIN races r ON r.id = rr.race_id
+      JOIN race_meetings rm ON rm.id = r.meeting_id
+     WHERE rr.horse_id = ?
+       AND rm.date < ?
+       AND r.distance BETWEEN ? AND ?
+       AND rr.finishing_position > 0 AND rr.finishing_position < 99`);
+
+  const qGoingFit = db.prepare(`
+    SELECT COUNT(*) AS starts,
+           SUM(CASE WHEN rr.finishing_position BETWEEN 1 AND 3 THEN 1 ELSE 0 END) AS top3
+      FROM race_results rr
+      JOIN races r ON r.id = rr.race_id
+      JOIN race_meetings rm ON rm.id = r.meeting_id
+     WHERE rr.horse_id = ?
+       AND rm.date < ?
+       AND r.going = ?
+       AND rr.finishing_position > 0 AND rr.finishing_position < 99`);
+
+  const drawHistory = db.prepare(`SELECT rm.venue, rm.date, r.distance, rr.draw,
+    COUNT(*) starts, SUM(CASE WHEN rr.finishing_position BETWEEN 1 AND 3 THEN 1 ELSE 0 END) top3
+    FROM race_results rr JOIN races r ON r.id=rr.race_id JOIN race_meetings rm ON rm.id=r.meeting_id
+    WHERE rr.finishing_position>0 AND rr.finishing_position<99
+    GROUP BY rm.venue,rm.date,r.distance,rr.draw ORDER BY rm.date`).all() as {venue:string;date:string;distance:number;draw:number;starts:number;top3:number}[];
+  const drawGroups = new Map<string, {distance:number;rows:{date:string;starts:number;top3:number}[]}[]>();
+  for (const row of drawHistory) {
+    const key = `${row.venue}|${row.draw}`;
+    const groups = drawGroups.get(key) ?? [];
+    let group = groups.find(g => g.distance === row.distance);
+    if (!group) { group = {distance:row.distance,rows:[]}; groups.push(group); drawGroups.set(key,groups); }
+    const prev = group.rows.at(-1);
+    group.rows.push({date:row.date,starts:row.starts+(prev?.starts ?? 0),top3:row.top3+(prev?.top3 ?? 0)});
+  }
+  const qDrawBias = {get(venue:string,date:string,lo:number,hi:number,draw:number) {
+    let starts=0,top3=0;
+    if (!Number.isFinite(lo) || !Number.isFinite(hi)) return {starts,top3};
+    for (const group of drawGroups.get(`${venue}|${draw}`) ?? []) {
+      if (group.distance == null || group.distance<lo || group.distance>hi) continue;
+      let l=0,h=group.rows.length;
+      while(l<h) { const m=Math.floor((l+h)/2); if(group.rows[m].date<date) l=m+1; else h=m; }
+      const prev=group.rows[l-1]; starts+=prev?.starts ?? 0; top3+=prev?.top3 ?? 0;
+    }
+    return {starts,top3};
+  }};
+
+  const qWeightDelta = db.prepare(`
+    SELECT AVG(rr.actual_weight) AS avg_w
+      FROM (
+        SELECT rr.actual_weight
+          FROM race_results rr
+          JOIN races r ON r.id = rr.race_id
+          JOIN race_meetings rm ON rm.id = r.meeting_id
+         WHERE rr.horse_id = ?
+           AND rm.date < ?
+           AND rr.actual_weight IS NOT NULL
+         ORDER BY rm.date DESC LIMIT 5
+      ) rr`);
+
+  const qLastRaceDate = db.prepare(`
+    SELECT MAX(rm.date) AS last_date
+      FROM race_results rr
+      JOIN races r ON r.id = rr.race_id
+      JOIN race_meetings rm ON rm.id = r.meeting_id
+     WHERE rr.horse_id = ? AND rm.date < ?`);
+
+  // ── Stage 14 (NEW): layoff / comeback (休賽日數・復出) ─────────────────
+  // Motivation: the 2026-09-06 season opener had 109/120 runners returning from
+  // >55 days off (mean 72d). days_since_last alone is a raw scalar; the model had
+  // no way to learn "how THIS horse performs when returning from a long break",
+  // nor that a whole field is simultaneously first-up. All leak-safe (as-of date).
+  //
+  // Prior starts of this horse whose own gap from its previous start was > 55d,
+  // together with how often it hit top3 on those comeback runs.
+  const qComebackHistory = db.prepare(`
+    WITH runs AS (
+      SELECT rm.date AS d, rr.finishing_position AS pos,
+             LAG(rm.date) OVER (ORDER BY rm.date) AS prev_d
+        FROM race_results rr
+        JOIN races r ON r.id = rr.race_id
+        JOIN race_meetings rm ON rm.id = r.meeting_id
+       WHERE rr.horse_id = ? AND rm.date < ?
+    )
+    SELECT COUNT(*) AS starts,
+           SUM(CASE WHEN pos BETWEEN 1 AND 3 THEN 1 ELSE 0 END) AS top3
+      FROM runs
+     WHERE prev_d IS NOT NULL
+       AND CAST(julianday(d) - julianday(prev_d) AS INTEGER) > 55`);
+
+  // Starts already made by this horse in the CURRENT HK season (season = Sep 1 →
+  // Aug 31). 0 ⇒ this is its season debut, the single strongest opener signal.
+  const qSeasonStarts = db.prepare(`
+    SELECT COUNT(*) AS starts
+      FROM race_results rr
+      JOIN races r ON r.id = rr.race_id
+      JOIN race_meetings rm ON rm.id = r.meeting_id
+     WHERE rr.horse_id = ? AND rm.date < ? AND rm.date >= ?`);
+
+  // Season start boundary (Sep 1) for an ISO race date.
+  function seasonStart(iso: string): string {
+    const y = Number(iso.slice(0, 4));
+    const m = Number(iso.slice(5, 7));
+    return (m >= 9 ? y : y - 1) + '-09-01';
+  }
+  // Coarse layoff band: 0 ≤14d, 1 ≤28d, 2 ≤55d, 3 ≤90d, 4 >90d, -1 no history.
+  function layoffBand(d: number | null): number {
+    if (d == null) return -1;
+    if (d <= 14) return 0;
+    if (d <= 28) return 1;
+    if (d <= 55) return 2;
+    if (d <= 90) return 3;
+    return 4;
+  }
+
+  // ── Stage 10 (NEW v3.2 ④): pedigree target-encoded progeny performance ──
+  // Leak-safe: progeny races strictly BEFORE the current race date. Keyed by
+  // race_results.horse_id (prefixed 'horse_'+code) via the horse_pedigree table
+  // (built by ingest/index.ts pedigree). Smoothed toward the global progeny
+  // top3 prior so small-sample sires regress to the mean. Missing pedigree →
+  // '' → -1.0 sentinel (lets the tree separate "unknown breeding" from low rate).
+  const pedExists = !!db.prepare(
+    "SELECT name FROM sqlite_master WHERE type='table' AND name='horse_pedigree'").get();
+  if (!pedExists) console.error('[dump-features] WARN: horse_pedigree table absent → sire/damsire features all -1.0 sentinel');
+  const K_PED = 40;
+  const priorByDate = new Map<string, number>();
+  const priorRows = db.prepare(`SELECT rm.date AS date, COUNT(*) starts,
+    SUM(CASE WHEN rr.finishing_position BETWEEN 1 AND 3 THEN 1 ELSE 0 END) top3
+    FROM race_results rr JOIN races r ON r.id=rr.race_id JOIN race_meetings rm ON rm.id=r.meeting_id
+    WHERE rr.finishing_position BETWEEN 1 AND 98 GROUP BY rm.date ORDER BY rm.date`).all() as {date:string;starts:number;top3:number}[];
+  function smoothRate(starts: number, top3: number, date: string): number {
+    let prior = priorByDate.get(date);
+    if (prior === undefined) {
+      const past = priorRows.filter(r => r.date < date);
+      const count = past.reduce((n,r) => n+r.starts,0);
+      prior = count ? past.reduce((n,r) => n+r.top3,0)/count : 0.30;
+      priorByDate.set(date, prior);
+    }
+    return Math.round(((top3 + K_PED * prior) / (starts + K_PED)) * 10000) / 10000;
+  }
+  const sireProgSql = `
+    SELECT COUNT(*) AS starts,
+           SUM(CASE WHEN rr.finishing_position BETWEEN 1 AND 3 THEN 1 ELSE 0 END) AS top3
+      FROM race_results rr
+      JOIN races r ON r.id = rr.race_id
+      JOIN race_meetings rm ON rm.id = r.meeting_id
+      JOIN horse_pedigree hp ON hp.horse_id = rr.horse_id
+     WHERE rm.date < ?
+       AND rr.finishing_position > 0 AND rr.finishing_position < 99`;
+  const qPedLookup = pedExists ? db.prepare('SELECT sire, dam_sire FROM horse_pedigree WHERE horse_id=?') : null;
+  const qSireProg = pedExists ? db.prepare(sireProgSql + ' AND hp.sire = ?') : null;
+  const qSireProgDist = pedExists ? db.prepare(sireProgSql + ' AND hp.sire = ? AND r.distance BETWEEN ? AND ?') : null;
+  const qDamsireProg = pedExists ? db.prepare(sireProgSql + ' AND hp.dam_sire = ?') : null;
+  const sireMemo = new Map<string, number>();
+  const sireDistMemo = new Map<string, number>();
+  const damsireMemo = new Map<string, number>();
+
+  const qCombo = db.prepare(`
+    SELECT COUNT(*) AS starts,
+           SUM(CASE WHEN rr.finishing_position BETWEEN 1 AND 3 THEN 1 ELSE 0 END) AS top3
+      FROM race_results rr
+      JOIN races r ON r.id = rr.race_id
+      JOIN race_meetings rm ON rm.id = r.meeting_id
+     WHERE rr.jockey_id = ?
+       AND rr.trainer_id = ?
+       AND rm.date < ?
+       AND rr.finishing_position > 0 AND rr.finishing_position < 99`);
+
+    // ── Stage 4c: recency-weighted form + cross-features (no odds) ─────────
+    // form_last5: last 5 starts of horse with field size for normalization.
+    const qFormLast5 = db.prepare(`
+      SELECT rr.finishing_position AS pos,
+             (SELECT COUNT(*) FROM race_results rr2
+                WHERE rr2.race_id = rr.race_id
+                  AND rr2.finishing_position BETWEEN 1 AND 98) AS field
+        FROM race_results rr
+        JOIN races r ON r.id = rr.race_id
+        JOIN race_meetings rm ON rm.id = r.meeting_id
+       WHERE rr.horse_id = ? AND rm.date < ?
+         AND rr.finishing_position BETWEEN 1 AND 98
+       ORDER BY rm.date DESC LIMIT 5`);
+
+    // trainer × venue: how often trainer's runners hit top-3 at this venue
+    const qTrainerVenue = db.prepare(`
+      SELECT COUNT(*) AS starts,
+             SUM(CASE WHEN rr.finishing_position BETWEEN 1 AND 3 THEN 1 ELSE 0 END) AS top3
+        FROM race_results rr
+        JOIN races r ON r.id = rr.race_id
+        JOIN race_meetings rm ON rm.id = r.meeting_id
+       WHERE rr.trainer_id = ? AND rm.venue = ? AND rm.date < ?
+         AND rr.finishing_position > 0 AND rr.finishing_position < 99`);
+
+    // jockey × venue: jockey-venue specialization
+    const qJockeyVenue = db.prepare(`
+      SELECT COUNT(*) AS starts,
+             SUM(CASE WHEN rr.finishing_position BETWEEN 1 AND 3 THEN 1 ELSE 0 END) AS top3
+        FROM race_results rr
+        JOIN races r ON r.id = rr.race_id
+        JOIN race_meetings rm ON rm.id = r.meeting_id
+       WHERE rr.jockey_id = ? AND rm.venue = ? AND rm.date < ?
+         AND rr.finishing_position > 0 AND rr.finishing_position < 99`);
+
+    // jockey × distance band: sprinter vs stayer specialization
+    const qJockeyDistBand = db.prepare(`
+      SELECT COUNT(*) AS starts,
+             SUM(CASE WHEN rr.finishing_position BETWEEN 1 AND 3 THEN 1 ELSE 0 END) AS top3
+        FROM race_results rr
+        JOIN races r ON r.id = rr.race_id
+        JOIN race_meetings rm ON rm.id = r.meeting_id
+       WHERE rr.jockey_id = ? AND r.distance BETWEEN ? AND ?
+         AND rm.date < ?
+         AND rr.finishing_position > 0 AND rr.finishing_position < 99`);
+
+    // ── Stage 5: track-condition specialization ────────────────────────────
+    // jockey × going: how does this jockey perform on this surface (Good / Yielding / Soft / etc)
+    const qJockeyGoing = db.prepare(`
+      SELECT COUNT(*) AS starts,
+             SUM(CASE WHEN rr.finishing_position BETWEEN 1 AND 3 THEN 1 ELSE 0 END) AS top3
+        FROM race_results rr
+        JOIN races r ON r.id = rr.race_id
+        JOIN race_meetings rm ON rm.id = r.meeting_id
+       WHERE rr.jockey_id = ? AND r.going = ? AND rm.date < ?
+         AND rr.finishing_position > 0 AND rr.finishing_position < 99`);
+
+    // trainer × going: trainer's preparation suited to today's surface
+    const qTrainerGoing = db.prepare(`
+      SELECT COUNT(*) AS starts,
+             SUM(CASE WHEN rr.finishing_position BETWEEN 1 AND 3 THEN 1 ELSE 0 END) AS top3
+        FROM race_results rr
+        JOIN races r ON r.id = rr.race_id
+        JOIN race_meetings rm ON rm.id = r.meeting_id
+       WHERE rr.trainer_id = ? AND r.going = ? AND rm.date < ?
+         AND rr.finishing_position > 0 AND rr.finishing_position < 99`);
+
+    // ── Stage 6 (NEW): pace style — last 8 starts running_position ─────────
+    // Format: "2-2-1-1" = sectional positions through race. First segment = early.
+    const qHorsePace = db.prepare(`
+      SELECT rr.running_position AS rp
+        FROM race_results rr
+        JOIN races r ON r.id = rr.race_id
+        JOIN race_meetings rm ON rm.id = r.meeting_id
+       WHERE rr.horse_id = ? AND rm.date < ?
+         AND rr.running_position IS NOT NULL AND rr.running_position != ''
+       ORDER BY rm.date DESC LIMIT 8`);
+
+    // ── Stage 8 (NEW 2026-05-25, v3.2): real sectional times from
+    // horse_sectional_times (populated by scripts/import-csv.ts from
+    // sectional_times_YYYY-MM-DD.csv in tianxi-database, 87 days/year
+    // back to 2017). Goal: improve ORDERING of top-3 by capturing
+    // early speed vs late kick — the dominant factor differentiating
+    // similarly-rated horses for trio/tierce/QP positions.
+    //
+    // Schema: (race_id, horse_id, section_number 1..6,
+    //          section_time REAL, position_at_section INTEGER).
+    // Fetch last 60 sectional rows for this horse (≈10 races worth)
+    // and aggregate in JS over the most recent 6 races.
+    const qSectionals = db.prepare(`
+      SELECT hst.race_id AS rid,
+             hst.section_number AS sec,
+             hst.section_time AS t,
+             hst.position_at_section AS pos,
+             rm.date AS dt
+        FROM horse_sectional_times hst
+        JOIN races r ON r.id = hst.race_id
+        JOIN race_meetings rm ON rm.id = r.meeting_id
+       WHERE hst.horse_id = ? AND rm.date < ?
+       ORDER BY rm.date DESC, hst.section_number ASC
+       LIMIT 60`);
+
+    // ── Stage 12 (NEW v3.2 ⑥ pace/走位): per-race sectional-TIME stats for
+    // leak-safe within-race z-scoring of a horse's section times. GROUP BY
+    // section so we get mean + mean-of-squares (→ population std) per segment
+    // for ALL runners of a PAST race (fully settled → no lookahead). Memoized
+    // per race_id in raceSectStats() below. section_time is the raw pace datum
+    // that Stage-8 sectionalProfile() discards (it uses position_at_section only).
+    const qRaceSectStats = db.prepare(`
+      SELECT section_number AS sec,
+             AVG(section_time) AS mean_t,
+             AVG(section_time * section_time) AS mean_t2,
+             COUNT(*) AS n
+        FROM horse_sectional_times
+       WHERE race_id = ? AND section_time IS NOT NULL
+       GROUP BY section_number`);
+
+    // ── Stage 13 (NEW v3.2 ⑦ hard-luck): comment-derived trouble signal ─────
+    // running_comments (id, race_id, horse_id, comment_text, language) is
+    // populated by import-csv.ts from commentary_YYYY-MM-DD.csv (HKJC 沿途走勢
+    // 評述). '無特別報告' rows are SKIPPED at import → a clean run has NO comment
+    // row, so we spine on race_results (all real starts) and LEFT JOIN the
+    // comment; a null txt = a clean run, NOT missing history. Leak-safe: comments
+    // only exist for already-run PAST races (rm.date < meta.date). Same id
+    // derivation as sectionals (raceId()/horseId()) so the joins mirror qSectionals.
+    const qHorseComments = db.prepare(`
+      SELECT rm.date AS dt, rc.comment_text AS txt
+        FROM race_results rr
+        JOIN races r ON r.id = rr.race_id
+        JOIN race_meetings rm ON rm.id = r.meeting_id
+        LEFT JOIN running_comments rc
+               ON rc.race_id = rr.race_id AND rc.horse_id = rr.horse_id
+       WHERE rr.horse_id = ? AND rm.date < ?
+         AND rr.finishing_position > 0 AND rr.finishing_position < 99
+       ORDER BY rm.date DESC LIMIT 8`);
+
+    // ── Stage 6 (NEW): class change — last race_class for horse ────────────
+    // horse_form_records.race_class is text. Format varies:
+    //   - bare digit "4"  (from form_records CSV col 9)
+    //   - "Class 4"       (older formats)
+    //   - "第四班"        (Chinese narrative)
+    //   - "Griffin"/"Group 1"
+    // Date format in form_records is DD/MM/YYYY (e.g. "01/01/2019"), NOT ISO YYYY-MM-DD.
+    // String compare against meta.date (YYYY-MM-DD) would be nonsense, so we fetch ALL
+    // prior records and sort in JS using normalized dates.
+    const qAllClassHistory = db.prepare(`
+      SELECT race_class AS rc, race_date AS dt
+        FROM horse_form_records
+       WHERE horse_id = ?
+         AND race_class IS NOT NULL AND race_class != ''
+         AND race_date IS NOT NULL AND race_date != ''`);
+    // Normalize date: accept DD/MM/YYYY → YYYY-MM-DD; pass through ISO.
+    function normDate(s: string): string | null {
+      if (!s) return null;
+      const t = s.trim();
+      const ddmm = t.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+      if (ddmm) return `${ddmm[3]}-${ddmm[2].padStart(2,'0')}-${ddmm[1].padStart(2,'0')}`;
+      const iso = t.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);
+      if (iso) return `${iso[1]}-${iso[2].padStart(2,'0')}-${iso[3].padStart(2,'0')}`;
+      return null;
+    }
+
+  
+  // ── Bonus helpers (verbatim) ────────────────────────────────────────────
+  function daysBetween(a: string, b: string): number {
+    return Math.round((Date.parse(b + 'T00:00:00Z') - Date.parse(a + 'T00:00:00Z')) / 86_400_000);
+  }
+  function recencyBonus(d: number | null): number {
+    if (d == null) return 0;
+    if (d < 7) return -10;
+    if (d <= 28) return 10;
+    if (d <= 60) return 0;
+    if (d <= 120) return -5;
+    return -15;
+  }
+  function rateBonus(starts: number, top3: number, scale = 15): number {
+    if (!starts) return 0;
+    return ((top3 + 0.30 * 5) / (starts + 5) - 0.30) * scale;
+  }
+  function weightBonus(curr: number | null, avg: number | null): number {
+    if (curr == null || avg == null) return 0;
+    return -(curr - avg) * 0.5;
+  }
+
+  // ── Stage 6: pace + class helpers ───────────────────────────────────────
+  // Parse "2-2-1-1" → array of integers. Returns [] if unparseable.
+  function parseRP(rp: string): number[] {
+    return rp.split('-').map(s => parseInt(s.trim(), 10)).filter(n => Number.isFinite(n) && n > 0);
+  }
+
+  // ── Stage 8 (NEW v3.2): parse HKJC lengths-behind-winner text ──────────
+  // Format examples (HK convention): 'N' (nose, ~0.05L), 'SH' (short head, 0.1),
+  // 'HD' (head, 0.2), 'NK' (neck, 0.3), '1/2', '3/4', '1-1/4', '5', '12-3/4'.
+  // Returns numeric lengths or null if unparseable. Winner row has empty/null lbw → 0.
+  function parseLbw(s: string | null | undefined): number | null {
+    if (s == null) return 0;  // winner: stored as null/empty
+    const t = String(s).trim().toUpperCase();
+    if (t === '' || t === '-') return 0;  // treated as winner / no separation
+    const abbrev: Record<string, number> = { 'N': 0.05, 'SH': 0.1, 'HD': 0.2, 'NK': 0.3 };
+    if (t in abbrev) return abbrev[t];
+    // "1-1/4" → 1.25 ; "3/4" → 0.75 ; "5" → 5
+    const mix = t.match(/^(\d+)\s*[-\s]\s*(\d+)\/(\d+)$/);
+    if (mix) return Number(mix[1]) + Number(mix[2]) / Number(mix[3]);
+    const frac = t.match(/^(\d+)\/(\d+)$/);
+    if (frac) return Number(frac[1]) / Number(frac[2]);
+    const num = t.match(/^(\d+(?:\.\d+)?)$/);
+    if (num) return Number(num[1]);
+    return null;
+  }
+
+  // ── Stage 8 (NEW v3.2): aggregate sectional rows from qSectionals ──────
+  // Input: rows ORDER BY date DESC, section_number ASC (so each race's
+  // sections are contiguous). Takes the most-recent 6 races' worth.
+  // Outputs:
+  //   sect_n         — races used (0..6)
+  //   sect_early_avg — avg position at first section across races (lower=closer-to-front early)
+  //   sect_late_kick — avg (position_at_first_section - position_at_last_section).
+  //                    Positive = passed horses in late stages (closer style).
+  //                    Negative = was passed late (front-runner who faded).
+  function sectionalProfile(rows: { rid: string; sec: number; pos: number | null; t: number | null }[]):
+    { n: number; early_avg: number | null; late_kick: number | null } {
+    if (!rows.length) return { n: 0, early_avg: null, late_kick: null };
+    const byRace: Map<string, { pos: number; sec: number }[]> = new Map();
+    for (const r of rows) {
+      if (r.pos == null || !Number.isFinite(r.pos)) continue;
+      const arr = byRace.get(r.rid) || [];
+      arr.push({ pos: r.pos, sec: r.sec });
+      byRace.set(r.rid, arr);
+    }
+    // qSectionals returns rows already ordered by date DESC; Map preserves insertion order.
+    const races = Array.from(byRace.values()).slice(0, 6);
+    const earlies: number[] = [];
+    const kicks: number[] = [];
+    for (const segs of races) {
+      segs.sort((a, b) => a.sec - b.sec);
+      if (segs.length === 0) continue;
+      earlies.push(segs[0].pos);
+      if (segs.length >= 2) {
+        kicks.push(segs[0].pos - segs[segs.length - 1].pos);
+      }
+    }
+    return {
+      n: races.length,
+      early_avg: earlies.length ? Math.round((earlies.reduce((a, b) => a + b, 0) / earlies.length) * 100) / 100 : null,
+      late_kick: kicks.length ? Math.round((kicks.reduce((a, b) => a + b, 0) / kicks.length) * 100) / 100 : null,
+    };
+  }
+
+  // ── Stage 12 (NEW v3.2 ⑥): per-race sectional-time stats, memoized ───────
+  // Returns the early (min section_number) and final (max section_number)
+  // segment's mean time + population std across that race's runners. Population
+  // std via sqrt(E[t²]-E[t]²). null when the race has no sectional rows.
+  const raceSectStatsCache = new Map<string, {
+    earlySec: number; earlyMean: number; earlyStd: number;
+    finalSec: number; finalMean: number; finalStd: number;
+  } | null>();
+  function raceSectStats(rid: string) {
+    const cached = raceSectStatsCache.get(rid);
+    if (cached !== undefined) return cached;
+    const rows = qRaceSectStats.all(rid) as { sec: number; mean_t: number; mean_t2: number; n: number }[];
+    let out: typeof cached = null;
+    if (rows.length) {
+      rows.sort((a, b) => a.sec - b.sec);
+      const std = (m: number, m2: number) => Math.sqrt(Math.max(0, m2 - m * m));
+      const lo = rows[0], hi = rows[rows.length - 1];
+      out = {
+        earlySec: lo.sec, earlyMean: lo.mean_t, earlyStd: std(lo.mean_t, lo.mean_t2),
+        finalSec: hi.sec, finalMean: hi.mean_t, finalStd: std(hi.mean_t, hi.mean_t2),
+      };
+    }
+    raceSectStatsCache.set(rid, out);
+    return out;
+  }
+  // From a horse's last-6 sectional races, z-score its early & final section
+  // TIME within each race's field, then average. Negative = faster than the
+  // race average (lower time). Missing/insufficient → -9 sentinel (outside the
+  // realistic z range ≈ ±5, so the tree can isolate "no data"). NOT a per-
+  // CURRENT-race relative (③): the z is over each PAST race's own runners.
+  const SECT_Z_NA = -9;
+  function sectionalSpeedProfile(
+    rows: { rid: string; sec: number; pos: number | null; t: number | null }[],
+  ): { early_z: number; fin_z: number; n: number } {
+    if (!rows.length) return { early_z: SECT_Z_NA, fin_z: SECT_Z_NA, n: 0 };
+    const byRace = new Map<string, { sec: number; t: number }[]>();
+    for (const r of rows) {
+      if (r.t == null || !Number.isFinite(r.t)) continue;
+      const arr = byRace.get(r.rid) || [];
+      arr.push({ sec: r.sec, t: r.t });
+      byRace.set(r.rid, arr);
+    }
+    const races = Array.from(byRace.entries()).slice(0, 6);
+    const earlyZs: number[] = [];
+    const finZs: number[] = [];
+    for (const [rid, segs] of races) {
+      const st = raceSectStats(rid);
+      if (!st) continue;
+      const e = segs.find(s => s.sec === st.earlySec);
+      const f = segs.find(s => s.sec === st.finalSec);
+      if (e && st.earlyStd > 1e-6) earlyZs.push((e.t - st.earlyMean) / st.earlyStd);
+      if (f && st.finalStd > 1e-6) finZs.push((f.t - st.finalMean) / st.finalStd);
+    }
+    const mean = (a: number[], na: number) =>
+      a.length ? Math.round((a.reduce((x, y) => x + y, 0) / a.length) * 1000) / 1000 : na;
+    return { early_z: mean(earlyZs, SECT_Z_NA), fin_z: mean(finZs, SECT_Z_NA), n: Math.max(earlyZs.length, finZs.length) };
+  }
+
+  // ── Stage 13 (NEW v3.2 ⑦ hard-luck): comment-derived trouble features ───
+  // Keyword sets over the HKJC 沿途走勢評述 (Traditional Chinese). Three signal
+  // families validated as market-underrated (at equal odds, trouble horses
+  // finish ~5-9pp worse on top3 → finishing position is a pessimistically-biased
+  // ability read → recent trouble = positive next-start signal):
+  //   A 受阻/不順 (blocked / interfered / checked)
+  //   B 走大疊/兜大圈 (forced wide → extra ground covered)
+  //   C 出閘失準 (slow / bumped start)
+  // Matched by substring (.includes). Good-start phrases like 出閘迅速 do NOT
+  // match the C set. Each is a per-race binary flag; we recency-weight over the
+  // horse's last 8 ACTUAL starts (linear weight n..1, most-recent highest).
+  const KW_TROUBLE  = ['受阻','阻礙','受擠','被困','受困','收慢','失位','走位不','碰撞','觸碰','受制','擠迫','閉塞','受影響'];
+  const KW_WIDE     = ['兜大圈','大外疊','走外疊','第三疊','第四疊','第五疊','三疊','四疊','向外斜'];
+  const KW_BADSTART = ['出閘普通','出閘僅','出閘緩','出閘慢','起步慢','留閘','起步時發生碰撞','出閘失','出閘後退'];
+  function hasAny(s: string, kws: string[]): boolean {
+    for (const k of kws) if (s.includes(k)) return true;
+    return false;
+  }
+  // rows ordered date DESC (most recent first), up to 8 real starts. txt is null
+  // for a clean ('無特別報告') run. Returns recency-weighted fraction of starts
+  // carrying each flag, plus n = number of starts considered. n=0 (no history) →
+  // '' sentinels (→ -1.0 via python fillna), distinct from a consistently-clean
+  // horse (n>0, fraction 0).
+  function commentProfile(rows: { dt: string; txt: string | null }[]):
+    { n: number; trouble: number | ''; wide: number | ''; badstart: number | '' } {
+    const n = rows.length;
+    if (!n) return { n: 0, trouble: '', wide: '', badstart: '' };
+    let wSum = 0, tA = 0, tB = 0, tC = 0;
+    for (let i = 0; i < n; i++) {
+      const w = n - i;                 // linear recency weight (most recent = n)
+      wSum += w;
+      const txt = rows[i].txt || '';
+      if (txt) {
+        if (hasAny(txt, KW_TROUBLE)) tA += w;
+        if (hasAny(txt, KW_WIDE)) tB += w;
+        if (hasAny(txt, KW_BADSTART)) tC += w;
+      }
+    }
+    const r = (x: number) => Math.round((x / wSum) * 1000) / 1000;
+    return { n, trouble: r(tA), wide: r(tB), badstart: r(tC) };
+  }
+  // From last-N running_positions: { early: mean first-sectional position, style: 1=leader/2=stalker/3=closer/0=unknown }
+  function paceProfile(rps: string[]): { early: number | null; style: number } {
+    const earlies: number[] = [];
+    for (const rp of rps) {
+      const segs = parseRP(rp);
+      if (segs.length > 0) earlies.push(segs[0]);
+    }
+    if (!earlies.length) return { early: null, style: 0 };
+    const avg = earlies.reduce((a, b) => a + b, 0) / earlies.length;
+    const style = avg <= 2.5 ? 1 : avg <= 4 ? 2 : 3;
+    return { early: Math.round(avg * 100) / 100, style };
+  }
+  // Convert race class text → numeric (lower = higher class).
+  // Group 1 = -1, Group 2 = -2, Group 3 = -3 (top); Class 1 = 1 .. Class 5 = 5; Griffin = 6.
+  function classToNum(c: string | null | undefined): number | null {
+    if (!c) return null;
+    const s = String(c).trim();
+    // Bare digit (form_records col 9 stores "4" not "Class 4" / "第四班")
+    if (/^[1-9]$/.test(s)) return parseInt(s, 10);
+    // English
+    let m = s.match(/Class\s*(\d+)/i);
+    if (m) return parseInt(m[1], 10);
+    if (/griffin/i.test(s)) return 6;
+    m = s.match(/Group\s*(\d+)/i);
+    if (m) return -parseInt(m[1], 10);
+    // Chinese variants — both Arabic ("第4班") and Chinese ("第四班") digits.
+    const cnDigit: Record<string, number> = { '一':1, '二':2, '兩':2, '三':3, '四':4, '五':5, '六':6, '七':7, '八':8, '九':9, '十':10 };
+    m = s.match(/第\s*([0-9一二三四五六七八九十兩])\s*班/);
+    if (m) {
+      const d = m[1];
+      if (/\d/.test(d)) return parseInt(d, 10);
+      if (d in cnDigit) return cnDigit[d];
+    }
+    // 新馬 = griffin/new horses
+    if (/新馬|無評分|0班/.test(s)) return 6;
+    // 國際/Group equivalents
+    if (/國際一級|一級賽/.test(s)) return -1;
+    if (/國際二級|二級賽/.test(s)) return -2;
+    if (/國際三級|三級賽/.test(s)) return -3;
+    return null;
+  }
+
+  // ── Race iteration ──────────────────────────────────────────────────────
+  type RaceMeta = { id: string; date: string; venue: string; race_number: number; distance: number; going: string; class: string | null };
+  type RunnerRow = {
+    race_id: string; horse_id: string; jockey_id: string | null; trainer_id: string | null;
+    finishing_position: number; draw: number | null; actual_weight: number | null; win_odds: number | null;
+    lbw: string | null;
+    gear: string | null;
+  };
+
+  // ── Race + runner source ────────────────────────────────────────────────
+  // Default mode: pull historical races + finishing positions from race_results.
+  // --upcoming-json mode: read upcoming entries from JSON file (admin export).
+  let races: RaceMeta[];
+  // runnersByRace: pre-built for upcoming mode; qRunners: SQL prepared for history mode.
+  let qRunners: any = null;
+  const runnersByRace: Map<string, RunnerRow[]> = new Map();
+  const UPCOMING_MODE = UPCOMING_JSON !== '';
+
+  if (UPCOMING_MODE) {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { readFileSync } = require('node:fs');
+    const data = JSON.parse(readFileSync(UPCOMING_JSON, 'utf8'));
+    const entries: any[] = data.entries || [];
+    const metaByKey: Map<string, RaceMeta> = new Map();
+    for (const e of entries) {
+      if (!e.horse_id) continue;  // skip unresolved runners
+      // Skip reserve/unassigned pool entries: race_number 0 or missing.
+      // (HKJC pre-declarations land horses in a "race 0" bucket until they're
+      // assigned to a numbered race. Predicting that pool as one big race is
+      // meaningless — scores would diffuse across 100+ unrelated horses.)
+      if (!e.race_number || Number(e.race_number) < 1) continue;
+      // Synthesize a race_id when D1 hasn't assigned one yet.
+      // Format MUST match scripts/import-csv.ts raceId():
+      //   race_<YYYY-MM-DD>_<VENUE>_<raceNo>   (NO 'R' prefix, hyphenated date)
+      // so analyze.ts can JOIN by synth id for upcoming races whose races row
+      // is created later by import-csv with the same key.
+      const synthId = `race_${e.race_date}_${e.venue}_${e.race_number}`;
+      const raceId: string = e.race_id || synthId;
+      if (!metaByKey.has(raceId)) {
+        metaByKey.set(raceId, {
+          id: raceId,
+          date: e.race_date,
+          venue: e.venue,
+          race_number: Number(e.race_number),
+          distance: Number(e.distance) || 0,
+          going: String(e.going || ''),
+          class: e.race_class || null,
+        });
+      }
+      const list = runnersByRace.get(raceId) || [];
+      list.push({
+        race_id: raceId,
+        horse_id: e.horse_id,
+        jockey_id: e.jockey_id || null,
+        trainer_id: e.trainer_id || null,
+        finishing_position: 0,  // unknown — placeholder
+        draw: e.draw != null ? Number(e.draw) : null,
+        actual_weight: e.actual_weight != null ? Number(e.actual_weight) : null,
+        win_odds: null,
+        lbw: null,  // unknown — race hasn't run
+        gear: e.gear ?? null,  // ⑤ equipment (export must include gear; null until then)
+      });
+      runnersByRace.set(raceId, list);
+    }
+    races = Array.from(metaByKey.values())
+      .sort((a, b) => (a.date + a.id).localeCompare(b.date + b.id));
+    console.error(`[dump-features] UPCOMING mode: ${races.length} races, ${entries.length} entries → ${OUT}`);
+  } else {
+    races = db.prepare(`
+      SELECT r.id AS id, rm.date AS date, rm.venue AS venue, r.race_number AS race_number,
+             r.distance AS distance, r.going AS going, r.class AS class
+        FROM races r
+        JOIN race_meetings rm ON rm.id = r.meeting_id
+       WHERE rm.date BETWEEN ? AND ?
+         AND EXISTS (SELECT 1 FROM race_results rr WHERE rr.race_id = r.id AND rr.finishing_position BETWEEN 1 AND 98)
+       ORDER BY rm.date ASC, r.id ASC`).all(FROM, TO) as RaceMeta[];
+
+    qRunners = db.prepare(`
+      SELECT race_id, horse_id, jockey_id, trainer_id, finishing_position,
+             draw, actual_weight, win_odds, lbw, gear
+        FROM race_results
+       WHERE race_id = ?
+         AND finishing_position BETWEEN 1 AND 98`);
+  }
+
+  console.error(`[dump-features] ${FROM}..${TO} → ${races.length} races · ELO=${ENGINE} · W=H${W_HORSE}/J${W_JOCKEY}/T${W_TRAINER}`);
+  console.error(`[dump-features] writing → ${OUT}`);
+
+  // ── Stage 11 (NEW v3.2 ⑤): gear / equipment-change parser ──────────────
+  // HKJC encodes the equipment CHANGE-STATE directly in the gear string, so
+  // no historical join is needed (avoids the O(n²) as-of cost the pedigree
+  // encoding incurs). Codes are '/'-separated; each may carry a marker:
+  //   <code>1 = first time wearing it (e.g. B1, TT1, XB1)
+  //   <code>2 = second time (HKJC flags a change for 2 races) → still "recent"
+  //   <code>- = removed this race (e.g. XB-)
+  //   '--'   = no gear at all
+  // All declared on the racecard pre-race → fully leak-safe. Base codes incl:
+  //   B(blinkers) V(visor) XB(x-over noseband) TT(tongue tie) H(hood)
+  //   CP(cheek pieces) SR(sheepskin) P(pacifiers) E(ear plugs) …
+  function parseGear(g: string | null | undefined): {
+    firstN: number; offN: number; changed: number; blinkers: number;
+  } {
+    const out = { firstN: 0, offN: 0, changed: 0, blinkers: 0 };
+    if (g == null) return out;
+    const s = String(g).trim();
+    if (s === '' || s === '--' || s === '-') return out;
+    for (const tokRaw of s.split('/')) {
+      const tok = tokRaw.trim();
+      if (!tok || tok === '--' || tok === '-') continue;
+      const m = tok.match(/^([A-Za-z]+)([0-9-]*)$/);
+      if (!m) continue;
+      const base = m[1].toUpperCase();
+      const marker = m[2] || '';
+      if (marker.includes('1')) out.firstN++;
+      if (marker.includes('-')) out.offN++;
+      if (marker.includes('1') || marker.includes('2') || marker.includes('-')) out.changed = 1;
+      if (base === 'B' || base === 'V') out.blinkers = 1;  // vision-restricting focus aids
+    }
+    return out;
+  }
+
+  // ── Stage 15 (NEW 2026-09-11 ⑨ non-odds "why favourites are strong"): ────
+  // Residual diagnostics (365d, 2194 runners) showed the engine under-states
+  // favourites by ~19pp in top-3 terms. Rather than feeding odds into the
+  // ranking (which would break the no-market-weight principle), these columns
+  // try to explain the same信息 with leak-safe non-odds signals:
+  //   class fit   — horse's own record at TODAY's class + its usual class level
+  //   J/T quality — jockey / trainer rolling 180-day strike rate (form, not fame)
+  //   draw × dist — relative draw position interacted with trip length
+  const qHorseClassHistory = db.prepare(`
+    SELECT r.class AS cls, rr.finishing_position AS pos
+      FROM race_results rr
+      JOIN races r ON r.id = rr.race_id
+      JOIN race_meetings rm ON rm.id = r.meeting_id
+     WHERE rr.horse_id = ? AND rm.date < ?
+       AND rr.finishing_position > 0 AND rr.finishing_position < 99`);
+  const qJockeyRecent = db.prepare(`
+    SELECT COUNT(*) AS starts,
+           SUM(CASE WHEN rr.finishing_position BETWEEN 1 AND 3 THEN 1 ELSE 0 END) AS top3
+      FROM race_results rr
+      JOIN races r ON r.id = rr.race_id
+      JOIN race_meetings rm ON rm.id = r.meeting_id
+     WHERE rr.jockey_id = ? AND rm.date < ? AND rm.date >= ?
+       AND rr.finishing_position > 0 AND rr.finishing_position < 99`);
+  const qTrainerRecent = db.prepare(`
+    SELECT COUNT(*) AS starts,
+           SUM(CASE WHEN rr.finishing_position BETWEEN 1 AND 3 THEN 1 ELSE 0 END) AS top3
+      FROM race_results rr
+      JOIN races r ON r.id = rr.race_id
+      JOIN race_meetings rm ON rm.id = r.meeting_id
+     WHERE rr.trainer_id = ? AND rm.date < ? AND rm.date >= ?
+       AND rr.finishing_position > 0 AND rr.finishing_position < 99`);
+  const jqMemo = new Map<string, { starts: number; top3: number }>();
+  const tqMemo = new Map<string, { starts: number; top3: number }>();
+  function daysBefore(date: string, days: number): string {
+    const d = new Date(date + 'T00:00:00Z');
+    d.setUTCDate(d.getUTCDate() - days);
+    return d.toISOString().slice(0, 10);
+  }
+
+  const HEADER = [
+      'race_id','race_date','venue','race_no','distance','going','field_size',
+      'horse_id','jockey_id','trainer_id','draw','actual_weight','win_odds',
+      'h_elo','j_elo','t_elo','days_since_last',
+      'dist_starts','dist_top3','going_starts','going_top3',
+      'draw_starts','draw_top3','combo_starts','combo_top3','weight_avg5',
+      'elo_composite','factor_bonus','baseline_score',
+      // Stage 4c: recency-weighted form (per horse, last 5 starts)
+      'form_n','form_avgpos_w','form_top3rate_w','form_pos_slope',
+      // Stage 4c: cross-features (interaction history)
+      'tv_starts','tv_top3','jv_starts','jv_top3','jdb_starts','jdb_top3',
+      // Stage 5: track-condition specialization (jockey/trainer × going)
+      'jg_starts','jg_top3','tg_starts','tg_top3',
+      // Stage 6 (NEW): pace style (per horse, last 8 starts) + race-level pace clash
+      'horse_pace_n','horse_pace_early','horse_pace_style',
+      'race_n_leaders','race_n_closers','horse_pace_clash',
+      // Stage 6 (NEW): class change (current vs horse's last race_class)
+      'class_now_num','last_class_num','class_delta',
+      // Stage 8 (NEW v3.2): real sectional times (last 6 races aggregated)
+      'sect_n','sect_early_avg','sect_late_kick',
+      // Stage 12 (NEW v3.2 ⑥ pace/走位): sectional-SPEED z (time-based, leak-safe
+      // within each past race's field; -9 = no data). Distinct from the
+      // position-based sect_* above — uses section_time, which Stage-8 discards.
+      'sect_early_z','sect_fin_z',
+      // Stage 8 (NEW v3.2): distance-band features + interactions
+      'is_sprint','is_middle','is_distance',
+      'draw_x_sprint','paceclash_x_distance',
+      // Stage 8 (NEW v3.2): margin-regression target (lbw parsed → lengths).
+      // FEATURE: not used (would be lookahead). LABEL: for future aux head.
+      'beaten_lengths',
+      // Stage 10 (NEW v3.2 ④): pedigree target-encoded (leak-safe, as-of date)
+      'sire_top3_sm','sire_dist_top3_sm','damsire_top3_sm',
+      // Stage 11 (NEW v3.2 ⑤): gear/equipment change (HKJC markers, leak-safe)
+      'gear_first_n','gear_off_n','gear_changed','gear_blinkers',
+      // Stage 13 (NEW v3.2 ⑦): comment-derived hard-luck (recency-weighted over
+      // last 8 starts; cmt_n = history depth (0 = no history); the three fraction
+      // cols use the -1 sentinel for no history). A受阻 + B走大疊 + C出閘失準.
+      'cmt_n','cmt_trouble','cmt_wide','cmt_badstart',
+      // Stage 14 (NEW): layoff / comeback. layoff_band = coarse gap band;
+      // is_layoff55 = returning from >55d; cb_starts/cb_top3 = this horse's own
+      // record on past comeback runs; season_starts/is_season_debut = position in
+      // the current HK season; field_layoff_frac = share of THIS field that is
+      // first-up >55d (race-level, constant per row) — lets the model discount its
+      // own form signal when the whole field is unraced; layoff_x_form couples the
+      // gap band with recency-weighted form.
+      'layoff_band','is_layoff55','cb_starts','cb_top3','season_starts',
+      'is_season_debut','field_layoff_frac','layoff_x_form',
+      // Stage 15 (NEW 2026-09-11 ⑨): class fit + jockey/trainer rolling quality
+      // + draw×distance. hc_* = horse's record at today's class (smoothed);
+      // class_hist_avg = mean class number of its past starts (lower = better
+      // company), class_step = class_hist_avg - class_now_num (>0 = dropping in
+      // class today); jq_/tq_* = 180-day rolling strike rate; draw_pct =
+      // draw / field_size; draw_x_dist = draw_pct × distance/1000.
+      'hc_starts','hc_top3','class_hist_avg','class_step',
+      'jq_starts','jq_top3','tq_starts','tq_top3','draw_pct','draw_x_dist',
+      'finishing_position','is_top1','is_top3',
+    ];
+  writeFileSync(OUT, HEADER.join(',') + '\n');
+
+  function csv(v: unknown): string {
+    if (v == null) return '';
+    if (typeof v === 'number') return Number.isFinite(v) ? String(v) : '';
+    const s = String(v);
+    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  }
+
+  let buf: string[] = [];
+  let written = 0;
+  let gearChangedN = 0, gearBlinkersN = 0;  // ⑤ coverage guard (silent-regression detector)
+  let layoff55N = 0, seasonDebutN = 0; // Stage 14 coverage counters
+  let sectSpdN = 0;  // ⑥ coverage guard: rows with real (non-sentinel) sectional-speed z
+  let cmtHistN = 0, cmtTroubleN = 0;  // ⑦ coverage guard: rows with comment history / trouble flag
+  function flush() { if (buf.length) { appendFileSync(OUT, buf.join('')); buf = []; } }
+
+  for (const stmt of [qTrainerVenue,qJockeyVenue,qJockeyDistBand,qJockeyGoing,qTrainerGoing,qCombo,qJockeyRecent,qTrainerRecent,qLastRaceDate,qAllClassHistory]) {
+    for (const method of ['get','all'] as const) {
+      const original = stmt[method].bind(stmt);
+      const cache = new Map<string, unknown>();
+      Object.defineProperty(stmt,method,{value:(...args:unknown[])=>{
+        const key=JSON.stringify(args);
+        if(cache.has(key)) return cache.get(key);
+        const result=original(...args);cache.set(key,result);return result;
+      }});
+    }
+  }
+  for (let i = 0; i < races.length; i++) {
+    const meta = races[i];
+    const runners: RunnerRow[] = UPCOMING_MODE
+      ? (runnersByRace.get(meta.id) || [])
+      : (qRunners.all(meta.id) as RunnerRow[]);
+    if (runners.length < 4) continue;
+
+    // sort by finish position to identify top1/top3 horse_ids for label
+    // (upcoming mode: all finishing_position=0, so top1/top3 are arbitrary; labels unused.)
+    const sorted = [...runners].sort((a, b) => a.finishing_position - b.finishing_position);
+    const top1Id = sorted[0].horse_id;
+    const top3Set = new Set(sorted.slice(0, 3).map(r => r.horse_id));
+    const fieldSize = runners.length;
+
+    // Stage 6: pre-pass to collect each runner's pace style → race-level counts
+    const paceByHorse: Map<string, { early: number | null; style: number; n: number }> = new Map();
+    // Stage 8 (NEW v3.2): pre-pass sectional profiles too
+    const sectByHorse: Map<string, { n: number; early_avg: number | null; late_kick: number | null }> = new Map();
+    // Stage 12 (NEW v3.2 ⑥): pre-pass sectional-speed z profiles (reuse sectRows)
+    const sectSpeedByHorse: Map<string, { early_z: number; fin_z: number; n: number }> = new Map();
+    // Stage 13 (NEW v3.2 ⑦): pre-pass comment-derived hard-luck profiles
+    const cmtByHorse: Map<string, { n: number; trouble: number | ''; wide: number | ''; badstart: number | '' }> = new Map();
+    for (const r of runners) {
+      const rps = (qHorsePace.all(r.horse_id, meta.date) as { rp: string }[]).map(x => x.rp);
+      const pp = paceProfile(rps);
+      paceByHorse.set(r.horse_id, { early: pp.early, style: pp.style, n: rps.length });
+      const sectRows = qSectionals.all(r.horse_id, meta.date) as { rid: string; sec: number; t: number | null; pos: number | null; dt: string }[];
+      sectByHorse.set(r.horse_id, sectionalProfile(sectRows));
+      sectSpeedByHorse.set(r.horse_id, sectionalSpeedProfile(sectRows));
+      const cmtRows = qHorseComments.all(r.horse_id, meta.date) as { dt: string; txt: string | null }[];
+      cmtByHorse.set(r.horse_id, commentProfile(cmtRows));
+    }
+    let raceNLeaders = 0, raceNClosers = 0;
+    for (const v of paceByHorse.values()) {
+      if (v.style === 1) raceNLeaders++;
+      if (v.style === 3) raceNClosers++;
+    }
+    const classNowNum = classToNum(meta.class);
+
+    // Stage 8 (NEW v3.2): distance-band indicators (race-level, constant per row in race)
+    const dist = meta.distance || 0;
+    const isSprint = dist > 0 && dist <= 1200 ? 1 : 0;
+    const isMiddle = dist >= 1400 && dist <= 1600 ? 1 : 0;
+    const isDistance = dist >= 1800 ? 1 : 0;
+
+    // Stage 14: per-runner layoff scalars, plus the race-level first-up share.
+    const layoffDaysByHorse = new Map<string, number | null>();
+    for (const r of runners) {
+      const lrPre = qLastRaceDate.get(r.horse_id, meta.date) as { last_date: string | null } | undefined;
+      layoffDaysByHorse.set(r.horse_id, lrPre?.last_date ? daysBetween(lrPre.last_date, meta.date) : null);
+    }
+    const fieldLayoffFrac = runners.length
+      ? runners.filter((r) => {
+          const d = layoffDaysByHorse.get(r.horse_id);
+          return d == null || d > 55; // no history counts as unraced too
+        }).length / runners.length
+      : 0;
+    const seasonFrom = seasonStart(meta.date);
+
+    for (const r of runners) {
+      const hElo = readElo('horse', r.horse_id, meta.date);
+      const jElo = readElo('jockey', r.jockey_id, meta.date);
+      const tElo = readElo('trainer', r.trainer_id, meta.date);
+      const eloParts = [hElo, jElo, tElo].map((e, ix) => e == null ? null : e * [W_HORSE, W_JOCKEY, W_TRAINER][ix]);
+      const eloComposite = eloParts.some(p => p == null) ? null : (eloParts as number[]).reduce((a, b) => a + b, 0);
+
+      const lr = qLastRaceDate.get(r.horse_id, meta.date) as { last_date: string | null } | undefined;
+      const daysSince = lr?.last_date ? daysBetween(lr.last_date, meta.date) : null;
+
+      const dF = qDistFit.get(r.horse_id, meta.date, meta.distance - 200, meta.distance + 200) as { starts: number; top3: number } | undefined;
+      const gF = meta.going ? qGoingFit.get(r.horse_id, meta.date, meta.going) as { starts: number; top3: number } | undefined : undefined;
+      const drawF = (r.draw != null) ? qDrawBias.get(meta.venue, meta.date, meta.distance - 100, meta.distance + 100, r.draw) as { starts: number; top3: number } | undefined : undefined;
+      const wF = qWeightDelta.get(r.horse_id, meta.date) as { avg_w: number | null } | undefined;
+      const cF = (r.jockey_id && r.trainer_id) ? qCombo.get(r.jockey_id, r.trainer_id, meta.date) as { starts: number; top3: number } | undefined : undefined;
+
+        // ── Stage 4c features ──
+        // Recency-weighted form from last 5 starts
+        const formRows = qFormLast5.all(r.horse_id, meta.date) as { pos: number; field: number }[];
+        const formN = formRows.length;
+        let formAvgPosW: number | null = null, formTop3RateW: number | null = null, formPosSlope: number | null = null;
+        if (formN > 0) {
+          const wAll = [0.40, 0.25, 0.15, 0.10, 0.10];
+          const w = wAll.slice(0, formN);
+          const wSum = w.reduce((a, b) => a + b, 0);
+          const normPos = formRows.map(f => f.field > 0 ? f.pos / f.field : 0.5);
+          formAvgPosW = normPos.reduce((s, p, ix) => s + p * w[ix], 0) / wSum;
+          const top3 = formRows.map(f => f.pos >= 1 && f.pos <= 3 ? 1 : 0);
+          formTop3RateW = top3.reduce((s, t, ix) => s + t * w[ix], 0) / wSum;
+          if (formN >= 2) {
+            // Linear slope of -pos over time index (most recent = highest x).
+            // Positive slope = improving (positions getting better over time).
+            const xs = formRows.map((_, ix) => formN - 1 - ix);
+            const ys = formRows.map(f => -f.pos);
+            const xMean = xs.reduce((a, b) => a + b, 0) / formN;
+            const yMean = ys.reduce((a, b) => a + b, 0) / formN;
+            let num = 0, den = 0;
+            for (let k = 0; k < formN; k++) { num += (xs[k] - xMean) * (ys[k] - yMean); den += (xs[k] - xMean) ** 2; }
+            formPosSlope = den > 0 ? num / den : 0;
+          } else {
+            formPosSlope = 0;
+          }
+        }
+        // Cross-features
+        const tvF = r.trainer_id ? qTrainerVenue.get(r.trainer_id, meta.venue, meta.date) as { starts: number; top3: number } | undefined : undefined;
+        const jvF = r.jockey_id ? qJockeyVenue.get(r.jockey_id, meta.venue, meta.date) as { starts: number; top3: number } | undefined : undefined;
+        const jdbF = r.jockey_id ? qJockeyDistBand.get(r.jockey_id, meta.distance - 200, meta.distance + 200, meta.date) as { starts: number; top3: number } | undefined : undefined
+        // Stage 5
+        const jgF = (r.jockey_id && meta.going) ? qJockeyGoing.get(r.jockey_id, meta.going, meta.date) as { starts: number; top3: number } | undefined : undefined;
+        const tgF = (r.trainer_id && meta.going) ? qTrainerGoing.get(r.trainer_id, meta.going, meta.date) as { starts: number; top3: number } | undefined : undefined;;
+  
+      const fRecency = recencyBonus(daysSince);
+      const fDist = rateBonus(dF?.starts ?? 0, dF?.top3 ?? 0, 15);
+      const fGoing = rateBonus(gF?.starts ?? 0, gF?.top3 ?? 0, 12);
+      const fDraw = rateBonus(drawF?.starts ?? 0, drawF?.top3 ?? 0, 10);
+      const fWeight = weightBonus(r.actual_weight, wF?.avg_w ?? null);
+      const fCombo = rateBonus(cF?.starts ?? 0, cF?.top3 ?? 0, 8);
+      const factorBonus = fRecency + fDist + fGoing + fDraw + fWeight + fCombo;
+      const baselineScore = eloComposite != null ? eloComposite + factorBonus : null;
+
+      // Stage 6: pace + class
+      const pace = paceByHorse.get(r.horse_id)!;
+      // pace_clash: leaders penalized when many leaders in field; closers slightly bonus when few closers
+      let paceClash: number | null = null;
+      if (pace.style === 1) paceClash = -(raceNLeaders - 1);          // each extra leader = -1
+      else if (pace.style === 3) paceClash = Math.max(0, 2 - raceNClosers); // few closers = +1/+2
+      else if (pace.style === 2) paceClash = 0;
+      // horse_form_records.horse_id = horses.code (A001), but race_results.horse_id is prefixed (horse_A001). Bridge.
+      // Also: form_records.race_date is DD/MM/YYYY → fetch all + sort in JS using normDate.
+      const horseCode = bridgeId('horse', r.horse_id);
+      let lastClassRaw: string | null = null;
+      if (horseCode) {
+        const hist = qAllClassHistory.all(horseCode) as { rc: string | null; dt: string }[];
+        let bestIso = '';
+        for (const h of hist) {
+          const iso = normDate(h.dt);
+          if (iso && iso < meta.date && iso > bestIso) {
+            bestIso = iso;
+            lastClassRaw = h.rc;
+          }
+        }
+      }
+      const lastClassNum = classToNum(lastClassRaw);
+      const classDelta = (classNowNum != null && lastClassNum != null) ? (lastClassNum - classNowNum) : null;
+
+      // Stage 8 (NEW v3.2): sectional + distance interactions + margin label.
+      // Interaction semantics: emit 0 (not null) when band indicator is 0 so
+      // LGB sees "no interaction effect" rather than "missing → -1.0 sentinel".
+      const sect = sectByHorse.get(r.horse_id)!;
+      const sectSpd = sectSpeedByHorse.get(r.horse_id)!;
+      if (sectSpd.n > 0) sectSpdN++;
+      const cmt = cmtByHorse.get(r.horse_id)!;
+      if (cmt.n > 0) cmtHistN++;
+      if (typeof cmt.trouble === 'number' && cmt.trouble > 0) cmtTroubleN++;
+      const drawX = (r.draw != null && isSprint) ? r.draw : 0;
+      const paceX = (paceClash != null && isDistance) ? paceClash : 0;
+      const beatenLengths = r.finishing_position === 1
+        ? 0
+        : parseLbw(r.lbw);
+
+      // Stage 10 (NEW v3.2 ④): pedigree target-encoded features (leak-safe, as-of date)
+      let sireTop3: number | '' = '', sireDistTop3: number | '' = '', damsireTop3: number | '' = '';
+      if (pedExists && qPedLookup) {
+        const ped = qPedLookup.get(r.horse_id) as { sire: string | null; dam_sire: string | null } | undefined;
+        const sire = ped?.sire ?? null;
+        const damsire = ped?.dam_sire ?? null;
+        if (sire) {
+          const k1 = sire + '|' + meta.date;
+          let v = sireMemo.get(k1);
+          if (v === undefined) {
+            const a = qSireProg!.get(meta.date, sire) as { starts: number; top3: number | null };
+            v = smoothRate(a?.starts ?? 0, a?.top3 ?? 0, meta.date);
+            sireMemo.set(k1, v);
+          }
+          sireTop3 = v;
+          const k2 = sire + '|' + meta.date + '|' + meta.distance;
+          let v2 = sireDistMemo.get(k2);
+          if (v2 === undefined) {
+            const a = qSireProgDist!.get(meta.date, sire, meta.distance - 200, meta.distance + 200) as { starts: number; top3: number | null };
+            v2 = smoothRate(a?.starts ?? 0, a?.top3 ?? 0, meta.date);
+            sireDistMemo.set(k2, v2);
+          }
+          sireDistTop3 = v2;
+        }
+        if (damsire) {
+          const k3 = damsire + '|' + meta.date;
+          let v3 = damsireMemo.get(k3);
+          if (v3 === undefined) {
+            const a = qDamsireProg!.get(meta.date, damsire) as { starts: number; top3: number | null };
+            v3 = smoothRate(a?.starts ?? 0, a?.top3 ?? 0, meta.date);
+            damsireMemo.set(k3, v3);
+          }
+          damsireTop3 = v3;
+        }
+      }
+
+      // Stage 11 (NEW v3.2 ⑤): gear/equipment-change features (leak-safe markers)
+      const gearF = parseGear(r.gear);
+      if (gearF.changed) gearChangedN++;
+      if (gearF.blinkers) gearBlinkersN++;
+
+      // Stage 14 (NEW): layoff / comeback features
+      const layoffBandV = layoffBand(daysSince);
+      const isLayoff55 = daysSince == null || daysSince > 55 ? 1 : 0;
+      const cbRow = qComebackHistory.get(r.horse_id, meta.date) as { starts: number; top3: number | null } | undefined;
+      const cbStarts = cbRow?.starts ?? 0;
+      // smoothRate keeps a 1-start comeback record from reading as 0% / 100%.
+      const cbTop3 = cbStarts > 0 ? smoothRate(cbStarts, cbRow?.top3 ?? 0, meta.date) : -1;
+      const seasonStarts = ((qSeasonStarts.get(r.horse_id, meta.date, seasonFrom) as { starts: number } | undefined)?.starts) ?? 0;
+      const isSeasonDebut = seasonStarts === 0 ? 1 : 0;
+      // Interaction: form is only trustworthy when the gap is short. -1 form
+      // sentinel (no history) is passed through as 0 = "no usable interaction".
+      const layoffXForm = formTop3RateW == null ? 0 : formTop3RateW * (layoffBandV < 0 ? 0 : 4 - layoffBandV);
+      if (isLayoff55) layoff55N++;
+      if (isSeasonDebut) seasonDebutN++;
+
+      // Stage 15 (NEW): class fit + J/T rolling quality + draw × distance
+      let hcStarts = 0, hcTop3num = 0, clsSum = 0, clsN = 0;
+      for (const h of qHorseClassHistory.all(r.horse_id, meta.date) as { cls: string | null; pos: number }[]) {
+        const cn = classToNum(h.cls);
+        if (cn == null) continue;
+        clsSum += cn; clsN++;
+        if (classNowNum != null && cn === classNowNum) {
+          hcStarts++;
+          if (h.pos >= 1 && h.pos <= 3) hcTop3num++;
+        }
+      }
+      const hcTop3 = hcStarts > 0 ? smoothRate(hcStarts, hcTop3num, meta.date) : -1;
+      const classHistAvg = clsN > 0 ? Math.round((clsSum / clsN) * 100) / 100 : -1;
+      const classStep = (clsN > 0 && classNowNum != null) ? Math.round((clsSum / clsN - classNowNum) * 100) / 100 : 0;
+      const q180 = daysBefore(meta.date, 180);
+      let jq = { starts: 0, top3: -1 };
+      if (r.jockey_id) {
+        const k = r.jockey_id + '|' + meta.date;
+        let v = jqMemo.get(k);
+        if (v === undefined) {
+          const a = qJockeyRecent.get(r.jockey_id, meta.date, q180) as { starts: number; top3: number | null };
+          v = { starts: a?.starts ?? 0, top3: (a?.starts ?? 0) > 0 ? smoothRate(a.starts, a.top3 ?? 0, meta.date) : -1 };
+          jqMemo.set(k, v);
+        }
+        jq = v;
+      }
+      let tq = { starts: 0, top3: -1 };
+      if (r.trainer_id) {
+        const k = r.trainer_id + '|' + meta.date;
+        let v = tqMemo.get(k);
+        if (v === undefined) {
+          const a = qTrainerRecent.get(r.trainer_id, meta.date, q180) as { starts: number; top3: number | null };
+          v = { starts: a?.starts ?? 0, top3: (a?.starts ?? 0) > 0 ? smoothRate(a.starts, a.top3 ?? 0, meta.date) : -1 };
+          tqMemo.set(k, v);
+        }
+        tq = v;
+      }
+      const drawPct = (r.draw != null && fieldSize > 0) ? Math.round((r.draw / fieldSize) * 1000) / 1000 : -1;
+      const drawXDist = drawPct >= 0 && dist > 0 ? Math.round(drawPct * (dist / 1000) * 1000) / 1000 : -1;
+
+      const row = [
+          meta.id, meta.date, meta.venue, meta.race_number, meta.distance, meta.going, fieldSize,
+          r.horse_id, r.jockey_id, r.trainer_id, r.draw, r.actual_weight, r.win_odds,
+          hElo, jElo, tElo, daysSince,
+          dF?.starts ?? 0, dF?.top3 ?? 0, gF?.starts ?? 0, gF?.top3 ?? 0,
+          drawF?.starts ?? 0, drawF?.top3 ?? 0, cF?.starts ?? 0, cF?.top3 ?? 0, wF?.avg_w ?? null,
+          eloComposite, factorBonus, baselineScore,
+          formN, formAvgPosW, formTop3RateW, formPosSlope,
+          tvF?.starts ?? 0, tvF?.top3 ?? 0, jvF?.starts ?? 0, jvF?.top3 ?? 0, jdbF?.starts ?? 0, jdbF?.top3 ?? 0,
+          jgF?.starts ?? 0, jgF?.top3 ?? 0, tgF?.starts ?? 0, tgF?.top3 ?? 0,
+          pace.n, pace.early, pace.style,
+          raceNLeaders, raceNClosers, paceClash,
+          classNowNum, lastClassNum, classDelta,
+          sect.n, sect.early_avg, sect.late_kick,
+          sectSpd.early_z, sectSpd.fin_z,
+          isSprint, isMiddle, isDistance,
+          drawX, paceX,
+          beatenLengths,
+          sireTop3, sireDistTop3, damsireTop3,
+          gearF.firstN, gearF.offN, gearF.changed, gearF.blinkers,
+          cmt.n, cmt.trouble, cmt.wide, cmt.badstart,
+          layoffBandV, isLayoff55, cbStarts, cbTop3, seasonStarts,
+          isSeasonDebut, Math.round(fieldLayoffFrac * 1000) / 1000, layoffXForm,
+          hcStarts, hcTop3, classHistAvg, classStep,
+          jq.starts, jq.top3, tq.starts, tq.top3, drawPct, drawXDist,
+          r.finishing_position,
+          !UPCOMING_MODE && r.finishing_position === 1 ? 1 : 0,
+          !UPCOMING_MODE && r.finishing_position >= 1 && r.finishing_position <= 3 ? 1 : 0,
+        ].map(csv).join(',');
+      buf.push(row + '\n');
+      written++;
+      if (buf.length >= 5000) flush();
+    }
+    if ((i + 1) % 100 === 0) console.error(`  [${i + 1}/${races.length}] races processed, ${written} rows written`);
+  }
+  flush();
+  console.error(`[dump-features] done: ${written} rows × ${HEADER.length} cols → ${OUT}`);
+  if (written > 0) {
+    const chPct = (100 * gearChangedN / written).toFixed(1);
+    const blPct = (100 * gearBlinkersN / written).toFixed(1);
+    console.error(`[dump-features] ⑤ gear coverage: gear_changed=${gearChangedN} (${chPct}%) · gear_blinkers=${gearBlinkersN} (${blPct}%)`);
+    if (!UPCOMING_MODE && gearChangedN === 0 && gearBlinkersN === 0) {
+      console.error('[dump-features] WARN: gear features ALL zero on historical dump → race_results.gear missing/blank (silent regression?)');
+    }
+    const spdPct = (100 * sectSpdN / written).toFixed(1);
+    console.error(`[dump-features] ⑥ sectional-speed coverage: sect z present=${sectSpdN} (${spdPct}%)`);
+    if (!UPCOMING_MODE && sectSpdN === 0) {
+      console.error('[dump-features] WARN: sectional-speed z ALL sentinel on historical dump → horse_sectional_times.section_time missing (sparse-checkout/import regression?)');
+    }
+    const lo55Pct = (100 * layoff55N / written).toFixed(1);
+    const sdPct = (100 * seasonDebutN / written).toFixed(1);
+    console.error(`[dump-features] Stage14 layoff coverage: >55d first-up=${layoff55N} (${lo55Pct}%) · season debut=${seasonDebutN} (${sdPct}%)`);
+    const cmtHistPct = (100 * cmtHistN / written).toFixed(1);
+    const cmtTrbPct = (100 * cmtTroubleN / written).toFixed(1);
+    console.error(`[dump-features] ⑦ hard-luck coverage: comment history present=${cmtHistN} (${cmtHistPct}%) · trouble-flagged=${cmtTroubleN} (${cmtTrbPct}%)`);
+    if (!UPCOMING_MODE && cmtHistN === 0) {
+      console.error('[dump-features] WARN: comment history ALL empty on historical dump → running_comments missing (sparse-checkout/import regression?)');
+    }
+  }
+  db.close();
+  

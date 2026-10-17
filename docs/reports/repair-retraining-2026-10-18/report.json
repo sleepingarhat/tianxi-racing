@@ -1,0 +1,144 @@
+{
+  "createdAt": "2026-10-17T22:16:54.544593+00:00",
+  "trainingRows": 102118,
+  "trainingRaces": 8407,
+  "baselineRows": 102252,
+  "baselineRaces": 8408,
+  "missingRows": 134,
+  "features": 52,
+  "validationRows": 969,
+  "validationRaces": 79,
+  "bestIteration": 986,
+  "baselineIteration": 870,
+  "runners": 145,
+  "races": [
+    {
+      "race": 1,
+      "runners": 13,
+      "retained": 4,
+      "rankChanges": 2,
+      "top4OrderChanged": true,
+      "meanAbsDelta": 0.17466590127653675,
+      "maxAbsDelta": 0.40122479828294666
+    },
+    {
+      "race": 2,
+      "runners": 14,
+      "retained": 3,
+      "rankChanges": 5,
+      "top4OrderChanged": true,
+      "meanAbsDelta": 0.1418042162871669,
+      "maxAbsDelta": 0.3626801960737245
+    },
+    {
+      "race": 3,
+      "runners": 14,
+      "retained": 4,
+      "rankChanges": 8,
+      "top4OrderChanged": true,
+      "meanAbsDelta": 0.11796389581114144,
+      "maxAbsDelta": 0.3176122407374504
+    },
+    {
+      "race": 4,
+      "runners": 14,
+      "retained": 3,
+      "rankChanges": 8,
+      "top4OrderChanged": true,
+      "meanAbsDelta": 0.10862043048883005,
+      "maxAbsDelta": 0.26863962064446945
+    },
+    {
+      "race": 5,
+      "runners": 12,
+      "retained": 4,
+      "rankChanges": 10,
+      "top4OrderChanged": true,
+      "meanAbsDelta": 0.2177686976283005,
+      "maxAbsDelta": 0.47914954822275835
+    },
+    {
+      "race": 6,
+      "runners": 14,
+      "retained": 3,
+      "rankChanges": 9,
+      "top4OrderChanged": true,
+      "meanAbsDelta": 0.18719955050954934,
+      "maxAbsDelta": 0.29097768062150475
+    },
+    {
+      "race": 7,
+      "runners": 12,
+      "retained": 3,
+      "rankChanges": 5,
+      "top4OrderChanged": true,
+      "meanAbsDelta": 0.191281010154597,
+      "maxAbsDelta": 0.5639553261886743
+    },
+    {
+      "race": 8,
+      "runners": 12,
+      "retained": 4,
+      "rankChanges": 6,
+      "top4OrderChanged": true,
+      "meanAbsDelta": 0.11028924189480908,
+      "maxAbsDelta": 0.21364317819440348
+    },
+    {
+      "race": 9,
+      "runners": 12,
+      "retained": 3,
+      "rankChanges": 7,
+      "top4OrderChanged": true,
+      "meanAbsDelta": 0.20647819590262698,
+      "maxAbsDelta": 0.47384198006861356
+    },
+    {
+      "race": 10,
+      "runners": 14,
+      "retained": 4,
+      "rankChanges": 4,
+      "top4OrderChanged": false,
+      "meanAbsDelta": 0.14325266502381948,
+      "maxAbsDelta": 0.37616167071479656
+    },
+    {
+      "race": 11,
+      "runners": 14,
+      "retained": 3,
+      "rankChanges": 9,
+      "top4OrderChanged": true,
+      "meanAbsDelta": 0.20542552919398713,
+      "maxAbsDelta": 0.3809721170833269
+    }
+  ],
+  "top4SetChanges": 6,
+  "top4OrderChanges": 10,
+  "rankChanges": 73,
+  "meanAbsDelta": 0.16303579645490968,
+  "maxAbsDelta": 0.5639553261886743,
+  "warnings": [
+    "τ_elo接近100上限",
+    "訓練內α接近1",
+    "134行未配對：107行現有賽果表找不到，27行名次不符有效範圍",
+    "未完成網站融合四揀及finalScore重播",
+    "凍結讀取與原子发布缺口未部署修復",
+    "非逐日walk-forward、尚無10月19日賽果"
+  ],
+  "promoted": false,
+  "sha256": {
+    "comparison.csv": "b48044f3e37a19186b0faec4f5fe98b5e6d5f3d95eafeb0b1aac12f99ecad9bd",
+    "model.txt": "8786d2d53ebd697b4d819b245331638ee26b4afaf006d43dffb2f3c307e4864b",
+    "meta.json": "06f5b765d55940e1fb2a9999aa5e47cdffdd63cc347e47b3c4673d05ff33378e",
+    "feature-importance.json": "164d6eb300df647ef2d6ea239db9618ac59c0a884b5c08e1649eb38da7efd0c4",
+    "missing-cohort.csv": "fe5b643cb5192e63d42262f25473e31f80a9c974128cc1e0cd3933da970fd55f",
+    "training.log": "95169e35c7ade8339503e0afb543d5092a1419dcb5513efec664a5f01f51f2d6",
+    "training-rebuilt.csv.gz": "0ace967ccf60ffcb43ee1777fa5ed4b780937229e56909b9377df63b17f69e1c",
+    "upcoming-rebuilt.csv.gz": "53a74b53fe0251cc66f73ee864b409fadf5d29674ba774d9dda4d80fd3eaacf9",
+    "training-rebuilt.csv.gz.asset.json": "4f0b8219849cc39b9d083ecf297b7199050748c63675613acbb34d4eac193179",
+    "source/dump-features.ts": "47febee951a15f17e890f5cdf342290d2645e1571c6c8141af26d5d880fe9d73",
+    "source/predict_upcoming.py": "4c7dc4c4d13ea46d1ddd25cc1521f282eff5bd9ed84ead650c0fb83cb6dbcc5b",
+    "source/feature_importance.py": "fbd2d2c1c0b7422c516d7c47b287632b8e5e9c07cc91c2e514ef228655f9575a"
+  },
+  "trainingAsset": "/__l5e/assets-v1/5df41dee-4f31-43e6-b941-f7b72cfade75/tianxi-repair-training-2026-10-18.csv.gz"
+}

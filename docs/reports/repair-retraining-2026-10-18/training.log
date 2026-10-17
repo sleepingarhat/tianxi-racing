@@ -1,0 +1,153 @@
+[predict] loading train=/tmp/racing-repair/training-rebuilt.csv, upcoming=/tmp/racing-repair/upcoming-rebuilt.csv
+[predict] train rows=102118 races=8407
+[predict] upcoming rows=145 races=11
+[predict] training with validation: train_rows=101149 val_rows=969 val_races=79
+[predict] early stopping picked best_iteration=986
+[predict] val race_logloss: iter1=2.4944 best=2.2260 final=2.2278 (curve_len=1066)
+[predict] val log loss (LGB raw τ=1): 2.2260
+[predict] τ_lgb=0.723 (val log loss 2.2056)
+[predict] τ_elo=100.000 (val log loss 2.4984)
+[predict] corr(p_lgb_val, p_elo_val)=0.157
+[predict] WARNING: τ_elo=99.9995 near optimization bound — inputs may be on a degenerate scale or labels mis-specified
+[predict] α=1.000, ensemble val log loss 2.2056
+[predict] WARNING: α≈1 — ensemble degenerates to pure-LGB; ELO blend contributing no useful signal on validation
+[predict] refitting on full data (102118 rows) with num_boost_round=986 (τ/α frozen above)
+[predict] saved carry-over bundle to /tmp/racing-repair/candidate-bundle (trainedOn=2026-10-17, α=1.000)
+[predict] payload: 145 predictions across 11 races, modelVersion=lgb-repair-research-20261018
+[predict] diagnostics: {
+  "val_races": 79,
+  "best_iteration": 986,
+  "tau_lgb": 0.7227082672572454,
+  "tau_elo": 99.99953916200974,
+  "alpha": 0.9999940391390134,
+  "val_log_loss": {
+    "baseline": 2.225976580878175,
+    "lgb_calibrated": 2.2055688320005635,
+    "elo_calibrated": 2.4983840991423367,
+    "ensemble": 2.2055689623983494
+  },
+  "race_logloss_curve": {
+    "iter1": 2.4944181285130207,
+    "best": 2.225976580878175,
+    "final": 2.2277831041479117,
+    "len": 1066
+  },
+  "corr_lgb_elo": 0.15748184894024045
+}
+{
+  "predictions": [
+    {
+      "raceId": "race_2026-10-19_ST_1",
+      "horseId": "horse_J463",
+      "lgbScore": -2.4931788360011526,
+      "pWin": 0.08264682784758412
+    },
+    {
+      "raceId": "race_2026-10-19_ST_1",
+      "horseId": "horse_K500",
+      "lgbScore": -1.8501295209027822,
+      "pWin": 0.15721680213271777
+    },
+    {
+      "raceId": "race_2026-10-19_ST_1",
+      "horseId": "horse_H087",
+      "lgbScore": -2.265004507905693,
+      "pWin": 0.10382956648584814
+    },
+    {
+      "raceId": "race_2026-10-19_ST_1",
+      "horseId": "horse_H486",
+      "lgbScore": -2.155170674222934,
+      "pWin": 0.11588341061390135
+    },
+    {
+      "raceId": "race_2026-10-19_ST_1",
+      "horseId": "horse_K464",
+      "lgbScore": -3.003626372513674,
+      "pWin": 0.049606848880594995
+    },
+    {
+      "raceId": "race_2026-10-19_ST_1",
+      "horseId": "horse_K502",
+      "lgbScore": -2.0180174295195337,
+      "pWin": 0.1329187247684751
+    },
+    {
+      "raceId": "race_2026-10-19_ST_1",
+      "horseId": "horse_J015",
+      "lgbScore": -3.228074073292231,
+      "pWin": 0.03963375704214025
+    },
+    {
+      "raceId": "race_2026-10-19_ST_1",
+      "horseId": "horse_K457",
+      "lgbScore": -2.4254490705341816,
+      "pWin": 0.08843839504601135
+    },
+    {
+      "raceId": "race_2026-10-19_ST_1",
+      "horseId": "horse_J501",
+      "lgbScore": -3.7456148529047724,
+      "pWin": 0.023621101079241844
+    },
+    {
+      "raceId": "race_2026-10-19_ST_1",
+      "horseId": "horse_K029",
+      "lgbScore": -4.072598477156406,
+      "pWin": 0.0170330709076288
+    },
+    {
+      "raceId": "race_2026-10-19_ST_1",
+      "horseId": "horse_J213",
+      "lgbScore": -2.7693503001205313,
+      "pWin": 0.06270272946707331
+    },
+    {
+      "raceId": "race_2026-10-19_ST_1",
+      "horseId": "horse_H354",
+      "lgbScore": -2.942665832144527,
+      "pWin": 0.052724985261928946
+    },
+    {
+      "raceId": "race_2026-10-19_ST_1",
+      "horseId": "horse_J331",
+      "lgbScore": -2.607158619971232,
+      "pWin": 0.07374378046685406
+    },
+    {
+      "raceId": "race_2026-10-19_ST_10",
+      "horseId": "horse_L112",
+      "lgbScore": -2.252092553487841,
+      "pWin": 0.1051789016460301
+    },
+    {
+      "raceId": "race_2026-10-19_ST_10",
+      "horseId": "horse_K474",
+      "lgbScore": -3.5406411635911823,
+      "pWin": 0.02899473075549376
+    },
+    {
+      "raceId": "race_2026-10-19_ST_10",
+      "horseId": "horse_K554",
+      "lgbScore": -2.2882298255997573,
+      "pWin": 0.10144587990603092
+    },
+    {
+      "raceId": "race_2026-10-19_ST_10",
+      "horseId": "horse_H376",
+      "lgbScore": -2.6633337079663013,
+      "pWin": 0.0697154230576181
+    },
+    {
+      "raceId": "race_2026-10-19_ST_10",
+      "horseId": "horse_L219",
+      "lgbScore": -2.903872521970911,
+      "pWin": 0.05481055347160941
+    },
+    {
+      "raceId": "race_2026-10-19_ST_10",
+      "horseId": "horse_L413",
+      "lgbScore": -5.385112814201891,
+      "pWin": 0.004584323116313381
+    },
+

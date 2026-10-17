@@ -1,6 +1,7 @@
 # 天喜賽馬預測引擎 · 模型與特徵說明
 
 模型：TX-Oracle v3（Elo ＋ LightGBM LambdaRank 融合）　更新：2026-10-17
+繁體中文主文件；英文對照見 [MODEL.en.md](MODEL.en.md)，原公式與特徵英文識別保留。
 本文件每項內容均對照本倉源碼；檔案位置列於各節，讀者可自行核對。
 
 ## 1. 總覽
@@ -23,13 +24,13 @@ finalScore = 1500 + blendZ · 100        （顯示用，唔包 factor）
 
 ## 3. LightGBM 設定
 
-- 目標：`lambdarank`，評估 NDCG@1／@3，`lambdarank_truncation_level = 4`。
+- 目標：`lambdarank`，生產早停用逐場race_logloss，NDCG見於另一路回測，`lambdarank_truncation_level = 4`。
 - 標籤：第1名→4、第2→3、第3→2、第4→1、第5名或之後→0；`label_gain = [0, 1, 7, 31, 127, …]`。
-- 缺失值：統一填 −1；場地狀況 `going_code` 作類別特徵。
+- 缺失值：統一填 −1；生產52項全部為數值，不含`going_code`。
 - 訓練輪數：以早停搵最佳輪數，再用全部資料重訓。
 - 位置：`backend/scripts/backtest/predict_upcoming.py`（生產）、`lgb_walkforward.py`（回測）。
 
-## 4. 生產特徵（52 項＋going_code）
+## 4. 生產特徵（52 項）
 
 | # | 特徵 | 類別 | 衍生方式 | 編碼 |
 |---|---|---|---|---|
@@ -88,9 +89,9 @@ finalScore = 1500 + blendZ · 100        （顯示用，唔包 factor）
 
 ### 編碼與缺失值
 - 全部特徵轉為浮點數；缺失值統一填 −1（血統無資料亦為 −1，令模型分得開「未知」同「低」）。
-- `going_code`：場地狀況文字以 pandas Categorical 轉代號，作 LightGBM 類別特徵。
+- `going_code`只在另一路lgb_walkforward.py回測編碼，不在生產FEAT_COLS。
 - 交互特徵唔適用時填 0（唔係缺失），表示「冇交互效果」。
-- 所有往績查詢條件為 `賽日 < 今場日期`，避免用到未來資料；唔用任何賠率。
+- 所有往績查詢條件為 `賽日 < 今場日期`，生產不含賠率；原血統平滑全體先驗用全歷史資料，隔離候選已限制賽日前來源，尚未升版。
 
 ### factor_bonus 規則分
 `rate(出賽, 頭三, scale) = ((頭三 + 0.30×5) ÷ (出賽 + 5) − 0.30) × scale`，冇往績＝0。
@@ -115,7 +116,7 @@ finalScore = 1500 + blendZ · 100        （顯示用，唔包 factor）
 
 ## 6. 凍結與核對
 
-- 每賽日 T−90 分鐘鎖定預測，寫入只可新增嘅紀錄，事後唔改。
+- 設計為每賽日 T−90 分鐘鎖定預測，事後唔改。歷史表有賽後生成行，必須逐場核對，不可將全表當賽前凍結。
 - 由 2026-10-16 起，鎖點另存騎師／練馬師 Elo、8 項因子拆分、走位估測同配置指紋；之前嘅紀錄冇呢啲欄位，唔會倒填。
 - 公開戰績頁：https://tianxi.racing/track-record
 
@@ -129,3 +130,12 @@ finalScore = 1500 + blendZ · 100        （顯示用，唔包 factor）
 
 ## 正式訓練特徵重要性
 每次保存production refit的model.txt及meta.json後，從實際序列化模型輸出feature-importance.json，逐項保存gain、split及各自百分比，保留零值與訓練欄序；綁定兩檔SHA-256及既有bundle fingerprint。它只描述LightGBM樹的使用情況，不是因果、單馬SHAP或Elo／融合貢獻，也不作自動升版依據。保存失敗不改推論，但CI證據驗證不過不可推廣新後備cache。舊cache無sidecar仍能推論。
+
+## 公開核對頁與證據界線
+- 預測分與官方賽果：https://tianxi.racing/prediction-reconciliation （歷史鎖點未核，不冒充已認證準確度）
+- Elo 每日三軸更新：https://tianxi.racing/elo-log （來源場次交叉配對；淨變動可能包含馬季調整，不冒充純賽事delta）
+- 2026-10-17：v12快照曾停4月15日，已補計4月16日至10月14日；補計不是當日推論證據，歷史预测表未改。
+- 完整鎖點發布憑證、修復後完整重訓及新賽日驗收仍待核對，不保證100%永不故障。
+
+## 2026-10-18 保存重訓報告（未升版）
+重建匹配102,118行／8,407場；134行未配對（107行來源缺、27行名次不符），不倒填。79場969行驗證選定986輪；11場145匹原始模型分表6場頭四組合、10場頭四次序、73匹排名改變，平均絕對log(p)差0.16304、最大0.56396。τ_elo接近100與訓練內α接近1；網站融合四揀／finalScore、凍結及原子發布保護未驗收。已保存模型、輸入、重要性、逐馬CSV及SHA-256，見https://tianxi.racing/model；不宣稱已升版或準確度改善。
