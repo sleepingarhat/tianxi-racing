@@ -29,9 +29,19 @@ export function top4Mismatch(a: unknown, b: unknown): boolean {
   return left !== right;
 }
 
+/**
+ * Analytical fields are frozen-owned: a frozen NULL stays NULL and is never
+ * hydrated from the live recompute. Live identity/display fields (names,
+ * jockey, trainer) may still fill gaps because they are not predictions.
+ */
+const FROZEN_OWNED_FIELDS = [
+  'horseElo', 'eloComposite', 'factorBonus', 'finalScore',
+  'pWin', 'pTop3', 'pTop4', 'rank', 'lgbScore', 'lgbModelVersion', 'scoreSource',
+] as const;
+
 export function mergeFrozenPick(live: Record<string, any> | null | undefined, frozen: Record<string, any>): Record<string, any> {
   const rc = live && typeof live === 'object' ? live : {};
-  return {
+  const merged: Record<string, any> = {
     ...rc,
     horseId: frozen.horseId ?? rc.horseId ?? null,
     horseNumber: frozen.horseNumber ?? rc.horseNumber,
@@ -40,26 +50,35 @@ export function mergeFrozenPick(live: Record<string, any> | null | undefined, fr
     nameEn: rc.nameEn ?? frozen.nameEn ?? null,
     jockeyCh: rc.jockeyCh ?? frozen.jockeyCh ?? null,
     trainerCh: rc.trainerCh ?? frozen.trainerCh ?? null,
-    horseElo: frozen.horseElo ?? rc.horseElo ?? null,
-    eloComposite: frozen.eloComposite ?? rc.eloComposite ?? null,
-    factorBonus: frozen.factorBonus ?? rc.factorBonus ?? null,
-    finalScore: frozen.finalScore ?? rc.finalScore ?? null,
-    pWin: frozen.pWin ?? rc.pWin ?? null,
-    pTop3: frozen.pTop3 ?? rc.pTop3 ?? null,
-    pTop4: frozen.pTop4 ?? rc.pTop4 ?? null,
-    rank: frozen.rank ?? rc.rank ?? null,
-    lgbScore: frozen.lgbScore ?? rc.lgbScore ?? null,
-    lgbModelVersion: frozen.lgbModelVersion ?? rc.lgbModelVersion ?? null,
-    scoreSource: frozen.scoreSource ?? rc.scoreSource ?? null,
   };
+  for (const field of FROZEN_OWNED_FIELDS) {
+    merged[field] = field in frozen ? frozen[field] : null;
+  }
+  return merged;
 }
 
+/**
+ * Apply the frozen ranking to a live payload. Fail-closed: the frozen set must
+ * have unique horses and unique positive ranks, and every frozen horse must
+ * exist in the live field. Ranks are never renumbered — the frozen rank is
+ * the record. Returns applied:false when the frozen evidence is not intact.
+ */
 export function applyFrozenOrder(
   livePicks: any[] | null | undefined,
   frozenPicks: any[] | null | undefined,
-): { picks: any[]; applied: boolean } {
+): { picks: any[]; applied: boolean; reason?: string } {
   if (!Array.isArray(frozenPicks) || frozenPicks.length < 4) {
-    return { picks: Array.isArray(livePicks) ? livePicks : [], applied: false };
+    return { picks: Array.isArray(livePicks) ? livePicks : [], applied: false, reason: 'frozen-incomplete' };
+  }
+  const seenHorses = new Set<string>();
+  const seenRanks = new Set<number>();
+  for (const fp of frozenPicks) {
+    const key = fp?.horseId ? `id:${fp.horseId}` : `no:${horseNoKey(fp?.horseNumber)}`;
+    const rank = Number(fp?.rank);
+    if (!key || key === 'no:' || seenHorses.has(key)) return { picks: [], applied: false, reason: 'frozen-duplicate-horse' };
+    if (!Number.isInteger(rank) || rank < 1 || seenRanks.has(rank)) return { picks: [], applied: false, reason: 'frozen-duplicate-rank' };
+    seenHorses.add(key);
+    seenRanks.add(rank);
   }
   const byNo = new Map<string, any>();
   const byId = new Map<string, any>();
@@ -73,7 +92,6 @@ export function applyFrozenOrder(
     return mergeFrozenPick(live, fp);
   });
   picks.sort((a, b) => (Number(a.rank) || 99) - (Number(b.rank) || 99));
-  picks.forEach((p, i) => { p.rank = i + 1; });
   return { picks, applied: true };
 }
 
