@@ -1,3 +1,4 @@
+import { assertOriginalFreezeReadable } from './freeze-recovery';
 /**
  * 凍結對帳表 (freeze ledger) — MEASURE ONLY.
  *
@@ -132,6 +133,7 @@ export async function computeFreezeLedgerForDate(
     return base; // 未鎖一律唔入表：呢張表只讀已鎖凍結
   }
 
+  await assertOriginalFreezeReadable(db,date,engine);
   const frozen = await db
     .prepare(
       `SELECT race_number, horse_number, predicted_rank, p_win, generated_at

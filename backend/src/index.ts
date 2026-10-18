@@ -1,3 +1,4 @@
+import { recoverOriginalFreeze } from './lib/freeze-recovery';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
@@ -281,19 +282,10 @@ app.onError((err, c) => {
       if (!meeting) return { ok: true, action: 'no-fixture' };
       const lock = await getMeetingLockState(env.DB, meeting.date, meeting.venue);
       if (!lock.locked) return { ok: true, action: 'pre-lock', date: meeting.date, lockAt: lock.lockAt };
-      const rows = await countPredictionLogRows(env.DB, meeting.date);
-      if (rows > 0) {
-        // 全日快照未齊而首場未開跑 → 補寫一次缺咗嘅場次（已鎖場次唔郁）
-        if (!(await lockCompletionAllowed(env.DB, meeting.date, meeting.venue))) {
-          return { ok: true, action: 'already-locked', date: meeting.date, lockAt: lock.lockAt, rows };
-        }
-        const out = await refreshRaceDayReport(env);
-        const after = await countPredictionLogRows(env.DB, meeting.date);
-        return { ok: out.ok, action: `completed-T-${LOCK_LEAD_MINUTES}m`, date: meeting.date, lockAt: lock.lockAt, rows: after, error: out.error };
-      }
-      const out = await refreshRaceDayReport(env);
-      const after = await countPredictionLogRows(env.DB, meeting.date);
-      return { ok: out.ok, action: `locked-T-${LOCK_LEAD_MINUTES}m`, date: meeting.date, lockAt: lock.lockAt, rows: after, error: out.error };
+      if (lock.source === 'error' || !lock.lockAt || !meeting.venue) return { ok: false, action: 'blocked', error: 'lock-state-unavailable' };
+      const recovery = await recoverOriginalFreeze(env.DB,meeting.date,meeting.venue,lock.lockAt);
+      return { ...recovery, date: meeting.date, lockAt: lock.lockAt };
+
     } catch (e: any) {
       return { ok: false, action: 'error', error: e?.message ?? String(e) };
     }
@@ -304,7 +296,18 @@ app.onError((err, c) => {
     if (!meeting) return c.json({ locked: false, source: 'no-fixture', lockLeadMinutes: LOCK_LEAD_MINUTES });
     const lock = await getMeetingLockState(c.env.DB, meeting.date, meeting.venue);
     const rows = await countPredictionLogRows(c.env.DB, meeting.date);
-    return c.json({ ...lock, frozenRows: rows, lockLeadMinutes: LOCK_LEAD_MINUTES, edition: lock.locked && rows > 0 ? 'final' : 'draft' });
+    const recovery = lock.locked ? await c.env.DB.prepare(`SELECT ok,action FROM prediction_recovery_status WHERE date=? AND engine='v12'`).bind(meeting.date).first<{ok:number;action:string}>() : null;
+    return c.json({ ...lock, frozenRows: rows, lockLeadMinutes: LOCK_LEAD_MINUTES, recovery, edition: lock.locked ? (recovery?.ok === 1 ? 'final' : 'unavailable') : 'draft' },200,{'Cache-Control':'no-store'});
+  });
+
+  app.get('/api/analyze/freeze-recovery-status', async (c) => {
+    const meeting = await findMeetingForLockTick(c.env.DB);
+    c.header('Cache-Control','no-store');
+    if (!meeting) return c.json({ok:true,action:'no-fixture'});
+    const lock = await getMeetingLockState(c.env.DB,meeting.date,meeting.venue);
+    if (!lock.locked) return c.json({ok:true,action:'pre-lock',date:meeting.date});
+    const status = await c.env.DB.prepare(`SELECT checked_at,ok,action,restored,error FROM prediction_recovery_status WHERE date=? AND engine='v12'`).bind(meeting.date).first<any>();
+    return c.json({date:meeting.date,...status,ok:status?.ok===1,action:status?.action??'not-checked'},status?.ok===1?200:503);
   });
 
   app.post('/admin/api/lock-tick', async (c) => {

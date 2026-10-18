@@ -1,3 +1,4 @@
+import { assertOriginalFreezeReadable, validateRows } from '../lib/freeze-recovery';
 import { Hono } from 'hono';
 import type { Env, AnalyzeRequest } from '../types';
 import { generateAnalysisSummary } from '../services/ai';
@@ -205,6 +206,7 @@ async function raceDayReportIsSettled(db: D1Database, value: any): Promise<boole
   }
 
   export async function readHitRateCache(db: D1Database, date: string, engine: string): Promise<any | null> {
+    await assertOriginalFreezeReadable(db,date,engine === 'v11' ? 'v11' : 'v12');
     try {
       const row = await db.prepare(
         `SELECT payload_json, computed_at FROM meeting_hit_rate_cache WHERE date=? AND engine=?`
@@ -508,16 +510,8 @@ async function raceDayReportIsSettled(db: D1Database, value: any): Promise<boole
     const lock = await getMeetingLockState(db, date, venue, { settled });
     if (settled) return { frozen: true, reason: 'settled', lockAt: lock.lockAt };
     if (!lock.locked) return { frozen: false, reason: 'pre-lock', lockAt: lock.lockAt };
-    const rows = await countPredictionLogRows(db, date, engine);
-    if (rows > 0) {
-      // T−90 補寫一次：鎖點到咗但全日快照未齊（例如 2026-09-27 只得第 1 場），
-      // 首場開跑前准寫「一次」缺咗嘅場次；已有場次永不覆寫，已過賽日永不補寫。
-      if (await lockCompletionAllowed(db, date, venue, engine)) {
-        return { frozen: false, reason: 'locked-completion', lockAt: lock.lockAt };
-      }
-      return { frozen: true, reason: `locked-T-${LOCK_LEAD_MINUTES}m`, lockAt: lock.lockAt };
-    }
-    return { frozen: false, reason: 'locked-first-snapshot', lockAt: lock.lockAt };
+    // After T-90 only a verified original snapshot can be restored by the recovery service.
+    return { frozen: true, reason: lock.source === 'error' ? 'lock-state-error' : `locked-T-${LOCK_LEAD_MINUTES}m`, lockAt: lock.lockAt };
   }
 
   export async function writeRaceDayReportCache(db: D1Database, date: string, engine: string, venue: string | null, payload: any, computeMs: number): Promise<void> {
@@ -592,6 +586,7 @@ async function raceDayReportIsSettled(db: D1Database, value: any): Promise<boole
     await ensurePredictionLogTable(db);
     const engine = payload.eloEngine ?? 'v12';
     const generatedAt = payload.generatedAt ?? new Date().toISOString();
+    validateRows(payload.races.flatMap((r:any) => (r.picks??[]).map((p:any)=>({date:payload.date,engine,variant,race_number:r.raceNumber,horse_id:p.horseId,horse_number:p.horseNumber,predicted_rank:p.rank,final_score:p.finalScore,generated_at:generatedAt}))),payload.date,engine);
     const completion = _guard.reason === 'locked-completion';
     const alreadyLogged = completion ? await loggedRaceNumbers(db, payload.date, engine) : new Set<number>();
     // Pre-race form (race_date < meeting date) for pace estimate. Storage only.
@@ -642,10 +637,8 @@ async function raceDayReportIsSettled(db: D1Database, value: any): Promise<boole
       }
     }
     if (!stmts.length) return { rows: 0 };
-    // batch in chunks of 50 (D1 batch limit ~100)
-    for (let i = 0; i < stmts.length; i += 50) {
-      await db.batch(stmts.slice(i, i + 50));
-    }
+    // A meeting is one transaction: any failed row rolls the entire write back.
+    await db.batch(stmts);
     if (completion) await markLockCompletion(db, payload.date, engine, stmts.length);
     await writeLockMeta(db, payload, engine, completion).catch(() => {});
     return { rows: stmts.length };
@@ -1142,6 +1135,7 @@ async function loadFrozenPicksForHitRate(
       raceOrder.push(e.race_number);
     }
   }
+  await assertOriginalFreezeReadable(db,date,engine);
   if (!raceOrder.length) return null;
   let rows: any[] = [];
   try {
@@ -1160,6 +1154,7 @@ async function loadFrozenPicksForHitRate(
   } catch {
     return null; // table missing / query error → recompute fallback
   }
+  await assertOriginalFreezeReadable(db,date,engine);
   if (!rows.length) return null;
   const byRace = new Map<number, any[]>();
   for (const r of rows) {
@@ -3396,6 +3391,7 @@ analyzeRoutes.get('/factors', (c) => {
         // Phase A: write each prediction to prediction_log for back-test (idempotent).
         const logResult = await writePredictionLog(db, payload, 'baseline').catch((e) => ({ rows: 0, error: String(e?.message ?? e) }));
         payload.predictionLog = logResult;
+        if ("error" in logResult) { payload.freezeError = true; throw new Error(String(logResult.error)); }
 
         await writeRaceDayReportCache(db, targetDate, cacheKey, meeting.venue, payload, computeMs).catch(() => {});
         return payload;

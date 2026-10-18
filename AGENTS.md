@@ -3,3 +3,5 @@
 - Elo exports retain v12 metadata and publish only v12-prefixed rows through the shared exporter; version labels must identify the actual algorithm.
 - Prediction logs and lock metadata are immutable during Elo repairs; compare full ordered records before and after backfill.
 - Production importance is derived from the serialized refit model and verified against model/meta hashes; it is audit evidence, never an inference input or automatic promotion rule.
+
+- Freeze recovery captures only complete current-meeting pre-lock rows in an immutable hashed snapshot; repairs insert exact missing originals, never rewrite conflicts; scheduled ticks and public projections verify this snapshot. Why: recovery must preserve historical predictions and settlement.

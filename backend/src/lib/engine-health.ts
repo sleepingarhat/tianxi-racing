@@ -1,4 +1,5 @@
 /** Shared TX-Oracle health payload. Served at GET /api/analyze/engine-health */
+import { findMeetingForLockTick, getMeetingLockState } from './lock-window';
 import type { Env } from '../types';
 import { getSeasonStatus, type SeasonStatus } from './season';
 
@@ -155,6 +156,15 @@ export async function buildEngineHealth(db: Env['DB']): Promise<EngineHealth> {
     LOCK_POLICY.aligned ? 'PASS' : 'WATCH',
     `規格 ${LOCK_POLICY.specified}；程式現時 ${LOCK_POLICY.implemented}。鎖後只准 join 名次，唔再寫預測欄；未到鎖點一律標「初版」，戰績只計最終版。`,
   );
+
+  try {
+    const meeting = await findMeetingForLockTick(db);
+    const lock = meeting ? await getMeetingLockState(db,meeting.date,meeting.venue) : null;
+    if (meeting && lock?.locked) {
+      const status = await db.prepare(`SELECT ok,action,error FROM prediction_recovery_status WHERE date=? AND engine='v12'`).bind(meeting.date).first<{ok:number;action:string;error:string|null}>();
+      checks.push({id:'freeze_recovery',label:'凍結自動修復',status:status?.ok===1?'PASS':'FAIL',detail:status?.ok===1?'原始副本已核實；只允許原樣補回缺行。':`已停止公開，未用臨場資料補寫：${status?.error??'未完成鎖點核實'}`});
+    }
+  } catch { checks.push({id:'freeze_recovery',label:'凍結自動修復',status:'FAIL',detail:'自動修復狀態無法核實。'}); }
 
   const counts = {
     pass: checks.filter((c) => c.status === 'PASS').length,

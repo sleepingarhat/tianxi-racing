@@ -1,3 +1,4 @@
+import { assertOriginalFreezeReadable } from './freeze-recovery';
 import { applyFrozenOrder, auditTop4Pairs } from './prediction-lock';
 import { getMeetingLockState } from './lock-window';
 
@@ -65,6 +66,7 @@ export async function loadFrozenPicksForDate(
 ): Promise<FrozenPicksResult> {
   const byRace = new Map<number, any[]>();
   try {
+    await assertOriginalFreezeReadable(db,date,engine);
     const res = await db.prepare(
       `SELECT pl.race_number, pl.horse_id, pl.horse_number, pl.draw, pl.horse_elo,
               pl.elo_composite, pl.factor_bonus, pl.final_score, pl.p_win, pl.p_top3,
