@@ -31,7 +31,7 @@ export type LockState = {
   /** true once now ≥ lockAt, or once results are in. */
   locked: boolean;
   /** why we consider it locked / unlocked */
-  source: 'time' | 'settled' | 'pre-lock' | 'no-fixture';
+  source: 'time' | 'settled' | 'pre-lock' | 'no-fixture' | 'error';
   /** minutes remaining until lock (negative once passed); null when unknown. */
   minutesToLock: number | null;
 };
@@ -42,20 +42,34 @@ export async function fetchFirstPostTime(
   date: string,
   venue?: string | null,
 ): Promise<string | null> {
+  const res = await fetchFirstPostTimeChecked(db, date, venue);
+  return res.ok ? res.pt : null;
+}
+
+/**
+ * Checked variant: a database error is reported, never silently treated as
+ * "no fixture" (which would read as unlocked). Fail-closed callers must use
+ * this instead of swallowing the error into a null.
+ */
+export async function fetchFirstPostTimeChecked(
+  db: Env['DB'],
+  date: string,
+  venue?: string | null,
+): Promise<{ ok: true; pt: string | null } | { ok: false; error: string }> {
   const hk = venue === 'ST' || venue === 'HV' ? venue : null;
   try {
     const row = hk
       ? await db.prepare(
           `SELECT MIN(post_time) AS pt FROM entries_upcoming
-            WHERE race_date = ? AND venue = ? AND race_number > 0 AND post_time IS NOT NULL`,
+             WHERE race_date = ? AND venue = ? AND race_number > 0 AND post_time IS NOT NULL`,
         ).bind(date, hk).first<{ pt: string | null }>()
       : await db.prepare(
           `SELECT MIN(post_time) AS pt FROM entries_upcoming
             WHERE race_date = ? AND race_number > 0 AND post_time IS NOT NULL`,
         ).bind(date).first<{ pt: string | null }>();
-    return row?.pt ?? null;
-  } catch {
-    return null;
+    return { ok: true, pt: row?.pt ?? null };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : String(err) };
   }
 }
 
@@ -95,7 +109,14 @@ export async function getMeetingLockState(
   if (!date) {
     return { date: null, venue: venue ?? null, firstPostAt: null, lockAt: null, locked: !!opts.settled, source: opts.settled ? 'settled' : 'no-fixture', minutesToLock: null };
   }
-  const firstPostAt = await fetchFirstPostTime(db, date, venue);
+  const firstPost = await fetchFirstPostTimeChecked(db, date, venue);
+  if (!firstPost.ok) {
+    // Fail closed: when the fixture read fails we cannot prove the meeting is
+    // pre-lock, so treat it as locked and let the frozen path decide (itself
+    // fail-closed). Never silently serve live recompute on a read error.
+    return { date, venue: venue ?? null, firstPostAt: null, lockAt: null, locked: true, source: 'error', minutesToLock: null };
+  }
+  const firstPostAt = firstPost.pt;
   const firstMs = firstPostAt ? Date.parse(firstPostAt) : NaN;
   if (!Number.isFinite(firstMs)) {
     return { date, venue: venue ?? null, firstPostAt: null, lockAt: null, locked: !!opts.settled, source: opts.settled ? 'settled' : 'no-fixture', minutesToLock: null };
