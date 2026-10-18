@@ -222,7 +222,11 @@ def main() -> int:
             continue
 
         if booster is None or (i - last_trained_at) >= args.retrain_every_races:
-            train_mask = df["race_id"].isin(race_ids[:i])
+            # 2026-10-18 修復：train_mask 原本用 race_id 排序切（race_ids[:i]），
+            # 同一賽日較後嘅場次可能排前而被攞嚟訓練，造成同日泄漏。
+            # 改為嚴格「只準用更早賽日」：test 場次嘅日期唔可以出現喺訓練集。
+            test_date = str(test_df["race_date"].iloc[0])
+            train_mask = df["race_date"] < test_date
             train_df = df[train_mask]
             if len(train_df) < 200:
                 continue
