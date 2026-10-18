@@ -3432,7 +3432,16 @@ analyzeRoutes.get('/factors', (c) => {
             ? projectTodayPicksForPublic(result)
             : projectTodayPicksForFree(result);
           // 版本標示 SSOT：未鎖一律 draft（初版），只有讀到凍結快照先 final（最終版）。
-          const frozen = await freezeMeetingPayload(c.env.DB, result).then((p: any) => p?.frozen === true).catch(() => false);
+          // Fail-closed：凍結紀錄讀唔到／唔完整時唔可以當 draft 派 live 重算。
+          const frozenPayload = await freezeMeetingPayload(c.env.DB, result).catch(() => null);
+          if (frozenPayload?.freezeError) {
+            return c.json(
+              { error: '凍結預測紀錄唔完整，暫時未能提供今日預測。', freezeSource: frozenPayload.freezeSource ?? null, frozen: false },
+              503,
+              { 'Cache-Control': 'no-store' },
+            );
+          }
+          const frozen = frozenPayload?.frozen === true;
           projected.frozen = frozen;
           projected.edition = frozen ? 'final' : 'draft';
           return c.json(projected);
@@ -3716,12 +3725,20 @@ analyzeRoutes.get('/factors', (c) => {
           // box coverage are rebuilt from the frozen pWin (log→softmax is the
           // identity, so Harville place probs stay exactly consistent). We do NOT
           // use race_day_report_cache — it is DELETEd per-date on refresh,
-          // whereas prediction_log is durable. Incomplete/missing frozen log →
-          // keep the recompute (honest fallback, matching /hit-rate).
+          // whereas prediction_log is durable. Incomplete/missing frozen log on
+          // a settled date is an ERROR (fail-closed 503), never a silent live
+          // fallback — a post-race recompute is result-peeking, not a prediction.
           if (await dateHasSettledResults(db, date, meeting.venue)) {
             const synthEntries = (result.races ?? []).map((r: any) => ({ race_number: r.raceNumber, distance: r.distance, going: r.going }));
             const frozen = await loadFrozenPicksForHitRate(db, date, engine, synthEntries).catch(() => null);
-            if (frozen && Array.isArray(frozen.races) && frozen.races.length) {
+            if (!frozen || !Array.isArray(frozen.races) || !frozen.races.length) {
+              return c.json(
+                { error: '凍結預測紀錄唔完整，暫時未能提供呢日嘅預測。', frozen: false, freezeSource: 'missing-log' },
+                503,
+                { 'Cache-Control': 'no-store' },
+              );
+            }
+            {
               const frozenByNum = new Map<number, any>(frozen.races.map((fr: any) => [fr.raceNumber, fr]));
               for (const r of (result.races ?? [])) {
                 const fr = frozenByNum.get(r.raceNumber);
