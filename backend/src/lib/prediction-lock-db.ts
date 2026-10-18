@@ -49,11 +49,20 @@ export async function dateHasSettledResults(
   }
 }
 
+export type FrozenPicksResult =
+  | { ok: true; byRace: Map<number, any[]> }
+  | { ok: false; error: string };
+
+/**
+ * Load the frozen baseline picks for a date. Fail-closed: a database error is
+ * reported as an error, never silently treated as "no frozen rows" (which
+ * would let callers fall back to live recompute after the lock).
+ */
 export async function loadFrozenPicksForDate(
   db: D1Database,
   date: string,
   engine: string,
-): Promise<Map<number, any[]>> {
+): Promise<FrozenPicksResult> {
   const byRace = new Map<number, any[]>();
   try {
     const res = await db.prepare(
@@ -86,12 +95,17 @@ export async function loadFrozenPicksForDate(
         scoreSource: r.score_source,
       });
     }
-  } catch {
-    return byRace;
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : String(err) };
   }
-  return byRace;
+  return { ok: true, byRace };
 }
 
+/**
+ * After the lock, a missing or unreadable frozen record is an error, never a
+ * silent live fallback: the payload is marked freezeError so callers can
+ * answer 503 instead of serving post-lock live recompute as "the prediction".
+ */
 export async function freezeTopPicksPayload(
   db: D1Database,
   payload: any,
@@ -105,13 +119,20 @@ export async function freezeTopPicksPayload(
   }
   const frozen = await loadFrozenPicksForDate(db, payload.date, engine);
   const raceNo = Number(payload.raceNumber);
-  const fr = frozen.get(raceNo);
-  if (!fr || fr.length < 4) {
+  const fr = frozen.ok ? frozen.byRace.get(raceNo) : undefined;
+  if (!frozen.ok || !fr || fr.length < 4) {
     payload.frozen = false;
-    payload.freezeSource = 'missing-log';
+    payload.freezeSource = frozen.ok ? 'missing-log' : 'frozen-read-error';
+    payload.freezeError = true;
     return payload;
   }
   const merged = applyFrozenOrder(payload.allPicks || payload.picks, fr);
+  if (!merged.applied) {
+    payload.frozen = false;
+    payload.freezeSource = merged.reason || 'frozen-not-intact';
+    payload.freezeError = true;
+    return payload;
+  }
   payload.picks = merged.picks.slice(0, 5);
   payload.allPicks = merged.picks;
   payload.frozen = true;
@@ -119,6 +140,11 @@ export async function freezeTopPicksPayload(
   return payload;
 }
 
+/**
+ * Meeting overlay is all-or-nothing after the lock: every race must have an
+ * intact frozen record, otherwise the whole payload is marked freezeError so
+ * no partially-live meeting is served as frozen.
+ */
 export async function freezeMeetingPayload(
   db: D1Database,
   payload: any,
@@ -130,14 +156,29 @@ export async function freezeMeetingPayload(
     return payload;
   }
   const frozen = await loadFrozenPicksForDate(db, payload.date, engine);
+  if (!frozen.ok) {
+    payload.frozen = false;
+    payload.freezeSource = 'frozen-read-error';
+    payload.freezeError = true;
+    return payload;
+  }
   let applied = 0;
+  const missing: number[] = [];
   for (const r of payload.races) {
-    const fr = frozen.get(Number(r.raceNumber));
-    if (!fr || fr.length < 4) continue;
+    const raceNo = Number(r.raceNumber);
+    const fr = frozen.byRace.get(raceNo);
+    if (!fr || fr.length < 4) { missing.push(raceNo); continue; }
     const merged = applyFrozenOrder(r.picks, fr);
-    if (!merged.applied) continue;
+    if (!merged.applied) { missing.push(raceNo); continue; }
     r.picks = merged.picks;
     applied++;
+  }
+  if (missing.length) {
+    payload.frozen = false;
+    payload.freezeSource = 'missing-log';
+    payload.freezeError = true;
+    payload.freezeMissingRaces = missing;
+    return payload;
   }
   payload.frozen = applied > 0;
   payload.freezeAppliedRaces = applied;
@@ -162,7 +203,10 @@ export async function auditPredictionLock(
     return { date, engine, settled: false, ok: true, source: 'unsettled', races: [], mismatches: [] };
   }
   const frozen = await loadFrozenPicksForDate(db, date, engine);
-  if (!frozen.size) {
+  if (!frozen.ok) {
+    return { date, engine, settled: true, ok: false, source: 'frozen-read-error', races: [], mismatches: [{ reason: frozen.error }] };
+  }
+  if (!frozen.byRace.size) {
     return { date, engine, settled: true, ok: false, source: 'missing-log', races: [], mismatches: [{ reason: 'prediction_log incomplete' }] };
   }
   let compared = new Map<number, any[]>();
@@ -177,7 +221,7 @@ export async function auditPredictionLock(
       }
     }
   } catch { /* cache miss is not a ranking leak by itself */ }
-  const audit = auditTop4Pairs(frozen, compared);
+  const audit = auditTop4Pairs(frozen.byRace, compared);
   return {
     date,
     engine,
@@ -220,7 +264,13 @@ export async function freezeExplainPayload(
     return payload;
   }
   const frozen = await loadFrozenPicksForDate(db, date, engine);
-  const fr = frozen.get(raceNumber) || [];
+  if (!frozen.ok) {
+    payload.frozen = false;
+    payload.freezeSource = 'frozen-read-error';
+    payload.freezeError = true;
+    return payload;
+  }
+  const fr = frozen.byRace.get(raceNumber) || [];
   const fp = fr.find((p: any) =>
     (p.horseId && String(p.horseId) === String(horseId)) ||
     (payload.horseNumber != null && String(p.horseNumber) === String(payload.horseNumber)),
@@ -228,13 +278,16 @@ export async function freezeExplainPayload(
   if (!fp) {
     payload.frozen = false;
     payload.freezeSource = 'missing-log-horse';
+    payload.freezeError = true;
     return payload;
   }
-  payload.rank = fp.rank ?? payload.rank;
-  payload.pWin = fp.pWin ?? payload.pWin;
-  payload.pTop3 = fp.pTop3 ?? payload.pTop3;
-  payload.pTop4 = fp.pTop4 ?? payload.pTop4;
-  payload.finalScore = fp.finalScore ?? payload.finalScore;
+  // Frozen-owned analytical fields: a frozen NULL stays NULL, never hydrated
+  // from the live explain payload.
+  payload.rank = 'rank' in fp ? fp.rank : null;
+  payload.pWin = 'pWin' in fp ? fp.pWin : null;
+  payload.pTop3 = 'pTop3' in fp ? fp.pTop3 : null;
+  payload.pTop4 = 'pTop4' in fp ? fp.pTop4 : null;
+  payload.finalScore = 'finalScore' in fp ? fp.finalScore : null;
   payload.frozen = true;
   payload.freezeSource = 'prediction_log';
   return payload;
