@@ -63,3 +63,45 @@ assert.equal(predictedTop4Key(r4Live), '5-7-1-6');
 assert.equal(predictedTop4Key(applyFrozenOrder(r4Live, r4Frozen).picks), '5-1-7-2');
 
 console.log('prediction-lock ok');
+
+// ── 2026-10-18 fail-closed 修復測試 ─────────────────────────────────────
+// 1) 凍結 null 唔俾 live 補上（lgbScore null 唔會變 live 值）
+const frozenNull = [
+  { horseNumber: 10, rank: 1, lgbScore: null, pWin: 0.22 },
+  { horseNumber: 3, rank: 2, lgbScore: null, pWin: 0.18 },
+  { horseNumber: 2, rank: 3, lgbScore: null, pWin: 0.14 },
+  { horseNumber: 1, rank: 4, lgbScore: null, pWin: 0.12 },
+];
+const liveWithScores = [
+  { horseNumber: 10, rank: 1, lgbScore: 9.9, pWin: 0.21 },
+  { horseNumber: 3, rank: 2, lgbScore: 8.8, pWin: 0.19 },
+  { horseNumber: 2, rank: 3, lgbScore: 7.7, pWin: 0.15 },
+  { horseNumber: 1, rank: 4, lgbScore: 6.6, pWin: 0.11 },
+];
+const mergedNull = applyFrozenOrder(liveWithScores, frozenNull);
+assert.equal(mergedNull.applied, true);
+assert.equal(mergedNull.picks[0].lgbScore, null, 'frozen null must stay null');
+assert.equal(mergedNull.picks[0].pWin, 0.22, 'frozen pWin wins over live');
+
+// 2) 凍結排名重複 → 拒絕套用，唔重新編號
+const dupRank = frozen.map((p) => ({ ...p, rank: 1 }));
+const dupRankResult = applyFrozenOrder(liveDrift, dupRank);
+assert.equal(dupRankResult.applied, false);
+assert.equal(dupRankResult.reason, 'frozen-duplicate-rank');
+
+// 3) 凍結馬匹重複 → 拒絕套用
+const dupHorse = frozen.map((p) => ({ ...p, horseNumber: 10 }));
+const dupHorseResult = applyFrozenOrder(liveDrift, dupHorse);
+assert.equal(dupHorseResult.applied, false);
+assert.equal(dupHorseResult.reason, 'frozen-duplicate-horse');
+
+// 4) 凍結排名唔會被重新編號（rank 5 跳空保留）
+const gapped = [
+  { horseNumber: 10, rank: 1 }, { horseNumber: 3, rank: 2 },
+  { horseNumber: 2, rank: 3 }, { horseNumber: 1, rank: 5 },
+];
+const gappedResult = applyFrozenOrder(liveDrift, gapped);
+assert.equal(gappedResult.applied, true);
+assert.equal(gappedResult.picks[3].rank, 5, 'frozen rank kept, not renumbered');
+
+console.log('prediction-lock fail-closed tests OK');
