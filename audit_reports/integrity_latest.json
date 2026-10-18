@@ -1,5 +1,5 @@
 {
-  "scan_date": "2026-10-17",
+  "scan_date": "2026-10-18",
   "repo_root": "/home/runner/work/tianxi-racing/tianxi-racing",
   "overall_severity": "critical",
   "critical_gap_count": 1,
@@ -120,11 +120,11 @@
     },
     "entries_upcoming": {
       "name": "entries_upcoming",
-      "expected": 2,
-      "present": 0,
+      "expected": 3,
+      "present": 1,
       "missing": [
-        "2026-10-19",
-        "2026-10-21"
+        "2026-10-21",
+        "2026-10-25"
       ],
       "stale": [],
       "notes": [
