@@ -258,28 +258,54 @@ def check_coverage(upc) -> tuple:
 # would be far worse than the ELO fallback it replaces.
 # ══════════════════════════════════════════════════════════════════════
 
-BUNDLE_SCHEMA = 1
+BUNDLE_SCHEMA = 2
+
+
+def feature_semantics_fingerprint() -> str:
+    """Semantic fingerprint of the training pipeline: feature list + label
+    policy + blend parameters shape. A column-name match alone is not enough —
+    if the DERIVATION of a feature changes, this fingerprint must change too,
+    so a stale bundle is refused instead of silently scoring shifted inputs."""
+    import hashlib
+    payload = json.dumps({
+        'schema': BUNDLE_SCHEMA,
+        'featCols': list(FEAT_COLS),
+        'label': 'graded-5pos-clip-v1',
+        'blend': 'softmax(per-race z)/tau_lgb + elo/tau_elo, alpha-mix',
+    }, sort_keys=True).encode('utf-8')
+    return hashlib.sha256(payload).hexdigest()
 
 
 def save_bundle(dir_path: str, booster, model_version: str,
                 tau_lgb: float, tau_elo: float, alpha: float, diag: dict) -> None:
-    import os, datetime
-    os.makedirs(dir_path, exist_ok=True)
-    booster.save_model(os.path.join(dir_path, 'model.txt'))
+    import os, datetime, shutil
     meta = {
         'schema': BUNDLE_SCHEMA,
         'modelVersion': model_version,
         'trainedOn': datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%d'),
         'featCols': list(FEAT_COLS),
+        'featureFingerprint': feature_semantics_fingerprint(),
         'tauLgb': float(tau_lgb),
         'tauElo': float(tau_elo),
         'alpha': float(alpha),
         'bestIteration': int(diag.get('best_iteration') or 0),
     }
-    with open(os.path.join(dir_path, 'meta.json'), 'w', encoding='utf-8') as fh:
+    # Atomic publish: build the whole bundle in a temp sibling directory and
+    # rename it into place. A crash mid-write can never leave a half-written
+    # bundle that a later run would load as complete.
+    tmp_path = dir_path.rstrip('/') + '.tmp'
+    shutil.rmtree(tmp_path, ignore_errors=True)
+    os.makedirs(tmp_path, exist_ok=True)
+    booster.save_model(os.path.join(tmp_path, 'model.txt'))
+    with open(os.path.join(tmp_path, 'meta.json'), 'w', encoding='utf-8') as fh:
         json.dump(meta, fh, indent=2)
+    # Manifest/importance failure ABORTS the save: an unverifiable bundle must
+    # never be published as if complete.
     from feature_importance import write_report
-    write_report(dir_path)
+    write_report(tmp_path)
+    if os.path.isdir(dir_path):
+        shutil.rmtree(dir_path)
+    os.rename(tmp_path, dir_path)
     print(f'[predict] saved carry-over bundle to {dir_path} '
           f'(trainedOn={meta["trainedOn"]}, α={alpha:.3f})', flush=True)
 
@@ -324,6 +350,13 @@ def run_carry(args) -> int:
         print('[carry] FATAL: bundle feature list differs from current FEAT_COLS — '
               'refusing to score (a silent column shift is worse than the ELO fallback)',
               flush=True)
+        return 4
+    # Semantic fingerprint: column names alone cannot catch a changed feature
+    # DERIVATION. Legacy schema-1 bundles predate the fingerprint; they are
+    # refused rather than trusted, so an old bundle cannot sneak back in.
+    if meta.get('featureFingerprint') != feature_semantics_fingerprint():
+        print('[carry] FATAL: bundle feature fingerprint mismatch (or legacy bundle '
+              'without fingerprint) — refusing to score', flush=True)
         return 4
 
     upc = pd.read_csv(args.upcoming)
