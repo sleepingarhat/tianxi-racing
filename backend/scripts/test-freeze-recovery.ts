@@ -1,6 +1,6 @@
 import { Database } from 'bun:sqlite';
 import { strict as assert } from 'node:assert';
-import { PREDICTION_COLUMNS,ensureRecoveryTables,recoverOriginalFreeze,assertOriginalFreezeReadable,validateRows,missingOriginalRows } from '../src/lib/freeze-recovery';
+import { PREDICTION_COLUMNS,ensureRecoveryTables,recoverOriginalFreeze,assertOriginalFreezeReadable,validateRows,missingOriginalRows,auditOriginalRaces } from '../src/lib/freeze-recovery';
 const sqlite = new Database(':memory:');
 class Statement {
   params:any[]=[];
@@ -16,6 +16,12 @@ sqlite.exec(`CREATE TABLE prediction_log(${PREDICTION_COLUMNS.map(c=>c+' '+(text
 const date='2026-10-19',lock='2026-10-19T03:00:00.000Z',now=Date.parse(lock)+1000;
 function row(n:number) { return Object.fromEntries(PREDICTION_COLUMNS.map(c=>[c,({date,race_number:1,horse_id:'H'+n,engine:'v12',variant:'baseline',horse_number:n,predicted_rank:n,final_score:1500-n,generated_at:'2026-10-19T02:55:00.000Z'} as any)[c]??null])); }
 const rows=[1,2,3,4,5].map(row);
+const completeAudit=await auditOriginalRaces(rows,rows,date,'v12');assert.equal(completeAudit[0].expected,5);assert.equal(completeAudit[0].ok,true);
+const absentRace=await auditOriginalRaces(rows,[],date,'v12');assert.equal(absentRace[0].ok,false);assert.equal(absentRace[0].actual,0);
+const missingHorse=await auditOriginalRaces(rows,rows.slice(0,4),date,'v12');assert.equal(missingHorse[0].ok,false);
+const duplicateRank=await auditOriginalRaces(rows,rows.map((r,i)=>i===4?{...r,predicted_rank:4}:r),date,'v12');assert.equal(duplicateRank[0].ok,false);
+const scoreConflict=await auditOriginalRaces(rows,rows.map((r,i)=>i===0?{...r,final_score:100}:r),date,'v12');assert.equal(scoreConflict[0].ok,false);assert.equal(scoreConflict[0].fingerprint,completeAudit[0].fingerprint);
+console.log('PASS five per-race audit checks');
 for(const r of rows){await db.prepare(`INSERT INTO prediction_log(${PREDICTION_COLUMNS.join(',')}) VALUES(${PREDICTION_COLUMNS.map(()=>'?').join(',')})`).bind(...PREDICTION_COLUMNS.map(c=>r[c])).run();sqlite.query('INSERT INTO entries_upcoming VALUES(?,?,?,?,?,?)').run(date,'ST',1,r.horse_id,r.horse_number,'正選');}
 await db.prepare('INSERT INTO prediction_lock_meta VALUES(?,?,?,?)').bind(date,'v12','ST','2026-10-19T02:55:00.000Z').run();
 assert.throws(()=>validateRows([rows[0],rows[0],rows[2],rows[3]],date,'v12'));console.log('PASS duplicate horses/ranks rejected');

@@ -3,6 +3,25 @@ export const PREDICTION_COLUMNS = ['date','race_number','horse_id','engine','var
 type Row = Record<string, any>;
 type Snapshot = { schema: 1; date: string; engine: string; venue: string; lockAt: string; rows: Row[]; meta: Row | null };
 export type RecoveryResult = { ok: boolean; action: string; restored: number; error?: string };
+export type RaceAudit = { race_number: number; expected: number; actual: number; ok: boolean; fingerprint: string; error: string | null };
+/** Audit each race against immutable originals, never against changed race-day entries. */
+export async function auditOriginalRaces(original: Row[], current: Row[], date: string, engine: string): Promise<RaceAudit[]> {
+  validateRows(original, date, engine);
+  const numbers = [...new Set([...original, ...current].map(r => r.race_number))].sort((a,b)=>a-b);
+  const audits: RaceAudit[] = [];
+  for (const race_number of numbers) {
+    const source = original.filter(r=>r.race_number===race_number);
+    const actual = current.filter(r=>r.race_number===race_number);
+    let error: string | null = null;
+    try {
+      if (!source.length) throw new Error('unexpected-race');
+      validateRows(actual,date,engine);
+      if (missingOriginalRows(source,actual).length) throw new Error('race-runner-count-mismatch');
+    } catch(e) { error=e instanceof Error?e.message:'race-audit-failed'; }
+    audits.push({race_number,expected:source.length,actual:actual.length,ok:error===null,fingerprint:await digest(JSON.stringify(source.map(project))),error});
+  }
+  return audits;
+}
 const blocked = (error: string): RecoveryResult => ({ ok: false, action: 'blocked', restored: 0, error });
 function project(row: Row): Row { return Object.fromEntries(PREDICTION_COLUMNS.map(c => [c, row[c] ?? null])); }
 export function validateRows(rows: Row[], date: string, engine: string): void {
@@ -26,10 +45,12 @@ export function missingOriginalRows(original: Row[], current: Row[]): Row[] {
   }
   return original.filter(r => !seen.has(`${r.race_number}:${r.horse_id}`));
 }
-async function digest(text: string) { return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text)))).map(n => n.toString(16).padStart(2,'0')).join(''); }
+export async function digest(text: string) { return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text)))).map(n => n.toString(16).padStart(2,'0')).join(''); }
 export async function ensureRecoveryTables(db: D1Database) {
   await db.prepare(`CREATE TABLE IF NOT EXISTS prediction_original_snapshots (date TEXT NOT NULL, engine TEXT NOT NULL, snapshot_json TEXT NOT NULL, sha256 TEXT NOT NULL, captured_at TEXT NOT NULL, PRIMARY KEY(date,engine))`).run();
+  await db.prepare(`CREATE TABLE IF NOT EXISTS prediction_recovery_history (id INTEGER PRIMARY KEY AUTOINCREMENT, date TEXT NOT NULL, engine TEXT NOT NULL, checked_at TEXT NOT NULL, ok INTEGER NOT NULL, action TEXT NOT NULL, restored INTEGER NOT NULL, error TEXT)`).run();
   await db.prepare(`CREATE TABLE IF NOT EXISTS prediction_recovery_status (date TEXT NOT NULL, engine TEXT NOT NULL, checked_at TEXT NOT NULL, ok INTEGER NOT NULL, action TEXT NOT NULL, restored INTEGER NOT NULL, error TEXT, PRIMARY KEY(date,engine))`).run();
+  await db.prepare(`CREATE TABLE IF NOT EXISTS prediction_race_audit_history (id INTEGER PRIMARY KEY AUTOINCREMENT, date TEXT NOT NULL, engine TEXT NOT NULL, race_number INTEGER NOT NULL, checked_at TEXT NOT NULL, expected INTEGER NOT NULL, actual INTEGER NOT NULL, ok INTEGER NOT NULL, fingerprint TEXT NOT NULL, error TEXT)`).run();
   await db.prepare(`CREATE TRIGGER IF NOT EXISTS original_snapshot_no_update BEFORE UPDATE ON prediction_original_snapshots BEGIN SELECT RAISE(ABORT,'original snapshot immutable'); END`).run();
   await db.prepare(`CREATE TRIGGER IF NOT EXISTS original_snapshot_no_delete BEFORE DELETE ON prediction_original_snapshots BEGIN SELECT RAISE(ABORT,'original snapshot immutable'); END`).run();
   const changed = PREDICTION_COLUMNS.map(c => `OLD.${c} IS NOT NEW.${c}`).join(' OR ');
@@ -74,15 +95,23 @@ export async function recoverOriginalFreeze(db: D1Database, date: string, venue:
     const snapshot = JSON.parse(saved.snapshot_json) as Snapshot;
     if (snapshot.schema!==1 || snapshot.date!==date || snapshot.engine!==engine || snapshot.venue!==venue || snapshot.lockAt!==lockAt) throw new Error('original-identity-mismatch');
     validateRows(snapshot.rows,date,engine);
-    const missing=missingOriginalRows(snapshot.rows,await rowsFor(db,date,engine));
+    const current=await rowsFor(db,date,engine);
+    const checkedAt=new Date(now).toISOString();
+    const before=await auditOriginalRaces(snapshot.rows,current,date,engine);
+    await db.batch(before.map(a=>db.prepare(`INSERT INTO prediction_race_audit_history(date,engine,race_number,checked_at,expected,actual,ok,fingerprint,error) VALUES (?,?,?,?,?,?,?,?,?)`).bind(date,engine,a.race_number,checkedAt,a.expected,a.actual,a.ok?1:0,a.fingerprint,a.error)));
+    const missing=missingOriginalRows(snapshot.rows,current);
     const meta=await db.prepare(`SELECT * FROM prediction_lock_meta WHERE date=? AND engine=?`).bind(date,engine).first<Row>();
     if (meta && JSON.stringify(meta) !== JSON.stringify(snapshot.meta)) throw new Error('lock-meta-conflict');
     const writes=missing.map(r => db.prepare(`INSERT OR IGNORE INTO prediction_log (${PREDICTION_COLUMNS.join(',')}) VALUES (${PREDICTION_COLUMNS.map(()=>'?').join(',')})`).bind(...PREDICTION_COLUMNS.map(c=>r[c]??null)));
     if (!meta && snapshot.meta) { const cols=Object.keys(snapshot.meta); writes.push(db.prepare(`INSERT OR IGNORE INTO prediction_lock_meta (${cols.join(',')}) VALUES (${cols.map(()=>'?').join(',')})`).bind(...cols.map(c=>snapshot.meta?.[c]??null))); }
     if (writes.length) await db.batch(writes);
     if (missingOriginalRows(snapshot.rows,await rowsFor(db,date,engine)).length) throw new Error('recovery-readback-incomplete');
+    const after=await auditOriginalRaces(snapshot.rows,await rowsFor(db,date,engine),date,engine);
+    if(after.some(a=>!a.ok)) throw new Error('race-audit-readback-failed');
+    if(missing.length) await db.batch(after.map(a=>db.prepare(`INSERT INTO prediction_race_audit_history(date,engine,race_number,checked_at,expected,actual,ok,fingerprint,error) VALUES (?,?,?,?,?,?,?,?,?)`).bind(date,engine,a.race_number,new Date(now+1).toISOString(),a.expected,a.actual,a.ok?1:0,a.fingerprint,a.error)));
     result={ok:true,action:missing.length?'restored-original':'verified-original',restored:missing.length};
   } catch(e) { result=blocked(e instanceof Error?e.message:String(e)); }
+  try { await db.prepare(`INSERT INTO prediction_recovery_history(date,engine,checked_at,ok,action,restored,error) VALUES (?,?,?,?,?,?,?)`).bind(date,engine,new Date(now).toISOString(),result.ok?1:0,result.action,result.restored,result.error??null).run(); } catch { return blocked('recovery-history-write-failed'); }
   try { await db.prepare(`INSERT INTO prediction_recovery_status(date,engine,checked_at,ok,action,restored,error) VALUES (?,?,?,?,?,?,?) ON CONFLICT(date,engine) DO UPDATE SET checked_at=excluded.checked_at,ok=excluded.ok,action=excluded.action,restored=excluded.restored,error=excluded.error`).bind(date,engine,new Date(now).toISOString(),result.ok?1:0,result.action,result.restored,result.error??null).run(); } catch { return blocked('recovery-status-write-failed'); }
   return result;
 }
@@ -93,6 +122,10 @@ export async function assertOriginalFreezeReadable(db:D1Database,date:string,eng
   const saved=await db.prepare(`SELECT snapshot_json,sha256 FROM prediction_original_snapshots WHERE date=? AND engine=?`).bind(date,engine).first<{snapshot_json:string;sha256:string}>();
   if (!saved) return;
   if(await digest(saved.snapshot_json)!==saved.sha256) throw new Error('original-hash-mismatch');
-  const original=JSON.parse(saved.snapshot_json) as Snapshot; validateRows(original.rows,date,engine);
+  const original=JSON.parse(saved.snapshot_json) as Snapshot;
+  if(original.schema!==1 || original.date!==date || original.engine!==engine) throw new Error('original-identity-mismatch');
+  validateRows(original.rows,date,engine);
+  const meta=await db.prepare(`SELECT * FROM prediction_lock_meta WHERE date=? AND engine=?`).bind(date,engine).first<Row>();
+  if(JSON.stringify(meta)!==JSON.stringify(original.meta)) throw new Error('lock-meta-conflict');
   if(missingOriginalRows(original.rows,await rowsFor(db,date,engine)).length) throw new Error('missing-original-await-recovery');
 }

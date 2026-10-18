@@ -1,0 +1,292 @@
+{
+  "status": "NOT_PROMOTED",
+  "rows": 102252,
+  "races": 8408,
+  "columns": 95,
+  "trainingFeatures": 52,
+  "dateStart": "2016-09-03",
+  "dateEnd": "2026-10-14",
+  "sourceCohortIncluded": 134,
+  "sourceCohortTotal": 134,
+  "inputSha256": "5d56049e6acbc419db783c2827ae25095a413c42016e4f389e55a99055053dcf",
+  "fullTraining": {
+    "date": "2026-10-19",
+    "train_end": "2026-09-13",
+    "validation_start": "2026-09-16",
+    "validation_end": "2026-10-14",
+    "refit_end": "2026-10-14",
+    "train_rows": 102252,
+    "validation_races": 79,
+    "best_iteration": 796,
+    "tau_lgb": 0.6750663757067765,
+    "tau_elo": 1.9127719962451963,
+    "alpha": 0.9999940391390134,
+    "warnings": [],
+    "race_logloss_curve": {
+      "iter1": 2.493846804501172,
+      "best": 2.2078034361595433,
+      "final": 2.2089868967763016,
+      "len": 876
+    },
+    "corr_lgb_elo": 0.5686339426112718,
+    "fit_rows": 101283,
+    "missing_baseline_validation": 24,
+    "health_gate": {
+      "status": "PASS",
+      "reasons": []
+    },
+    "promotion_eligible": false,
+    "model_sha256": "7cd7ba7575fafd52fd28b782048884c2d5f72411d9f7c68bcd58962758bbedd1",
+    "features": [
+      "distance",
+      "field_size",
+      "draw",
+      "actual_weight",
+      "h_elo",
+      "j_elo",
+      "t_elo",
+      "days_since_last",
+      "dist_starts",
+      "dist_top3",
+      "going_starts",
+      "going_top3",
+      "draw_starts",
+      "draw_top3",
+      "combo_starts",
+      "combo_top3",
+      "weight_avg5",
+      "factor_bonus",
+      "form_n",
+      "form_avgpos_w",
+      "form_top3rate_w",
+      "form_pos_slope",
+      "tv_starts",
+      "tv_top3",
+      "jv_starts",
+      "jv_top3",
+      "jdb_starts",
+      "jdb_top3",
+      "jg_starts",
+      "jg_top3",
+      "tg_starts",
+      "tg_top3",
+      "horse_pace_n",
+      "horse_pace_early",
+      "horse_pace_style",
+      "race_n_leaders",
+      "race_n_closers",
+      "horse_pace_clash",
+      "class_now_num",
+      "last_class_num",
+      "class_delta",
+      "sect_n",
+      "sect_early_avg",
+      "sect_late_kick",
+      "is_sprint",
+      "is_middle",
+      "is_distance",
+      "draw_x_sprint",
+      "paceclash_x_distance",
+      "sire_top3_sm",
+      "sire_dist_top3_sm",
+      "damsire_top3_sm"
+    ],
+    "production_promoted": false
+  },
+  "dailyCount": 11,
+  "evaluatedRaces": 107,
+  "candidateHits": 210,
+  "marketHits": 254,
+  "candidateMean": 1.9626168224299065,
+  "marketMean": 2.3738317757009346,
+  "meanLogLoss": 2.238418310006855,
+  "healthGatePasses": 11,
+  "promotionGate": "BLOCKED",
+  "blockers": [
+    "四揀平均1.9626，低於同批收市熱門2.3738及目標3/4；未通過四揀表現研究驗收",
+    "79場驗證及34行近期baseline缺值仍需來源說明；正式服務融合α=0.88未重播",
+    "本報告是隔離歷史重播；市場收市賠率不代表賽前可用盤口",
+    "10/14沒有可靠原始副本，不當成自動恢復實賽驗收"
+  ],
+  "frozenWrites": false,
+  "productionPromoted": false,
+  "method": "Strict train < validation < target; calibration before full refit; dead-heat mean loss diagnostic; same evaluate_gates numerical health checks, not promotion approval",
+  "days": [
+    {
+      "date": "2026-09-06",
+      "evaluation_log_loss": 2.2952637030457916,
+      "best_iteration": 1376,
+      "tau_lgb": 0.7796576847613054,
+      "tau_elo": 1.7652039900298842,
+      "alpha": 0.9611399186880825,
+      "health_gate": {
+        "status": "PASS",
+        "reasons": []
+      },
+      "missing_baseline_target": 3,
+      "races": 10,
+      "candidateMean": 1.6,
+      "marketMean": 2.2
+    },
+    {
+      "date": "2026-09-09",
+      "evaluation_log_loss": 2.2982689328895676,
+      "best_iteration": 575,
+      "tau_lgb": 1.0727896225248112,
+      "tau_elo": 1.967927903088566,
+      "alpha": 0.7870220758860227,
+      "health_gate": {
+        "status": "PASS",
+        "reasons": []
+      },
+      "missing_baseline_target": 1,
+      "races": 8,
+      "candidateMean": 2.5,
+      "marketMean": 2.625
+    },
+    {
+      "date": "2026-09-13",
+      "evaluation_log_loss": 2.4599258087957634,
+      "best_iteration": 482,
+      "tau_lgb": 1.1503198499300387,
+      "tau_elo": 2.3312778803741208,
+      "alpha": 0.8953228971140165,
+      "health_gate": {
+        "status": "PASS",
+        "reasons": []
+      },
+      "missing_baseline_target": 6,
+      "races": 10,
+      "candidateMean": 1.3,
+      "marketMean": 2.0
+    },
+    {
+      "date": "2026-09-16",
+      "evaluation_log_loss": 1.9880640513371253,
+      "best_iteration": 726,
+      "tau_lgb": 0.9847938810061976,
+      "tau_elo": 2.2653850610328505,
+      "alpha": 0.9999940391390134,
+      "health_gate": {
+        "status": "PASS",
+        "reasons": []
+      },
+      "missing_baseline_target": 0,
+      "races": 8,
+      "candidateMean": 2.125,
+      "marketMean": 2.375
+    },
+    {
+      "date": "2026-09-23",
+      "evaluation_log_loss": 2.190918144595058,
+      "best_iteration": 726,
+      "tau_lgb": 0.7871787349081873,
+      "tau_elo": 1.9637157454280847,
+      "alpha": 0.9999940391390134,
+      "health_gate": {
+        "status": "PASS",
+        "reasons": []
+      },
+      "missing_baseline_target": 0,
+      "races": 9,
+      "candidateMean": 2.111111111111111,
+      "marketMean": 2.5555555555555554
+    },
+    {
+      "date": "2026-09-27",
+      "evaluation_log_loss": 2.456406413795443,
+      "best_iteration": 735,
+      "tau_lgb": 0.7677331228472781,
+      "tau_elo": 2.0526617789670047,
+      "alpha": 0.9999940391390134,
+      "health_gate": {
+        "status": "PASS",
+        "reasons": []
+      },
+      "missing_baseline_target": 4,
+      "races": 11,
+      "candidateMean": 1.9090909090909092,
+      "marketMean": 2.5454545454545454
+    },
+    {
+      "date": "2026-10-01",
+      "evaluation_log_loss": 2.3336068212241616,
+      "best_iteration": 748,
+      "tau_lgb": 0.8299996360520855,
+      "tau_elo": 2.6576987343172123,
+      "alpha": 0.9999940391390134,
+      "health_gate": {
+        "status": "PASS",
+        "reasons": []
+      },
+      "missing_baseline_target": 8,
+      "races": 11,
+      "candidateMean": 2.1818181818181817,
+      "marketMean": 2.6363636363636362
+    },
+    {
+      "date": "2026-10-04",
+      "evaluation_log_loss": 2.2393188562263235,
+      "best_iteration": 748,
+      "tau_lgb": 0.8473532555529283,
+      "tau_elo": 2.6929933078166846,
+      "alpha": 0.9999940391390134,
+      "health_gate": {
+        "status": "PASS",
+        "reasons": []
+      },
+      "missing_baseline_target": 3,
+      "races": 11,
+      "candidateMean": 2.0,
+      "marketMean": 2.0
+    },
+    {
+      "date": "2026-10-07",
+      "evaluation_log_loss": 1.92392262057815,
+      "best_iteration": 909,
+      "tau_lgb": 0.8462486018190772,
+      "tau_elo": 2.303885954806328,
+      "alpha": 0.9999940391390134,
+      "health_gate": {
+        "status": "PASS",
+        "reasons": []
+      },
+      "missing_baseline_target": 1,
+      "races": 9,
+      "candidateMean": 1.7777777777777777,
+      "marketMean": 2.2222222222222223
+    },
+    {
+      "date": "2026-10-11",
+      "evaluation_log_loss": 2.274682560460534,
+      "best_iteration": 870,
+      "tau_lgb": 0.7182646405076636,
+      "tau_elo": 2.1777724478853786,
+      "alpha": 0.9999940391390134,
+      "health_gate": {
+        "status": "PASS",
+        "reasons": []
+      },
+      "missing_baseline_target": 7,
+      "races": 11,
+      "candidateMean": 2.0,
+      "marketMean": 2.5454545454545454
+    },
+    {
+      "date": "2026-10-14",
+      "evaluation_log_loss": 2.0322746803527187,
+      "best_iteration": 770,
+      "tau_lgb": 0.6894277046865358,
+      "tau_elo": 2.048598130146812,
+      "alpha": 0.9999940391390134,
+      "health_gate": {
+        "status": "PASS",
+        "reasons": []
+      },
+      "missing_baseline_target": 1,
+      "races": 9,
+      "candidateMean": 2.2222222222222223,
+      "marketMean": 2.4444444444444446
+    }
+  ]
+}

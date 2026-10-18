@@ -303,11 +303,18 @@ app.onError((err, c) => {
   app.get('/api/analyze/freeze-recovery-status', async (c) => {
     const meeting = await findMeetingForLockTick(c.env.DB);
     c.header('Cache-Control','no-store');
-    if (!meeting) return c.json({ok:true,action:'no-fixture'});
+    const historyTable=await c.env.DB.prepare(`SELECT name FROM sqlite_master WHERE type='table' AND name='prediction_recovery_history'`).first();
+    const historyResult = historyTable ? await c.env.DB.prepare(`SELECT date,engine,checked_at,ok,action,restored,error FROM prediction_recovery_history ORDER BY id DESC LIMIT 40`).all<any>() : null;
+    const history=historyResult?.results ?? [];
+    const auditTable=await c.env.DB.prepare(`SELECT name FROM sqlite_master WHERE type='table' AND name='prediction_race_audit_history'`).first();
+    const raceAuditResult=auditTable ? await c.env.DB.prepare(`SELECT date,engine,race_number,checked_at,expected,actual,ok,fingerprint,error FROM prediction_race_audit_history ORDER BY id DESC LIMIT 80`).all<any>() : null;
+    const race_audits=raceAuditResult?.results ?? [];
+    if (!meeting) return c.json({ok:true,action:'no-fixture',history,race_audits});
     const lock = await getMeetingLockState(c.env.DB,meeting.date,meeting.venue);
-    if (!lock.locked) return c.json({ok:true,action:'pre-lock',date:meeting.date});
+    if (!lock.locked) return c.json({ok:true,action:'pre-lock',date:meeting.date,history,race_audits});
     const status = await c.env.DB.prepare(`SELECT checked_at,ok,action,restored,error FROM prediction_recovery_status WHERE date=? AND engine='v12'`).bind(meeting.date).first<any>();
-    return c.json({date:meeting.date,...status,ok:status?.ok===1,action:status?.action??'not-checked'},status?.ok===1?200:503);
+    const snapshot=await c.env.DB.prepare(`SELECT sha256 FROM prediction_original_snapshots WHERE date=? AND engine='v12'`).bind(meeting.date).first<{sha256:string}>();
+    return c.json({date:meeting.date,...status,history,race_audits,fingerprint:snapshot?.sha256??null,ok:status?.ok===1,action:status?.action??'not-checked'},status?.ok===1?200:503);
   });
 
   app.post('/admin/api/lock-tick', async (c) => {
