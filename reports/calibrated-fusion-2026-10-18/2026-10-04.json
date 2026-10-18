@@ -1,0 +1,23 @@
+{
+  "date": "2026-10-04",
+  "matchedRaces": 7,
+  "train_end": "2026-07-15",
+  "validation_start": "2026-09-06",
+  "validation_end": "2026-10-01",
+  "calibration": {
+    "included": {
+      "tau_lgb": 0.8473532555529283,
+      "tau_elo": 2.5284303225075018,
+      "inner_alpha": 0.9999940391390134,
+      "validation_logloss": 2.287998443182577,
+      "rounds": 748
+    },
+    "excluded": {
+      "tau_lgb": 0.8161594335453856,
+      "tau_elo": 2.5284303225075018,
+      "inner_alpha": 0.9999940391390134,
+      "validation_logloss": 2.278297454051669,
+      "rounds": 748
+    }
+  }
+}

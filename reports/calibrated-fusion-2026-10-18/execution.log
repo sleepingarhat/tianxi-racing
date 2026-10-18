@@ -1,0 +1,12 @@
+completed 2026-09-06 8
+completed 2026-09-09 8
+completed 2026-09-13 10
+completed 2026-09-16 7
+completed 2026-09-23 7
+completed 2026-09-27 8
+completed 2026-10-01 10
+completed 2026-10-04 7
+completed 2026-10-07 8
+completed 2026-10-11 8
+completed 2026-10-14 8
+{'scope': 'CALIBRATED_FORMULA_REPLAY_SERVING_CONTEXT_PARITY_UNVERIFIED', 'promotionGate': 'BLOCKED', 'productionPromoted': False, 'frozenWrites': False, 'cohortRows': 134, 'matchedRaces': 89, 'matchedRunners': 1105, 'excludedIncompleteRaces': 18, 'cohortTop4ChangedRaces': 8, 'cohortRankChanges': 186, 'cohortMeanAbsScoreDelta': 3.858099547511313, 'cohortMaxAbsScoreDelta': 29.59999999999991, 'historicalTop4ChangedRaces': 60, 'historicalMeanAbsScoreDelta': 28.183529411764702, 'historicalMaxAbsScoreDelta': 187.70000000000005, 'includedMeanHits': 1.9662921348314606, 'excludedMeanHits': 1.9550561797752808, 'baselineMissingBefore': 7791, 'baselineMissingAfter': 39}

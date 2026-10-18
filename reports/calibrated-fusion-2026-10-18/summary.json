@@ -1,0 +1,284 @@
+{
+  "scope": "CALIBRATED_FORMULA_REPLAY_SERVING_CONTEXT_PARITY_UNVERIFIED",
+  "promotionGate": "BLOCKED",
+  "productionPromoted": false,
+  "frozenWrites": false,
+  "cohortRows": 134,
+  "matchedRaces": 89,
+  "matchedRunners": 1105,
+  "excludedIncompleteRaces": 18,
+  "cohortTop4ChangedRaces": 8,
+  "cohortRankChanges": 186,
+  "cohortMeanAbsScoreDelta": 3.858099547511313,
+  "cohortMaxAbsScoreDelta": 29.59999999999991,
+  "historicalTop4ChangedRaces": 60,
+  "historicalMeanAbsScoreDelta": 28.183529411764702,
+  "historicalMaxAbsScoreDelta": 187.70000000000005,
+  "includedMeanHits": 1.9662921348314606,
+  "excludedMeanHits": 1.9550561797752808,
+  "baselineMissingBefore": 7791,
+  "baselineMissingAfter": 39,
+  "days": [
+    {
+      "date": "2026-09-06",
+      "matchedRaces": 8,
+      "train_end": "2026-06-13",
+      "validation_start": "2026-06-21",
+      "validation_end": "2026-07-15",
+      "calibration": {
+        "included": {
+          "tau_lgb": 0.7796576847613054,
+          "tau_elo": 1.8993313576760609,
+          "inner_alpha": 0.9999940391390134,
+          "validation_logloss": 2.2456709451422343,
+          "rounds": 1376
+        },
+        "excluded": {
+          "tau_lgb": 0.77605762943884,
+          "tau_elo": 1.8993313576760609,
+          "inner_alpha": 0.9999940391390134,
+          "validation_logloss": 2.2467811904051675,
+          "rounds": 1376
+        }
+      }
+    },
+    {
+      "date": "2026-09-09",
+      "matchedRaces": 8,
+      "train_end": "2026-07-08",
+      "validation_start": "2026-07-12",
+      "validation_end": "2026-09-06",
+      "calibration": {
+        "included": {
+          "tau_lgb": 1.0727896225248112,
+          "tau_elo": 2.5893390338804463,
+          "inner_alpha": 0.9999940391390134,
+          "validation_logloss": 2.3769342148703028,
+          "rounds": 575
+        },
+        "excluded": {
+          "tau_lgb": 1.0695183555080319,
+          "tau_elo": 2.5893390338804463,
+          "inner_alpha": 0.9999940391390134,
+          "validation_logloss": 2.375672626457657,
+          "rounds": 575
+        }
+      }
+    },
+    {
+      "date": "2026-09-13",
+      "matchedRaces": 10,
+      "train_end": "2026-07-12",
+      "validation_start": "2026-07-15",
+      "validation_end": "2026-09-09",
+      "calibration": {
+        "included": {
+          "tau_lgb": 1.1503198499300387,
+          "tau_elo": 2.6039323213007224,
+          "inner_alpha": 0.9999940391390134,
+          "validation_logloss": 2.346929442533219,
+          "rounds": 482
+        },
+        "excluded": {
+          "tau_lgb": 1.1855300059067193,
+          "tau_elo": 2.6039323213007224,
+          "inner_alpha": 0.9999940391390134,
+          "validation_logloss": 2.3500262260756144,
+          "rounds": 482
+        }
+      }
+    },
+    {
+      "date": "2026-09-16",
+      "matchedRaces": 7,
+      "train_end": "2026-07-15",
+      "validation_start": "2026-09-06",
+      "validation_end": "2026-09-13",
+      "calibration": {
+        "included": {
+          "tau_lgb": 0.9847938810061976,
+          "tau_elo": 2.0105915928553277,
+          "inner_alpha": 0.9638085204492588,
+          "validation_logloss": 2.3364969952545134,
+          "rounds": 726
+        },
+        "excluded": {
+          "tau_lgb": 0.9750237211460955,
+          "tau_elo": 2.0105915928553277,
+          "inner_alpha": 0.9400882175512877,
+          "validation_logloss": 2.3356548600620917,
+          "rounds": 726
+        }
+      }
+    },
+    {
+      "date": "2026-09-23",
+      "matchedRaces": 7,
+      "train_end": "2026-07-15",
+      "validation_start": "2026-09-06",
+      "validation_end": "2026-09-16",
+      "calibration": {
+        "included": {
+          "tau_lgb": 0.7871787349081873,
+          "tau_elo": 1.8570966024532454,
+          "inner_alpha": 0.9999940391390134,
+          "validation_logloss": 2.2504750145892687,
+          "rounds": 726
+        },
+        "excluded": {
+          "tau_lgb": 0.7777803980863023,
+          "tau_elo": 1.8570966024532454,
+          "inner_alpha": 0.9999940391390134,
+          "validation_logloss": 2.2476650577952917,
+          "rounds": 726
+        }
+      }
+    },
+    {
+      "date": "2026-09-27",
+      "matchedRaces": 8,
+      "train_end": "2026-07-15",
+      "validation_start": "2026-09-06",
+      "validation_end": "2026-09-23",
+      "calibration": {
+        "included": {
+          "tau_lgb": 0.7677331228472781,
+          "tau_elo": 1.9424477070299508,
+          "inner_alpha": 0.9999940391390134,
+          "validation_logloss": 2.2362784828411333,
+          "rounds": 735
+        },
+        "excluded": {
+          "tau_lgb": 0.7564064398877544,
+          "tau_elo": 1.9424477070299508,
+          "inner_alpha": 0.9999940391390134,
+          "validation_logloss": 2.2318417159621853,
+          "rounds": 735
+        }
+      }
+    },
+    {
+      "date": "2026-10-01",
+      "matchedRaces": 10,
+      "train_end": "2026-07-15",
+      "validation_start": "2026-09-06",
+      "validation_end": "2026-09-27",
+      "calibration": {
+        "included": {
+          "tau_lgb": 0.8299996360520855,
+          "tau_elo": 2.3741527929191686,
+          "inner_alpha": 0.9999940391390134,
+          "validation_logloss": 2.275797359801591,
+          "rounds": 748
+        },
+        "excluded": {
+          "tau_lgb": 0.8063868934602552,
+          "tau_elo": 2.3741527929191686,
+          "inner_alpha": 0.9999940391390134,
+          "validation_logloss": 2.268448473659631,
+          "rounds": 748
+        }
+      }
+    },
+    {
+      "date": "2026-10-04",
+      "matchedRaces": 7,
+      "train_end": "2026-07-15",
+      "validation_start": "2026-09-06",
+      "validation_end": "2026-10-01",
+      "calibration": {
+        "included": {
+          "tau_lgb": 0.8473532555529283,
+          "tau_elo": 2.5284303225075018,
+          "inner_alpha": 0.9999940391390134,
+          "validation_logloss": 2.287998443182577,
+          "rounds": 748
+        },
+        "excluded": {
+          "tau_lgb": 0.8161594335453856,
+          "tau_elo": 2.5284303225075018,
+          "inner_alpha": 0.9999940391390134,
+          "validation_logloss": 2.278297454051669,
+          "rounds": 748
+        }
+      }
+    },
+    {
+      "date": "2026-10-07",
+      "matchedRaces": 8,
+      "train_end": "2026-07-15",
+      "validation_start": "2026-09-06",
+      "validation_end": "2026-10-04",
+      "calibration": {
+        "included": {
+          "tau_lgb": 0.8462486018190772,
+          "tau_elo": 2.135646057778735,
+          "inner_alpha": 0.9999940391390134,
+          "validation_logloss": 2.279919774331672,
+          "rounds": 909
+        },
+        "excluded": {
+          "tau_lgb": 0.8153040305543383,
+          "tau_elo": 2.135646057778735,
+          "inner_alpha": 0.9999940391390134,
+          "validation_logloss": 2.267298948974949,
+          "rounds": 909
+        }
+      }
+    },
+    {
+      "date": "2026-10-11",
+      "matchedRaces": 8,
+      "train_end": "2026-09-06",
+      "validation_start": "2026-09-09",
+      "validation_end": "2026-10-07",
+      "calibration": {
+        "included": {
+          "tau_lgb": 0.7182646405076636,
+          "tau_elo": 2.037728012419338,
+          "inner_alpha": 0.9999940391390134,
+          "validation_logloss": 2.226554338006655,
+          "rounds": 870
+        },
+        "excluded": {
+          "tau_lgb": 0.7121416484725013,
+          "tau_elo": 2.037728012419338,
+          "inner_alpha": 0.9999940391390134,
+          "validation_logloss": 2.2245910126434683,
+          "rounds": 870
+        }
+      }
+    },
+    {
+      "date": "2026-10-14",
+      "matchedRaces": 8,
+      "train_end": "2026-09-09",
+      "validation_start": "2026-09-13",
+      "validation_end": "2026-10-11",
+      "calibration": {
+        "included": {
+          "tau_lgb": 0.6894277046865358,
+          "tau_elo": 2.067392717213199,
+          "inner_alpha": 0.9999940391390134,
+          "validation_logloss": 2.2171905346037906,
+          "rounds": 770
+        },
+        "excluded": {
+          "tau_lgb": 0.6970376944928017,
+          "tau_elo": 2.067392717213199,
+          "inner_alpha": 0.9999940391390134,
+          "validation_logloss": 2.22676659316932,
+          "rounds": 770
+        }
+      }
+    }
+  ],
+  "limitations": [
+    "已使用校準混合log(p)及外層α=.88，不再用原始margin冒充服務分數",
+    "固定修復後52項特徵與逐日輪數，移除134行只測条件式影響；不是重建舊錯誤資料管道",
+    "top-picks為現行只讀重建；與會期正式批量因子和未四捨五入Elo尚未核實一致，不冒充完整服務驗收",
+    "39行全軸缺值仍採既有校準fillna(0)；缺值處理尚非已完成正式發布契約",
+    "歷史凍結缺不可變發布收據，歷史差異含多項修復，不能全歸因134行",
+    "研究閘未通過、不升版、不改歷史副本或戰績"
+  ]
+}

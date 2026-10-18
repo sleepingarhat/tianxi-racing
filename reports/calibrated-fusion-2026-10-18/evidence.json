@@ -1,0 +1,11 @@
+{
+  "backendSourceCommit": "980e548805c3e47c3487eaaf7198b5ad9075e130",
+  "sourceContext": "Current read-only top-picks; not immutable historical lock receipts",
+  "productionWrites": false,
+  "inputs": {
+    "serving-context.json": "f9e64c24eb6e724871fb5b7d82d0db19352647e7d4fab3fde04c3d185b1b80c4",
+    "comparison.csv": "7de54b17b204c95cb5fe4112de19d348ad55098f840891bc6caefcf01d603c45",
+    "summary.json": "2fb37e00742e9df96bc894a699ca27e435973e193ae3237c5848dae6a67a851e"
+  },
+  "trainingInputSha256": "5d56049e6acbc419db783c2827ae25095a413c42016e4f389e55a99055053dcf"
+}
