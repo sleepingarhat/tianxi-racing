@@ -69,13 +69,29 @@ function normalizePool(zhPool: string): string {
 }
 
 // 從 "喆喆友福 (J345)" 提取馬匹代碼
-function extractHorseCode(horseName: string): { name: string; code: string } {
+// 2026-10-18 修復：舊正則 [A-Z]?\d+ 只認單字母編號（A001），認唔到雙字母
+// 編號（CL247、CM199）→ 嗰啲馬跌咗入名稱後備 ID（horse_______CL247_），
+// 同正式 horse_CL247 對唔上，做成 134 行訓練資料「搵唔到來源」。
+export function extractHorseCode(horseName: string): { name: string; code: string } {
   if (!horseName) return { name: '', code: '' };
-  const match = horseName.match(/^(.+?)\s*\(([A-Z]?\d+[A-Z]?)\)\s*$/);
+  const match = horseName.match(/^(.+?)\s*\(([A-Z]{1,3}\d+[A-Z]?)\)\s*$/);
   if (match) {
     return { name: match[1].trim(), code: match[2].trim() };
   }
   return { name: horseName.trim(), code: '' };
+}
+
+/**
+ * 解析官方名次欄：普通名次「3」、平頭馬「3 平頭馬」（dead heat，兩駒同名次，
+ * 係有效賽果）、特殊情況「---」／DNF／PU／UR → null（唔入訓練集）。
+ */
+export function parseFinishingPlace(place: string | undefined | null): number | null {
+  if (!place) return null;
+  const trimmed = place.trim();
+  if (/^\d+$/.test(trimmed)) return parseInt(trimmed, 10);
+  const dh = trimmed.match(/^(\d+)\s*平頭馬/);
+  if (dh) return parseInt(dh[1], 10);
+  return null;
 }
 
 // 將 "0:56.75" / "1:23.45" / "56.75" 轉為秒
@@ -372,9 +388,10 @@ function importResults(stmts: Stmts, db: Database.Database, filePath: string) {
 
         // Result
         const resultId = generateId('result', date, venue, raceNo, horseCode || horseName);
-        const position = parseInteger(entry.place);
-        // 處理 DNF / PU / UR 等特殊情況（place 可能係 "---" 或 非數字）
-        const finalPosition = position ?? (entry.place && /^\d+$/.test(entry.place) ? parseInt(entry.place) : null);
+        // 處理 DNF / PU / UR 等特殊情況（place 可能係 "---" 或 非數字）。
+        // 平頭馬（dead heat）嘅 place 係「3 平頭馬」咁嘅格式：取開頭數字做名次，
+        // 兩駒同名次係官方賽果，唔應該當無效資料跌出訓練集。
+        const finalPosition = parseFinishingPlace(entry.place);
 
         stmts.insertResult.run(
           resultId,
@@ -693,4 +710,6 @@ function main() {
   db.close();
 }
 
-main();
+// 只有直接執行先跑主程序；被測試 import 時唔跑。
+const isMain = process.argv[1] && import.meta.url === `file://${process.argv[1]}`;
+if (isMain) main();
