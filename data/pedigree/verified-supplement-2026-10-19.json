@@ -1,0 +1,132 @@
+[
+  {
+    "horse_id": "horse_CL247",
+    "code": "CL247",
+    "sire": "Flying Spur",
+    "dam": "Irgunette",
+    "damsire": "Irgun",
+    "source_url": "https://racing.hkjc.com/racing/information/english/Horse/Horse.aspx?HorseId=HK_2009_L247",
+    "retrieved_at": "2026-10-18T16:03:02.634630+00:00",
+    "source_sha256": "4c17ccc4fb2d149926cd06e8d95a9c6b624a43cb4fec59f4bf0142ce8c859c07"
+  },
+  {
+    "horse_id": "horse_CM085",
+    "code": "CM085",
+    "sire": "Kashani",
+    "dam": "Glory March",
+    "damsire": "All Glory",
+    "source_url": "https://racing.hkjc.com/racing/information/english/Horse/Horse.aspx?HorseId=HK_2010_M085",
+    "retrieved_at": "2026-10-18T16:03:02.777857+00:00",
+    "source_sha256": "5ef8aacf86dfc4fc00c2a6623fb9f6aaa7590bdedd05ef16f341bed6a7c47fa1"
+  },
+  {
+    "horse_id": "horse_CM148",
+    "code": "CM148",
+    "sire": "Byron",
+    "dam": "Reunion",
+    "damsire": "Be My Guest",
+    "source_url": "https://racing.hkjc.com/racing/information/english/Horse/Horse.aspx?HorseId=HK_2010_M148",
+    "retrieved_at": "2026-10-18T16:03:02.922338+00:00",
+    "source_sha256": "5a3247557908de2e8928633759367784a1490507dad8fdadb662426db4e06874"
+  },
+  {
+    "horse_id": "horse_CM199",
+    "code": "CM199",
+    "sire": "Footstepsinthesand",
+    "dam": "Kingsridge",
+    "damsire": "King's Theatre",
+    "source_url": "https://racing.hkjc.com/racing/information/english/Horse/Horse.aspx?HorseId=HK_2010_M199",
+    "retrieved_at": "2026-10-18T16:03:03.099983+00:00",
+    "source_sha256": "9c31452a3a43e3e3d9aacb34f88584c341505d6ee85557c98e48535b192b2e18"
+  },
+  {
+    "horse_id": "horse_CM255",
+    "code": "CM255",
+    "sire": "Ishiguru",
+    "dam": "Jessika",
+    "damsire": "O'Reilly",
+    "source_url": "https://racing.hkjc.com/racing/information/english/Horse/Horse.aspx?HorseId=HK_2010_M255",
+    "retrieved_at": "2026-10-18T16:03:03.268644+00:00",
+    "source_sha256": "c821856340d3b1d9bdd2cbaf907f781fcd44186577bae1d3485e22fa6f3430ff"
+  },
+  {
+    "horse_id": "horse_CM273",
+    "code": "CM273",
+    "sire": "Flying Spur",
+    "dam": "Hasna",
+    "damsire": "Snippets",
+    "source_url": "https://racing.hkjc.com/racing/information/english/Horse/Horse.aspx?HorseId=HK_2010_M273",
+    "retrieved_at": "2026-10-18T16:03:03.420784+00:00",
+    "source_sha256": "0c593110928699afd3516e640be2ad62e51f5ebb5da3435c11d8cca1179e8f7c"
+  },
+  {
+    "horse_id": "horse_CM339",
+    "code": "CM339",
+    "sire": "Shamardal",
+    "dam": "Nouvelle Noblesse",
+    "damsire": "Singspiel",
+    "source_url": "https://racing.hkjc.com/racing/information/english/Horse/Horse.aspx?HorseId=HK_2010_M339",
+    "retrieved_at": "2026-10-18T16:03:03.561531+00:00",
+    "source_sha256": "90d75abf7e29112f7a8abf93155c83da09aa7203c7a0edce751182fd6293abad"
+  },
+  {
+    "horse_id": "horse_CM350",
+    "code": "CM350",
+    "sire": "Stratum",
+    "dam": "Benita",
+    "damsire": "Octagonal",
+    "source_url": "https://racing.hkjc.com/racing/information/english/Horse/Horse.aspx?HorseId=HK_2010_M350",
+    "retrieved_at": "2026-10-18T16:03:03.717069+00:00",
+    "source_sha256": "773289bc31271d4eff81fff73e2f64459022e869d3af5958fc49030b3bc7b2f6"
+  },
+  {
+    "horse_id": "horse_CM401",
+    "code": "CM401",
+    "sire": "Storming Home",
+    "dam": "Towaahi",
+    "damsire": "Caerleon",
+    "source_url": "https://racing.hkjc.com/racing/information/english/Horse/Horse.aspx?HorseId=HK_2010_M401",
+    "retrieved_at": "2026-10-18T16:03:03.923208+00:00",
+    "source_sha256": "b822b3c04988326b098c9fe3b4da1fca84b0d5a985e6d94cb250bc034a33ec10"
+  },
+  {
+    "horse_id": "horse_CN186",
+    "code": "CN186",
+    "sire": "Dylan Thomas",
+    "dam": "Starship",
+    "damsire": "Galileo",
+    "source_url": "https://racing.hkjc.com/racing/information/english/Horse/Horse.aspx?HorseId=HK_2011_N186",
+    "retrieved_at": "2026-10-18T16:03:04.085962+00:00",
+    "source_sha256": "63df8e21e8afb8af2cee4b190fa84217ed332a769cfbbbd704432defc6a32ae3"
+  },
+  {
+    "horse_id": "horse_CN317",
+    "code": "CN317",
+    "sire": "Towkay",
+    "dam": "Crystal Jet",
+    "damsire": "Clay Hero",
+    "source_url": "https://racing.hkjc.com/racing/information/english/Horse/Horse.aspx?HorseId=HK_2011_N317",
+    "retrieved_at": "2026-10-18T16:03:04.269996+00:00",
+    "source_sha256": "5e0682ef594bae4e63298557477c450660007c2b51f44924514c91c658639579"
+  },
+  {
+    "horse_id": "horse_CN360",
+    "code": "CN360",
+    "sire": "Keeper",
+    "dam": "Mrs Zoff",
+    "damsire": "Zoffany",
+    "source_url": "https://racing.hkjc.com/racing/information/english/Horse/Horse.aspx?HorseId=HK_2011_N360",
+    "retrieved_at": "2026-10-18T16:03:04.447282+00:00",
+    "source_sha256": "f17de252cfef75d85062266e943485a4a78e2b6a851e3f56214f3f2b6df25989"
+  },
+  {
+    "horse_id": "horse_CN387",
+    "code": "CN387",
+    "sire": "Hussonet",
+    "dam": "San Century",
+    "damsire": "Centaine",
+    "source_url": "https://racing.hkjc.com/racing/information/english/Horse/Horse.aspx?HorseId=HK_2011_N387",
+    "retrieved_at": "2026-10-18T16:03:04.578800+00:00",
+    "source_sha256": "a49de97af8a6d55bfc5857d819c19f62491ad6eb99f3e605665b154c30cf0b9b"
+  }
+]
