@@ -284,6 +284,19 @@ app.onError((err, c) => {
       if (!lock.locked) return { ok: true, action: 'pre-lock', date: meeting.date, lockAt: lock.lockAt };
       if (lock.source === 'error' || !lock.lockAt || !meeting.venue) return { ok: false, action: 'blocked', error: 'lock-state-unavailable' };
       const recovery = await recoverOriginalFreeze(env.DB,meeting.date,meeting.venue,lock.lockAt);
+      if (!recovery.ok || recovery.action === 'restored-original') {
+        // Event-driven delivery from the existing lock tick; never another poller.
+        try {
+          await env.DB.prepare(`CREATE TABLE IF NOT EXISTS prediction_recovery_notifications (date TEXT NOT NULL, event_key TEXT NOT NULL, sent_at TEXT NOT NULL, PRIMARY KEY(date,event_key))`).run();
+          const eventKey = `${recovery.action}:${recovery.error ?? ''}:${recovery.restored}`;
+          const sent = await env.DB.prepare(`SELECT sent_at FROM prediction_recovery_notifications WHERE date=? AND event_key=?`).bind(meeting.date,eventKey).first();
+          if (!sent && env.WEATHER_CRON_SECRET) {
+            const response = await fetch('https://mark-six-joy.lovable.app/api/public/telegram-alert', { method:'POST', headers:{'content-type':'application/json','x-cron-secret':env.WEATHER_CRON_SECRET}, body:JSON.stringify({kind:'freeze-recovery',date:meeting.date,action:recovery.action,restored:recovery.restored,error:recovery.error??null}), signal:AbortSignal.timeout(8000) });
+            const receipt = await response.json() as {sent?:boolean};
+            if (response.ok && receipt.sent === true) await env.DB.prepare(`INSERT OR IGNORE INTO prediction_recovery_notifications(date,event_key,sent_at) VALUES (?,?,?)`).bind(meeting.date,eventKey,new Date().toISOString()).run();
+          }
+        } catch { console.warn('freeze notification pending; original predictions remain blocked or unchanged'); }
+      }
       return { ...recovery, date: meeting.date, lockAt: lock.lockAt };
 
     } catch (e: any) {

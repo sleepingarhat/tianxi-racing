@@ -1,0 +1,122 @@
+{
+  "date": "2026-09-06",
+  "train_end": "2026-06-13",
+  "validation_start": "2026-06-21",
+  "validation_end": "2026-07-15",
+  "refit_end": "2026-07-15",
+  "train_rows": 100932,
+  "validation_races": 82,
+  "best_iteration": 1376,
+  "tau_lgb": 0.7796576847613054,
+  "tau_elo": 1.7652039900298842,
+  "alpha": 0.9611399186880825,
+  "warnings": [],
+  "race_logloss_curve": {
+    "iter1": 2.527837420573546,
+    "best": 2.257953335925175,
+    "final": 2.261314481742877,
+    "len": 1456
+  },
+  "corr_lgb_elo": 0.49670720263790163,
+  "fit_rows": 99893,
+  "missing_baseline_validation": 38,
+  "health_gate": {
+    "status": "PASS",
+    "reasons": []
+  },
+  "promotion_eligible": false,
+  "races": [
+    {
+      "race_id": "race_2026-09-06_ST_1",
+      "date": "2026-09-06",
+      "runners": 14,
+      "candidate_top4_hits": 1,
+      "market_top4_hits": 2,
+      "market_complete": true,
+      "log_loss": 3.463612208409954
+    },
+    {
+      "race_id": "race_2026-09-06_ST_10",
+      "date": "2026-09-06",
+      "runners": 13,
+      "candidate_top4_hits": 1,
+      "market_top4_hits": 2,
+      "market_complete": true,
+      "log_loss": 2.888563314839322
+    },
+    {
+      "race_id": "race_2026-09-06_ST_2",
+      "date": "2026-09-06",
+      "runners": 11,
+      "candidate_top4_hits": 3,
+      "market_top4_hits": 2,
+      "market_complete": true,
+      "log_loss": 1.4745268319873674
+    },
+    {
+      "race_id": "race_2026-09-06_ST_3",
+      "date": "2026-09-06",
+      "runners": 6,
+      "candidate_top4_hits": 2,
+      "market_top4_hits": 3,
+      "market_complete": true,
+      "log_loss": 0.6225193854663381
+    },
+    {
+      "race_id": "race_2026-09-06_ST_4",
+      "date": "2026-09-06",
+      "runners": 14,
+      "candidate_top4_hits": 1,
+      "market_top4_hits": 2,
+      "market_complete": true,
+      "log_loss": 2.777649407708303
+    },
+    {
+      "race_id": "race_2026-09-06_ST_5",
+      "date": "2026-09-06",
+      "runners": 14,
+      "candidate_top4_hits": 1,
+      "market_top4_hits": 2,
+      "market_complete": true,
+      "log_loss": 3.067087011835414
+    },
+    {
+      "race_id": "race_2026-09-06_ST_6",
+      "date": "2026-09-06",
+      "runners": 14,
+      "candidate_top4_hits": 1,
+      "market_top4_hits": 2,
+      "market_complete": true,
+      "log_loss": 2.4649672892199224
+    },
+    {
+      "race_id": "race_2026-09-06_ST_7",
+      "date": "2026-09-06",
+      "runners": 8,
+      "candidate_top4_hits": 1,
+      "market_top4_hits": 1,
+      "market_complete": true,
+      "log_loss": 3.1654506521227432
+    },
+    {
+      "race_id": "race_2026-09-06_ST_8",
+      "date": "2026-09-06",
+      "runners": 14,
+      "candidate_top4_hits": 3,
+      "market_top4_hits": 3,
+      "market_complete": true,
+      "log_loss": 1.3551370338852304
+    },
+    {
+      "race_id": "race_2026-09-06_ST_9",
+      "date": "2026-09-06",
+      "runners": 11,
+      "candidate_top4_hits": 2,
+      "market_top4_hits": 3,
+      "market_complete": true,
+      "log_loss": 1.6731238949833207
+    }
+  ],
+  "evaluation_log_loss": 2.2952637030457916,
+  "missing_baseline_target": 3
+}

@@ -3,6 +3,7 @@
 export interface Env {
   DB: D1Database;
   ADMIN_TOKEN?: string;
+  WEATHER_CRON_SECRET?: string;
   SESSION_HMAC_SECRET?: string;
   MEMBERSHIP_SESSION_SECRET?: string;
   ADMIN_GITHUB_USER?: string;

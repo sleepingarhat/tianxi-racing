@@ -1,0 +1,262 @@
+[
+  {
+    "feature": "distance",
+    "gain": 542.2564821243286,
+    "split": 32
+  },
+  {
+    "feature": "field_size",
+    "gain": 202.23182010650635,
+    "split": 14
+  },
+  {
+    "feature": "draw",
+    "gain": 24015.606707572937,
+    "split": 526
+  },
+  {
+    "feature": "actual_weight",
+    "gain": 263.4453430175781,
+    "split": 19
+  },
+  {
+    "feature": "h_elo",
+    "gain": 2778.0371675491333,
+    "split": 166
+  },
+  {
+    "feature": "j_elo",
+    "gain": 77697.515645504,
+    "split": 593
+  },
+  {
+    "feature": "t_elo",
+    "gain": 5583.592075824738,
+    "split": 257
+  },
+  {
+    "feature": "days_since_last",
+    "gain": 858.9346537590027,
+    "split": 73
+  },
+  {
+    "feature": "dist_starts",
+    "gain": 7726.113983631134,
+    "split": 259
+  },
+  {
+    "feature": "dist_top3",
+    "gain": 7630.85381937027,
+    "split": 178
+  },
+  {
+    "feature": "going_starts",
+    "gain": 4849.811493873596,
+    "split": 175
+  },
+  {
+    "feature": "going_top3",
+    "gain": 1030.7683572769165,
+    "split": 50
+  },
+  {
+    "feature": "draw_starts",
+    "gain": 369.98827362060547,
+    "split": 26
+  },
+  {
+    "feature": "draw_top3",
+    "gain": 1449.9539289474487,
+    "split": 97
+  },
+  {
+    "feature": "combo_starts",
+    "gain": 1152.257007598877,
+    "split": 82
+  },
+  {
+    "feature": "combo_top3",
+    "gain": 1069.3761448860168,
+    "split": 77
+  },
+  {
+    "feature": "weight_avg5",
+    "gain": 8150.717300891876,
+    "split": 172
+  },
+  {
+    "feature": "factor_bonus",
+    "gain": 3351.215934753418,
+    "split": 172
+  },
+  {
+    "feature": "form_n",
+    "gain": 639.5666790008545,
+    "split": 26
+  },
+  {
+    "feature": "form_avgpos_w",
+    "gain": 141615.3238348961,
+    "split": 886
+  },
+  {
+    "feature": "form_top3rate_w",
+    "gain": 17414.590138435364,
+    "split": 194
+  },
+  {
+    "feature": "form_pos_slope",
+    "gain": 1730.1395950317383,
+    "split": 109
+  },
+  {
+    "feature": "tv_starts",
+    "gain": 1049.6258573532104,
+    "split": 74
+  },
+  {
+    "feature": "tv_top3",
+    "gain": 1985.3052244186401,
+    "split": 128
+  },
+  {
+    "feature": "jv_starts",
+    "gain": 548.6187210083008,
+    "split": 34
+  },
+  {
+    "feature": "jv_top3",
+    "gain": 4886.905019760132,
+    "split": 169
+  },
+  {
+    "feature": "jdb_starts",
+    "gain": 754.9039936065674,
+    "split": 46
+  },
+  {
+    "feature": "jdb_top3",
+    "gain": 692.1469802856445,
+    "split": 47
+  },
+  {
+    "feature": "jg_starts",
+    "gain": 667.5875797271729,
+    "split": 51
+  },
+  {
+    "feature": "jg_top3",
+    "gain": 771.4319000244141,
+    "split": 59
+  },
+  {
+    "feature": "tg_starts",
+    "gain": 701.2143821716309,
+    "split": 50
+  },
+  {
+    "feature": "tg_top3",
+    "gain": 315.4060297012329,
+    "split": 24
+  },
+  {
+    "feature": "horse_pace_n",
+    "gain": 2069.189688682556,
+    "split": 57
+  },
+  {
+    "feature": "horse_pace_early",
+    "gain": 1901.3538722991943,
+    "split": 105
+  },
+  {
+    "feature": "horse_pace_style",
+    "gain": 0.0,
+    "split": 0
+  },
+  {
+    "feature": "race_n_leaders",
+    "gain": 69.94927978515625,
+    "split": 6
+  },
+  {
+    "feature": "race_n_closers",
+    "gain": 223.19650077819824,
+    "split": 16
+  },
+  {
+    "feature": "horse_pace_clash",
+    "gain": 9.347169876098633,
+    "split": 1
+  },
+  {
+    "feature": "class_now_num",
+    "gain": 138.6320400238037,
+    "split": 10
+  },
+  {
+    "feature": "last_class_num",
+    "gain": 197.40349960327148,
+    "split": 11
+  },
+  {
+    "feature": "class_delta",
+    "gain": 128.45100021362305,
+    "split": 7
+  },
+  {
+    "feature": "sect_n",
+    "gain": 1238.941279411316,
+    "split": 18
+  },
+  {
+    "feature": "sect_early_avg",
+    "gain": 1693.3106880187988,
+    "split": 78
+  },
+  {
+    "feature": "sect_late_kick",
+    "gain": 1657.2905192375183,
+    "split": 103
+  },
+  {
+    "feature": "is_sprint",
+    "gain": 23.18587017059326,
+    "split": 2
+  },
+  {
+    "feature": "is_middle",
+    "gain": 22.954999923706055,
+    "split": 2
+  },
+  {
+    "feature": "is_distance",
+    "gain": 0.0,
+    "split": 0
+  },
+  {
+    "feature": "draw_x_sprint",
+    "gain": 1103.7419142723083,
+    "split": 60
+  },
+  {
+    "feature": "paceclash_x_distance",
+    "gain": 15.815439701080322,
+    "split": 2
+  },
+  {
+    "feature": "sire_top3_sm",
+    "gain": 1146.4904608726501,
+    "split": 96
+  },
+  {
+    "feature": "sire_dist_top3_sm",
+    "gain": 562.8866081237793,
+    "split": 46
+  },
+  {
+    "feature": "damsire_top3_sm",
+    "gain": 1180.352647781372,
+    "split": 87
+  }
+]
