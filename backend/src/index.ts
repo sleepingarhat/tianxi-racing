@@ -97,9 +97,19 @@ async function overlayFrozenAnalyzeJson(
   if (!data || data.error) return;
   try {
     const out = await transform(c.env.DB, data);
+    if (out?.freezeError) {
+      // Locked meeting without intact frozen evidence: fail closed, never
+      // serve the post-lock live recompute as if it were the prediction.
+      return c.json(
+        { error: '凍結預測紀錄唔完整，暫時未能提供呢場嘅預測。', freezeSource: out.freezeSource ?? null, frozen: false },
+        503,
+        { 'Cache-Control': 'no-store' },
+      );
+    }
     return c.json(out);
   } catch (err) {
     console.warn('[prediction-lock] overlay failed', err);
+    return c.json({ error: '凍結預測暫時未能讀取，請稍後再試。' }, 503, { 'Cache-Control': 'no-store' });
   }
 }
 
