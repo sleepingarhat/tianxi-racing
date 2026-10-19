@@ -1,8 +1,8 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-10-19T12:12:50+00:00",
+  "generated_at": "2026-10-19T15:51:17+00:00",
   "generator": "tools/build_manifest.py",
-  "git_head": "849e7db69851444f2b9db1c8d698055b6239007f",
+  "git_head": "b8db45f22092136f30d4e4d7aaaab92b9c5e9b91",
   "repo": "sleepingarhat/tianxi-database",
   "branch": "main",
   "base_url": {
@@ -17,12 +17,12 @@
   "summary": {
     "race_days": 949,
     "race_artefact_files": 4739,
-    "fixtures_rows": 231,
-    "horse_form_files": 6099,
-    "horse_profile_rows": 6099,
-    "jockey_record_files": 59,
+    "fixtures_rows": 230,
+    "horse_form_files": 6108,
+    "horse_profile_rows": 6108,
+    "jockey_record_files": 62,
     "jockey_profile_rows": 66,
-    "trainer_profile_rows": 67,
+    "trainer_profile_rows": 68,
     "season_years": [
       2016,
       2017,
@@ -84,18 +84,18 @@
         "2026": "data/fixtures/2026_fixtures.csv",
         "2027": "data/fixtures/2027_fixtures.csv"
       },
-      "row_count": 231,
+      "row_count": 230,
       "docs": "DATA_NOTES.md#fixtures"
     },
     "horses": {
       "profiles": {
         "path": "horses/profiles/horse_profiles.csv",
-        "row_count": 6099
+        "row_count": 6108
       },
       "form_records": {
         "dir": "horses/form_records/",
         "path_template": "horses/form_records/form_{horse_id}.csv",
-        "count": 6099,
+        "count": 6108,
         "sample": [
           "form_A001.csv",
           "form_A002.csv",
@@ -111,18 +111,18 @@
       "records": {
         "dir": "jockeys/records/",
         "path_template": "jockeys/records/jockey_{code}.csv",
-        "count": 59,
+        "count": 62,
         "sample": [
           "jockey_AA.csv",
           "jockey_AVB.csv",
-          "jockey_BAM.csv"
+          "jockey_BA.csv"
         ]
       }
     },
     "trainers": {
       "profiles": {
         "path": "trainers/trainer_profiles.csv",
-        "row_count": 67
+        "row_count": 68
       },
       "records": {
         "status": "missing",
@@ -176,10 +176,10 @@
     "latest_report": "audit_reports/integrity_latest.json",
     "raw_url": "https://raw.githubusercontent.com/sleepingarhat/tianxi-database/main/audit_reports/integrity_latest.json",
     "scan_date": "2026-10-19",
-    "overall_severity": "critical",
-    "critical_gap_count": 21,
-    "warn_gap_count": 12,
-    "recommendation": "gha_next_delta_will_fix"
+    "overall_severity": "warn",
+    "critical_gap_count": 0,
+    "warn_gap_count": 4,
+    "recommendation": "monitor_no_block"
   },
   "policy": {
     "odds_weighting": "disabled (beta=0 hardcoded in win-probability model)",
