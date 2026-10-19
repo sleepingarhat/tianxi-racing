@@ -1,95 +1,52 @@
 {
   "scan_date": "2026-10-19",
   "repo_root": "/home/runner/work/tianxi-racing/tianxi-racing",
-  "overall_severity": "critical",
-  "critical_gap_count": 31,
-  "warn_gap_count": 12,
-  "recommendation": "gha_next_delta_will_fix",
+  "overall_severity": "warn",
+  "critical_gap_count": 0,
+  "warn_gap_count": 5,
+  "recommendation": "monitor_no_block",
   "categories": {
     "race_artefacts": {
       "name": "race_artefacts",
-      "expected": 780,
+      "expected": 775,
       "present": 775,
-      "missing": [
-        "results_2026-09-20",
-        "commentary_2026-09-20",
-        "dividends_2026-09-20",
-        "sectional_times_2026-09-20",
-        "video_links_2026-09-20"
-      ],
+      "missing": [],
       "stale": [],
-      "notes": [
-        "days with any missing artefact: 1"
-      ],
-      "severity": "warn"
+      "notes": [],
+      "severity": "ok"
     },
     "fixtures_cache": {
       "name": "fixtures_cache",
       "expected": 1,
-      "present": 231,
+      "present": 230,
       "missing": [],
       "stale": [],
       "notes": [
-        "total cached race days: 231"
+        "total cached race days: 230"
       ],
       "severity": "ok"
     },
     "horse_profiles": {
       "name": "horse_profiles",
       "expected": 1195,
-      "present": 1186,
-      "missing": [
-        "L332",
-        "L342",
-        "L445",
-        "L448",
-        "L452",
-        "L486",
-        "L510",
-        "L564",
-        "M021"
-      ],
-      "stale": [
-        "K402",
-        "G312",
-        "K028",
-        "K216",
-        "L045",
-        "L005",
-        "G095",
-        "K431",
-        "L048",
-        "H419",
-        "G292",
-        "K265"
-      ],
+      "present": 1195,
+      "missing": [],
+      "stale": [],
       "notes": [
-        "9 horses raced in last 180d have NO profile",
-        "total profiles in DB: 6099"
+        "total profiles in DB: 6108"
       ],
-      "severity": "critical"
+      "severity": "ok"
     },
     "horse_form_records": {
       "name": "horse_form_records",
       "expected": 1195,
-      "present": 1186,
-      "missing": [
-        "L332",
-        "L342",
-        "L445",
-        "L448",
-        "L452",
-        "L486",
-        "L510",
-        "L564",
-        "M021"
-      ],
+      "present": 1195,
+      "missing": [],
       "stale": [],
       "notes": [
-        "9 recent-cohort horses have NO form_records file",
-        "total form_records files: 6099"
+        "total form_records files: 6108"
       ],
-      "severity": "critical"
+      "severity": "ok"
     },
     "jockey_profiles": {
       "name": "jockey_profiles",
@@ -105,42 +62,40 @@
     "jockey_records": {
       "name": "jockey_records",
       "expected": 64,
-      "present": 59,
+      "present": 62,
       "missing": [
-        "BA",
         "BEP",
-        "BHW",
-        "CJR",
-        "HCY"
+        "CJR"
       ],
       "stale": [],
       "notes": [
-        "5 jockey profiles have no records file"
+        "2 jockey profiles have no records file"
       ],
       "severity": "warn"
     },
     "trainer_profiles": {
       "name": "trainer_profiles",
       "expected": 35,
-      "present": 34,
-      "missing": [
-        "甘敏斯"
-      ],
+      "present": 35,
+      "missing": [],
       "stale": [],
       "notes": [
-        "1 trainers active recently but NO profile",
-        "total trainer profiles: 67"
+        "total trainer profiles: 68"
       ],
-      "severity": "critical"
+      "severity": "ok"
     },
     "trainer_records": {
       "name": "trainer_records",
-      "expected": 67,
+      "expected": 68,
       "present": 67,
-      "missing": [],
+      "missing": [
+        "CJA"
+      ],
       "stale": [],
-      "notes": [],
-      "severity": "ok"
+      "notes": [
+        "1 trainer profiles have no records file"
+      ],
+      "severity": "warn"
     },
     "trial_results": {
       "name": "trial_results",

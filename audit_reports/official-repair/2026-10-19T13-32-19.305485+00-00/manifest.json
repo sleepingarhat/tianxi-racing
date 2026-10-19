@@ -1,0 +1,477 @@
+{
+  "sources": [
+    {
+      "url": "https://racing.hkjc.com/racing/information/Chinese/Horse/Horse.aspx?HorseNo=L332",
+      "sha256": "ba0b7ec3819036a8588811fbb08c0d8518a87d3142dae73dab92497cb5f3c59b",
+      "identity": "(L332)",
+      "verified": true,
+      "read_at": "2026-10-19T13:32:19.305485+00:00"
+    },
+    {
+      "url": "https://racing.hkjc.com/racing/information/Chinese/Horse/Horse.aspx?HorseNo=L342",
+      "sha256": "1c01f04e59fd1ea5d2bc9adbff83a5f431cd8f12b27b73b72afd8a19d5d68f87",
+      "identity": "(L342)",
+      "verified": true,
+      "read_at": "2026-10-19T13:32:19.305485+00:00"
+    },
+    {
+      "url": "https://racing.hkjc.com/racing/information/Chinese/Horse/Horse.aspx?HorseNo=L445",
+      "sha256": "f59c1e93a3221e01d46dc112906efe0690a8f9b859c5384e47f0ac89a5e7603f",
+      "identity": "(L445)",
+      "verified": true,
+      "read_at": "2026-10-19T13:32:19.305485+00:00"
+    },
+    {
+      "url": "https://racing.hkjc.com/racing/information/Chinese/Horse/Horse.aspx?HorseNo=L448",
+      "sha256": "35550b2927459b37ea9c4f6565a51acfdc45c54ced2f0f4438c01c4ea339b8f7",
+      "identity": "(L448)",
+      "verified": true,
+      "read_at": "2026-10-19T13:32:19.305485+00:00"
+    },
+    {
+      "url": "https://racing.hkjc.com/racing/information/Chinese/Horse/Horse.aspx?HorseNo=L452",
+      "sha256": "3498a97893787729bc1cf7930b72a65dcf1119d93e89b43722a1038b1388f5af",
+      "identity": "(L452)",
+      "verified": true,
+      "read_at": "2026-10-19T13:32:19.305485+00:00"
+    },
+    {
+      "url": "https://racing.hkjc.com/racing/information/Chinese/Horse/Horse.aspx?HorseNo=L486",
+      "sha256": "081ce9a1155cd1a8bcc2045816b9007a57aeefce02a608825f4acedc20954f60",
+      "identity": "(L486)",
+      "verified": true,
+      "read_at": "2026-10-19T13:32:19.305485+00:00"
+    },
+    {
+      "url": "https://racing.hkjc.com/racing/information/Chinese/Horse/Horse.aspx?HorseNo=L510",
+      "sha256": "1a112d42cb12f641d5b295b4aab0fa107b77ed740a19b1a3c86f39b88278561a",
+      "identity": "(L510)",
+      "verified": true,
+      "read_at": "2026-10-19T13:32:19.305485+00:00"
+    },
+    {
+      "url": "https://racing.hkjc.com/racing/information/Chinese/Horse/Horse.aspx?HorseNo=L564",
+      "sha256": "be5baafb4110aecffb586c4b5bf8358eea40b51422002beaee17c8d401db6988",
+      "identity": "(L564)",
+      "verified": true,
+      "read_at": "2026-10-19T13:32:19.305485+00:00"
+    },
+    {
+      "url": "https://racing.hkjc.com/racing/information/Chinese/Horse/Horse.aspx?HorseNo=M021",
+      "sha256": "3b56abadb2704a513d942135e911d50029ab8fc10920e65f1016e6748c102c1b",
+      "identity": "(M021)",
+      "verified": true,
+      "read_at": "2026-10-19T13:32:19.305485+00:00"
+    },
+    {
+      "url": "https://racing.hkjc.com/racing/information/Chinese/Horse/Horse.aspx?HorseNo=K402",
+      "sha256": "ff1e5910fb502672b30990d61a27f101ef47fd3b832ebb40fbf37a76258cfed8",
+      "identity": "(K402)",
+      "verified": true,
+      "read_at": "2026-10-19T13:32:19.305485+00:00"
+    },
+    {
+      "url": "https://racing.hkjc.com/racing/information/Chinese/Horse/Horse.aspx?HorseNo=G312",
+      "sha256": "60882891d517f7d7b66d5bfc8e178b42c2228f5d1cd932b83783087c27d12106",
+      "identity": "(G312)",
+      "verified": true,
+      "read_at": "2026-10-19T13:32:19.305485+00:00"
+    },
+    {
+      "url": "https://racing.hkjc.com/racing/information/Chinese/Horse/Horse.aspx?HorseNo=K028",
+      "sha256": "0b0e65739c8a84c40113051590c14fbb4062e0c42294b96395b0cf25eeac4929",
+      "identity": "(K028)",
+      "verified": true,
+      "read_at": "2026-10-19T13:32:19.305485+00:00"
+    },
+    {
+      "url": "https://racing.hkjc.com/racing/information/Chinese/Horse/Horse.aspx?HorseNo=K216",
+      "sha256": "f7e465f79f0a96b529dc674cb616883350e6001c253f42862484c8be47b0f298",
+      "identity": "(K216)",
+      "verified": true,
+      "read_at": "2026-10-19T13:32:19.305485+00:00"
+    },
+    {
+      "url": "https://racing.hkjc.com/racing/information/Chinese/Horse/Horse.aspx?HorseNo=L045",
+      "sha256": "c4cf4edec4a7447a7a2860d5620a75ce193b89e77effc3ab5daaea90e247ee56",
+      "identity": "(L045)",
+      "verified": true,
+      "read_at": "2026-10-19T13:32:19.305485+00:00"
+    },
+    {
+      "url": "https://racing.hkjc.com/racing/information/Chinese/Horse/Horse.aspx?HorseNo=L005",
+      "sha256": "c95b3776c98f52dcf3d06b02ff7d250a4cf2632d0344be1d0ed54b6bd93c236c",
+      "identity": "(L005)",
+      "verified": true,
+      "read_at": "2026-10-19T13:32:19.305485+00:00"
+    },
+    {
+      "url": "https://racing.hkjc.com/racing/information/Chinese/Horse/Horse.aspx?HorseNo=G095",
+      "sha256": "bd687ec5a4ca3144504ae50ef7cb3c1c01de90000596950ebecadee620fa6f3d",
+      "identity": "(G095)",
+      "verified": true,
+      "read_at": "2026-10-19T13:32:19.305485+00:00"
+    },
+    {
+      "url": "https://racing.hkjc.com/racing/information/Chinese/Horse/Horse.aspx?HorseNo=K431",
+      "sha256": "bf604a833fa6759fa4eac093d9dee5c7f2cfc15581dc1c7603908db932b531c5",
+      "identity": "(K431)",
+      "verified": true,
+      "read_at": "2026-10-19T13:32:19.305485+00:00"
+    },
+    {
+      "url": "https://racing.hkjc.com/racing/information/Chinese/Horse/Horse.aspx?HorseNo=L048",
+      "sha256": "ab5ba120669e75691c7a860c9d27c78db33b94ea20807d06484a8a3856fc76d2",
+      "identity": "(L048)",
+      "verified": true,
+      "read_at": "2026-10-19T13:32:19.305485+00:00"
+    },
+    {
+      "url": "https://racing.hkjc.com/racing/information/Chinese/Horse/Horse.aspx?HorseNo=H419",
+      "sha256": "d4c08af7f2fdd6ed4635b0974665482c5efafedc31d4c80a64c2f72b32bfd844",
+      "identity": "(H419)",
+      "verified": true,
+      "read_at": "2026-10-19T13:32:19.305485+00:00"
+    },
+    {
+      "url": "https://racing.hkjc.com/racing/information/Chinese/Horse/Horse.aspx?HorseNo=G292",
+      "sha256": "4d2b26b8911d572d260220a54c9e25600e4d53505298e8417639892878ae4800",
+      "identity": "(G292)",
+      "verified": true,
+      "read_at": "2026-10-19T13:32:19.305485+00:00"
+    },
+    {
+      "url": "https://racing.hkjc.com/racing/information/Chinese/Horse/Horse.aspx?HorseNo=K265",
+      "sha256": "2c2a21aea12cd84ee328e1e6818d161893f2717cab9f184920ff5c2efcaea62b",
+      "identity": "(K265)",
+      "verified": true,
+      "read_at": "2026-10-19T13:32:19.305485+00:00"
+    },
+    {
+      "url": "https://racing.hkjc.com/zh-hk/local/information/jockeypastrec?jockeyid=BA&season=Current",
+      "sha256": "cf61f81e16ed662aaf4f3cc5260e2d2c4d5ee9a6e6f674b0bbf4c5ca690a2e42",
+      "identity": "巴度",
+      "verified": true,
+      "read_at": "2026-10-19T13:32:19.305485+00:00"
+    },
+    {
+      "url": "https://racing.hkjc.com/zh-hk/local/information/jockeypastrec?jockeyid=BA&season=Previous",
+      "sha256": "a92739ec35ed9996973cccef6f3488df539ddf54d2a9cef8d32bc84fadcd161a",
+      "identity": "巴度",
+      "verified": true,
+      "read_at": "2026-10-19T13:32:19.305485+00:00"
+    },
+    {
+      "url": "https://racing.hkjc.com/zh-hk/local/information/jockeypastrec?jockeyid=BA&season=Previous&PageNum=2",
+      "sha256": "ff1094139df89fa773b5b999fdf10e014918b4ac61586a53fd3ea2d6668222a2",
+      "identity": "巴度",
+      "verified": true,
+      "read_at": "2026-10-19T13:32:19.305485+00:00"
+    },
+    {
+      "url": "https://racing.hkjc.com/zh-hk/local/information/jockeypastrec?jockeyid=BA&season=Previous&PageNum=3",
+      "sha256": "7340edead0186fb0acfa2151102270dd2325119286d1c7d344c73af6f148b9f3",
+      "identity": "巴度",
+      "verified": true,
+      "read_at": "2026-10-19T13:32:19.305485+00:00"
+    },
+    {
+      "url": "https://racing.hkjc.com/zh-hk/local/information/jockeypastrec?jockeyid=BA&season=Previous&PageNum=4",
+      "sha256": "5f49ec6f01acdf90edc63ccf5120a1ca0965acb93767da3a0607fc58305f6e06",
+      "identity": "巴度",
+      "verified": true,
+      "read_at": "2026-10-19T13:32:19.305485+00:00"
+    },
+    {
+      "url": "https://racing.hkjc.com/zh-hk/local/information/jockeypastrec?jockeyid=BA&season=Previous&PageNum=5",
+      "sha256": "1d5414439dbfab8ddee01e4caf3d1a7e7b24cbb2c3de81fad1e116712d5e98c9",
+      "identity": "巴度",
+      "verified": true,
+      "read_at": "2026-10-19T13:32:19.305485+00:00"
+    },
+    {
+      "url": "https://racing.hkjc.com/zh-hk/local/information/jockeypastrec?jockeyid=BA&season=Previous&PageNum=6",
+      "sha256": "9db6263a9d0ea60a0e01db4beac81069a26f2f5e06feb7162009512b4b62a971",
+      "identity": "巴度",
+      "verified": true,
+      "read_at": "2026-10-19T13:32:19.305485+00:00"
+    },
+    {
+      "url": "https://racing.hkjc.com/zh-hk/local/information/jockeypastrec?jockeyid=BA&season=Previous&PageNum=7",
+      "sha256": "1c1d09178c701b261960a482cacb698d91ca8ad6bb4b7183e6c04dc1754ba973",
+      "identity": "巴度",
+      "verified": true,
+      "read_at": "2026-10-19T13:32:19.305485+00:00"
+    },
+    {
+      "url": "https://racing.hkjc.com/zh-hk/local/information/jockeypastrec?jockeyid=BA&season=Previous&PageNum=8",
+      "sha256": "ce1e357680a34d15f28e9100ba67977f9e5a2eacbeb03f8c8b0d522740cec3da",
+      "identity": "巴度",
+      "verified": true,
+      "read_at": "2026-10-19T13:32:19.305485+00:00"
+    },
+    {
+      "url": "https://racing.hkjc.com/zh-hk/local/information/jockeypastrec?jockeyid=BEP&season=Current",
+      "sha256": "343d57c63cce65121b933313890916e00135538f10b673d4444f85fab2bf5361",
+      "identity": "布浩榮",
+      "verified": false,
+      "read_at": "2026-10-19T13:32:19.305485+00:00"
+    },
+    {
+      "url": "https://racing.hkjc.com/zh-hk/local/information/jockeypastrec?jockeyid=BHW&season=Current",
+      "sha256": "fe04dde513222e826246c65c0a996ec1f251492e8a6e574527b795cb2961eba2",
+      "identity": "班德禮",
+      "verified": true,
+      "read_at": "2026-10-19T13:32:19.305485+00:00"
+    },
+    {
+      "url": "https://racing.hkjc.com/zh-hk/local/information/jockeypastrec?jockeyid=BHW&season=Current&PageNum=2",
+      "sha256": "6dc7b89c35ec88871003ed5901d32fe301aea514a14a1dab1d9ccb3581c2c53b",
+      "identity": "班德禮",
+      "verified": true,
+      "read_at": "2026-10-19T13:32:19.305485+00:00"
+    },
+    {
+      "url": "https://racing.hkjc.com/zh-hk/local/information/jockeypastrec?jockeyid=BHW&season=Previous",
+      "sha256": "4e34580d8f35a08dafa7f423c8d5b045e2c2ba383d6e0dae0b0f6320b8ab3109",
+      "identity": "班德禮",
+      "verified": true,
+      "read_at": "2026-10-19T13:32:19.305485+00:00"
+    },
+    {
+      "url": "https://racing.hkjc.com/zh-hk/local/information/jockeypastrec?jockeyid=BHW&season=Previous&PageNum=2",
+      "sha256": "397de5f3c0ea7fddb4b8e4c692575c4ebb7d4624a0c0512141b564f85c4c1d2e",
+      "identity": "班德禮",
+      "verified": true,
+      "read_at": "2026-10-19T13:32:19.305485+00:00"
+    },
+    {
+      "url": "https://racing.hkjc.com/zh-hk/local/information/jockeypastrec?jockeyid=BHW&season=Previous&PageNum=3",
+      "sha256": "3366dc07bccb98107770d18bd5b2be63aff8d34cb1cb2f8ef549b50b8d485f2c",
+      "identity": "班德禮",
+      "verified": true,
+      "read_at": "2026-10-19T13:32:19.305485+00:00"
+    },
+    {
+      "url": "https://racing.hkjc.com/zh-hk/local/information/jockeypastrec?jockeyid=BHW&season=Previous&PageNum=4",
+      "sha256": "9dfd8036b8a0953f766dd9317f0bab60c54581f929761e567d782081dce7ecb3",
+      "identity": "班德禮",
+      "verified": true,
+      "read_at": "2026-10-19T13:32:19.305485+00:00"
+    },
+    {
+      "url": "https://racing.hkjc.com/zh-hk/local/information/jockeypastrec?jockeyid=BHW&season=Previous&PageNum=5",
+      "sha256": "baff4f22a6faa624b46e2b54aaeb4d22cb31972ec274350639ab2c183cbca53e",
+      "identity": "班德禮",
+      "verified": true,
+      "read_at": "2026-10-19T13:32:19.305485+00:00"
+    },
+    {
+      "url": "https://racing.hkjc.com/zh-hk/local/information/jockeypastrec?jockeyid=BHW&season=Previous&PageNum=6",
+      "sha256": "acef8aae1e6c1c8f28286c5a07b8298873e99122ab16a9fb56c623e1728780ee",
+      "identity": "班德禮",
+      "verified": true,
+      "read_at": "2026-10-19T13:32:19.305485+00:00"
+    },
+    {
+      "url": "https://racing.hkjc.com/zh-hk/local/information/jockeypastrec?jockeyid=BHW&season=Previous&PageNum=7",
+      "sha256": "183f4c55ae4971d59c121a15a14bcb408baf35a202b74ae119a3b5a9b802a7db",
+      "identity": "班德禮",
+      "verified": true,
+      "read_at": "2026-10-19T13:32:19.305485+00:00"
+    },
+    {
+      "url": "https://racing.hkjc.com/zh-hk/local/information/jockeypastrec?jockeyid=BHW&season=Previous&PageNum=8",
+      "sha256": "e52406217562b411198e96ee8f989c847f9a631358bf3ac54628a3585789189d",
+      "identity": "班德禮",
+      "verified": true,
+      "read_at": "2026-10-19T13:32:19.305485+00:00"
+    },
+    {
+      "url": "https://racing.hkjc.com/zh-hk/local/information/jockeypastrec?jockeyid=CJR&season=Current",
+      "sha256": "343d57c63cce65121b933313890916e00135538f10b673d4444f85fab2bf5361",
+      "identity": "高力德",
+      "verified": false,
+      "read_at": "2026-10-19T13:32:19.305485+00:00"
+    },
+    {
+      "url": "https://racing.hkjc.com/zh-hk/local/information/jockeypastrec?jockeyid=HCY&season=Current",
+      "sha256": "e6d88b7245bc486bd77b1b452029f1c24e6c8d874dbe2b484297ca12914eb5a7",
+      "identity": "何澤堯",
+      "verified": true,
+      "read_at": "2026-10-19T13:32:19.305485+00:00"
+    },
+    {
+      "url": "https://racing.hkjc.com/zh-hk/local/information/jockeypastrec?jockeyid=HCY&season=Current&PageNum=2",
+      "sha256": "664531e5d547ff63f679dc29941787fd4656eae57a67e2c6c6103765540f9968",
+      "identity": "何澤堯",
+      "verified": true,
+      "read_at": "2026-10-19T13:32:19.305485+00:00"
+    },
+    {
+      "url": "https://racing.hkjc.com/zh-hk/local/information/jockeypastrec?jockeyid=HCY&season=Previous",
+      "sha256": "b315e91a96fc1077f307fdf8fd9f093530464ae7dc729bec03461e56fa71b87a",
+      "identity": "何澤堯",
+      "verified": true,
+      "read_at": "2026-10-19T13:32:19.305485+00:00"
+    },
+    {
+      "url": "https://racing.hkjc.com/zh-hk/local/information/jockeypastrec?jockeyid=HCY&season=Previous&PageNum=2",
+      "sha256": "3a60e378bfdea4c05a52976fd8c47a7a6f4febf4db2eb6353dd33381eb04aa01",
+      "identity": "何澤堯",
+      "verified": true,
+      "read_at": "2026-10-19T13:32:19.305485+00:00"
+    },
+    {
+      "url": "https://racing.hkjc.com/zh-hk/local/information/jockeypastrec?jockeyid=HCY&season=Previous&PageNum=3",
+      "sha256": "9c692a5bcf0c0ef00e96b9a1b410b643429f235b8a7bc82a8a2732ecd580b477",
+      "identity": "何澤堯",
+      "verified": true,
+      "read_at": "2026-10-19T13:32:19.305485+00:00"
+    },
+    {
+      "url": "https://racing.hkjc.com/zh-hk/local/information/jockeypastrec?jockeyid=HCY&season=Previous&PageNum=4",
+      "sha256": "c9bc24e73a9736ad748489ce530bfb85d7ee81b3d06bc6ccfaccd9603a803911",
+      "identity": "何澤堯",
+      "verified": true,
+      "read_at": "2026-10-19T13:32:19.305485+00:00"
+    },
+    {
+      "url": "https://racing.hkjc.com/zh-hk/local/information/jockeypastrec?jockeyid=HCY&season=Previous&PageNum=5",
+      "sha256": "77db1975b7dbd62db61b17d291f70c65a71f3363d8779d230aa7b1cef722d2bc",
+      "identity": "何澤堯",
+      "verified": true,
+      "read_at": "2026-10-19T13:32:19.305485+00:00"
+    },
+    {
+      "url": "https://racing.hkjc.com/zh-hk/local/information/jockeypastrec?jockeyid=HCY&season=Previous&PageNum=6",
+      "sha256": "05184b692b774fd89628c98d61d2bb3c35967fcd494bf3b1d4ad26f38d8aa36b",
+      "identity": "何澤堯",
+      "verified": true,
+      "read_at": "2026-10-19T13:32:19.305485+00:00"
+    },
+    {
+      "url": "https://racing.hkjc.com/zh-hk/local/information/jockeypastrec?jockeyid=HCY&season=Previous&PageNum=7",
+      "sha256": "f4e8e2e556741880bc5935274a545465a3826b249e96700db170e89dac17f574",
+      "identity": "何澤堯",
+      "verified": true,
+      "read_at": "2026-10-19T13:32:19.305485+00:00"
+    },
+    {
+      "url": "https://racing.hkjc.com/zh-hk/local/information/jockeypastrec?jockeyid=HCY&season=Previous&PageNum=8",
+      "sha256": "ee4afc37cfe199d476c7034a98e9655e747ea43c6eadcfd383fe89fc644b0bc6",
+      "identity": "何澤堯",
+      "verified": true,
+      "read_at": "2026-10-19T13:32:19.305485+00:00"
+    },
+    {
+      "url": "https://racing.hkjc.com/zh-hk/local/information/jockeypastrec?jockeyid=HCY&season=Previous&PageNum=9",
+      "sha256": "27cf0cd20704b85713244b8bac1f4bb2e8313985c364e67fd9fca131cc9992cd",
+      "identity": "何澤堯",
+      "verified": true,
+      "read_at": "2026-10-19T13:32:19.305485+00:00"
+    },
+    {
+      "url": "https://racing.hkjc.com/zh-hk/local/information/trainerprofile?trainerid=CJA",
+      "sha256": "e0da96fd168b239f3bca416c58e73f73834b1c6908ff99a618333069c83b8388",
+      "identity": "甘敏斯",
+      "verified": true,
+      "read_at": "2026-10-19T13:32:19.305485+00:00"
+    },
+    {
+      "url": "https://www.hkjc.com/english/pressrelease/mcs01_showhtml.asp?SelType=NEWS&filename=20260916_141430_E_NEWS.htm",
+      "sha256": "ce5b53fc70cc15e9462eb7d86872984f08688121065642295d2b8c137d36ac68",
+      "identity": "Cancellation of race meeting on 20 September",
+      "verified": true,
+      "read_at": "2026-10-19T13:32:19.305485+00:00"
+    }
+  ],
+  "outputs": [
+    {
+      "path": "horses/form_records/form_L332.csv",
+      "sha256": "2a9a7df6671948fb6e89912887621cf9456ec2aa25583a28d65f4e5322e32306",
+      "rows": 1
+    },
+    {
+      "path": "horses/form_records/form_L342.csv",
+      "sha256": "841f746b00bbf30c53e9eeaba6eb05fbcdee6a888fa0cab77b214fbec41a3bc9",
+      "rows": 1
+    },
+    {
+      "path": "horses/form_records/form_L445.csv",
+      "sha256": "3fe2e5671bddc30d5d1ebd882268b221c927e7b57d314baf56ec122b136f9fe1",
+      "rows": 1
+    },
+    {
+      "path": "horses/form_records/form_L448.csv",
+      "sha256": "56f2d40b00a527d8631151d3697183fe4c2773188f480e80f9d8513a85b89466",
+      "rows": 1
+    },
+    {
+      "path": "horses/form_records/form_L452.csv",
+      "sha256": "4a666392b389bbfc5723deed244427c97f9689b02224b11af3fc80ed20b6f718",
+      "rows": 1
+    },
+    {
+      "path": "horses/form_records/form_L486.csv",
+      "sha256": "1f44ef6b29baf7c5fe92cbfdaa3a4f78e631f8458c9db2bebc8548393b0a71e9",
+      "rows": 1
+    },
+    {
+      "path": "horses/form_records/form_L510.csv",
+      "sha256": "dde20d324a98823a86aa82cf3e40e46b1082228aeaeeeedaaa3b474e81cba19a",
+      "rows": 1
+    },
+    {
+      "path": "horses/form_records/form_L564.csv",
+      "sha256": "71837eeddb905855de5146f6e42974219716e4254ff2ab53c94858759a776835",
+      "rows": 1
+    },
+    {
+      "path": "horses/form_records/form_M021.csv",
+      "sha256": "ec66a4fefd4deb3b5e5761113487d7cf00481411674272f70ee6559aaddb286c",
+      "rows": 1
+    },
+    {
+      "path": "horses/profiles/horse_profiles.csv",
+      "sha256": "b27f5c77cac31e962ad59f41a9fe6576a6874322b5c2537205e640b1a206cec4",
+      "rows": 6108
+    },
+    {
+      "path": "jockeys/records/jockey_BA.csv",
+      "sha256": "a056fc1e77bb7b70619ce5dd3efc6744883af60431558e5550a4dbc5bc397a77",
+      "rows": 564
+    },
+    {
+      "path": "jockeys/records/jockey_BHW.csv",
+      "sha256": "6e11c14be897e7b4b894424111b98d0f945f2b8fa6e5dd65cfc2d4bb5c5bcec2",
+      "rows": 505
+    },
+    {
+      "path": "jockeys/records/jockey_HCY.csv",
+      "sha256": "8799163922a9ccd73d1a60303d2586852f9c5b40fa2ed03e13676d32fd42325e",
+      "rows": 528
+    },
+    {
+      "path": "trainers/trainer_profiles.csv",
+      "sha256": "060cfcf697bfdfe212aab3487a5199cae2fd3d38f930a900b6609239f8875a5a",
+      "rows": 68
+    },
+    {
+      "path": "data/fixtures/fixtures.csv",
+      "sha256": "e204a97a8bcfd504a7891fcccdfe27eb6d088ea1dbf7b0c011f60a1ea71fc72c",
+      "rows": 230
+    }
+  ],
+  "unresolved": [
+    {
+      "code": "BEP",
+      "reason": "official identity unavailable; no placeholder"
+    },
+    {
+      "code": "CJR",
+      "reason": "official identity unavailable; no placeholder"
+    }
+  ],
+  "scope": "current references and current fixture calendar only; no predictions, snapshots, results, models or training writes"
+}
