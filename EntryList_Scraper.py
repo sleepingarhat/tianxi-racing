@@ -21,7 +21,7 @@ Robustness:
 import os
 import re
 import time
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
 
 from selenium.webdriver.common.by import By
 
@@ -67,29 +67,53 @@ def wait_for_race_state(driver, max_wait=PAGE_RENDER_TIMEOUT):
     return "timeout"
 
 
-def discover_meeting(driver):
-    """Return (race_date 'YYYY/MM/DD', racecourse 'ST'|'HV') or (None, None)."""
+def hk_today():
+    return (datetime.now(timezone.utc) + timedelta(hours=8)).date()
+
+
+def _read_header(driver, url):
     try:
-        driver.get(INDEX_URL)
+        driver.get(url)
     except Exception as e:
-        print(f"  Index page load failed: {e}")
-        return None, None
-    # Wait for the index page itself to render its meeting header
+        print(f"  Page load failed: {e}")
+        return None
     deadline = time.time() + PAGE_RENDER_TIMEOUT
-    body_text = ""
     while time.time() < deadline:
         try:
             body_text = driver.find_element(By.TAG_NAME, "body").text
         except Exception:
             body_text = ""
-        if HEADER_RE.search(body_text):
-            break
+        m = HEADER_RE.search(body_text)
+        if m:
+            y, mo, da, course = m.groups()
+            return f"{y}/{int(mo):02d}/{int(da):02d}", RC_MAP.get(course, "ST")
         time.sleep(0.6)
-    m = HEADER_RE.search(body_text)
-    if not m:
+    return None
+
+
+def pick_meeting(found, today):
+    """Accept only a meeting dated today or later; a past card is stale, never upcoming."""
+    if not found:
         return None, None
-    y, mo, da, course = m.group(1), m.group(2), m.group(3), m.group(4)
-    return f"{y}/{int(mo):02d}/{int(da):02d}", RC_MAP.get(course, "ST")
+    d, rc = found
+    return (d, rc) if datetime.strptime(d, "%Y/%m/%d").date() >= today else (None, None)
+
+
+def discover_meeting(driver):
+    """Return the next official meeting (date, course); a stale past index fails closed."""
+    today = hk_today()
+    target = os.environ.get("MEETING_DATE", "").strip()
+    dates = [target] if target else [(today + timedelta(days=i)).isoformat() for i in range(0, 8)]
+    for d in dates:
+        slash = d.replace("-", "/")
+        for rc in ("ST", "HV"):
+            got = _read_header(driver, RACE_URL.format(date=slash, rc=rc, rn=1))
+            if got == (slash, rc):
+                return got
+    meeting = pick_meeting(_read_header(driver, INDEX_URL), today)
+    if not meeting[0]:
+        print(f"  No official meeting on/after {today}; index card is past or missing")
+    return meeting
 
 
 def scrape_race(driver, meeting_date, racecourse, race_no):
