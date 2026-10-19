@@ -22,6 +22,11 @@ export type LedgerRace = {
   raceNumber: number;
   runners: number;
   predictedTop4: number[];
+  originalTop4?: number[];
+  effectiveTop4?: number[];
+  hasWithdrawal?: boolean;
+  postLockJockeyChange?: boolean;
+  withdrawal?: any;
   actualTop4: number[];
   top4Intersect: number | null;
   top3Intersect: number | null;
@@ -169,8 +174,10 @@ export async function computeFreezeLedgerForDate(
   }
   const changes=venue ? await readOfficialChanges(db,date,venue) : null;
   base.invalidInputRaces=[];
+  const withdrawalStates=new Map<number,ReturnType<typeof applyOfficialSelection>>();
   for(const [rn,rows] of frozenByRace) {
     const state=applyOfficialSelection(rows,rn,changes,lock.lockAt);
+    withdrawalStates.set(rn,state);
     if(state.status!=='valid') {base.invalidInputRaces.push({raceNumber:rn,status:state.status,originalTop4:state.original});frozenByRace.delete(rn);}
     else frozenByRace.set(rn,state.picks);
   }
@@ -238,6 +245,7 @@ export async function computeFreezeLedgerForDate(
     if (!runners || predictedTop4.length < 4) {
       races.push({
         raceNumber: rn, runners, predictedTop4, actualTop4,
+      originalTop4:withdrawalStates.get(rn)?.original,effectiveTop4:predictedTop4,hasWithdrawal:withdrawalStates.get(rn)?.hasWithdrawal,postLockJockeyChange:withdrawalStates.get(rn)?.postLockJockeyChange,withdrawal:withdrawalStates.get(rn),
         top4Intersect: null, top3Intersect: null, top3AnyHit: null,
         placeSlots, placeHits: null, winnerHit: null,
         modelWinLogloss: null, marketWinLogloss: null, marketOverround: null,
@@ -293,6 +301,7 @@ export async function computeFreezeLedgerForDate(
 
     races.push({
       raceNumber: rn, runners, predictedTop4, actualTop4,
+      originalTop4:withdrawalStates.get(rn)?.original,effectiveTop4:predictedTop4,hasWithdrawal:withdrawalStates.get(rn)?.hasWithdrawal,postLockJockeyChange:withdrawalStates.get(rn)?.postLockJockeyChange,withdrawal:withdrawalStates.get(rn),
       top4Intersect, top3Intersect, top3AnyHit: top3Intersect > 0,
       placeSlots, placeHits, winnerHit,
       modelWinLogloss: r3(modelWinLogloss), marketWinLogloss: r3(marketWinLogloss),

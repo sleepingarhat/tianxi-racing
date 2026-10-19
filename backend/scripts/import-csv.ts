@@ -1,3 +1,6 @@
+import {readChangesManifest} from './backtest/withdrawal-input';
+import {officialWithdrawal} from '../src/lib/hkjc-changes';
+import {assertChangeResultConsistent} from '../src/lib/racing-change-records';
 /**
  * 天喜娛樂 — CSV 數據導入腳本 (配合 HKJC 實際 CSV 格式)
  *
@@ -26,6 +29,7 @@ const args = process.argv.slice(2);
 const dataDir = getArg('--data-dir') || './data';
 const dbPath = getArg('--db') || './local.db';
 const yearFilter = getArg('--year');  // 可選: 只導入指定年份
+const changePages=readChangesManifest(getArg('--changes-manifest')||process.env.HKJC_CHANGES_MANIFEST||'');
 const dateFilter = getArg('--date');  // 可選: 只導入指定日期
 
 function getArg(name: string): string | undefined {
@@ -392,6 +396,9 @@ function importResults(stmts: Stmts, db: Database.Database, filePath: string) {
         // 平頭馬（dead heat）嘅 place 係「3 平頭馬」咁嘅格式：取開頭數字做名次，
         // 兩駒同名次係官方賽果，唔應該當無效資料跌出訓練集。
         const finalPosition = parseFinishingPlace(entry.place);
+        const page=changePages.find(p=>p.date===date&&p.venue===venue);
+        const withdrawal=officialWithdrawal(page?.changes??[],Number(raceNo),Number(entry.horse_no),horseName);
+        assertChangeResultConsistent(!!withdrawal,finalPosition);
 
         stmts.insertResult.run(
           resultId,

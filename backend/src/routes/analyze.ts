@@ -1,3 +1,4 @@
+import {raceAccounting,WITHDRAWAL_ACCOUNTING_POLICY} from '../lib/withdrawal-accounting';
 import {ACCOUNTING_POLICY,refreshOfficialCard,verifyPredictionInput,predictionBindingStatements,officialWriteGuard,readOfficialChanges,applyOfficialSelection} from '../lib/hkjc-preflight';
 import { assertOriginalFreezeReadable, validateRows } from '../lib/freeze-recovery';
 import { Hono } from 'hono';
@@ -99,7 +100,7 @@ async function raceDayReportIsSettled(db: D1Database, value: any): Promise<boole
   // P0 architect fix 2026-05-21: cache version tag invalidates pre-ensemble
   // rows so admin doesn't serve stale ELO-only payloads as if they were
   // TX-Oracle v3 ensemble results. Bumping this constant is a one-shot evict.
-  const HIT_RATE_CACHE_VERSION = 'tx4-official';
+  const HIT_RATE_CACHE_VERSION = 'tx5-official-split';
   function _engineKey(engine: string): string {
     return `${engine}-${HIT_RATE_CACHE_VERSION}`;
   }
@@ -304,6 +305,7 @@ async function raceDayReportIsSettled(db: D1Database, value: any): Promise<boole
       QUARTET: { cost: 0, payout: 0, net: 0, wins: 0, bets: 0 },
     };
     let totalCost = 0, totalPayout = 0, totalRacesBet = 0, daysEvaluated = 0;
+    const originalPools: Record<string,any> = Object.fromEntries(['FF','TRIO','TIERCE','QUARTET'].map(k=>[k,{grossCost:0,refund:0,cost:0,payout:0,net:0,pending:0}]));
 
     for (const d of dayRows) {
       let cached: any = cacheMap.get(d.date) || null;
@@ -337,11 +339,13 @@ async function raceDayReportIsSettled(db: D1Database, value: any): Promise<boole
         const settled = a3 >= 3 || a4 >= 3;
         const m4 = (race.predictedTop4 || []).map((p: any) => p.horseNumber).filter((v: any) => v != null && v !== '').map((v: any) => String(v));
         if (!settled || new Set(m4).size !== 4) continue;
+        for (const op of race.accounting?.original?.pools ?? []) {const a=originalPools[op.pool];if(!a)continue;a.grossCost+=op.grossCost;a.refund+=op.refund;a.cost+=op.cost;if(op.payout==null)a.pending++;else a.payout+=op.payout;a.net=a.pending?null:a.payout-a.cost;}
         racesBet++;
-        dayCost += PER_RACE;
-        for (const k of ['FF', 'TRIO', 'TIERCE', 'QUARTET']) { pools[k].cost += poolCost[k]; pools[k].bets++; }
+        const effectivePools=race.accounting?.effective?.pools;
+        dayCost += effectivePools?effectivePools.reduce((n:number,p:any)=>n+p.cost,0):PER_RACE;
+        for (const k of ['FF','TRIO','TIERCE','QUARTET']) { pools[k].cost += effectivePools?.find((p:any)=>p.pool===k)?.cost ?? poolCost[k]; pools[k].bets++; }
         for (const bp of (race.boxPayouts || [])) {
-          if (!dp[bp.pool]) continue;
+          if (!dp[bp.pool] || race.accounting?.effective?.pools?.find((p:any)=>p.pool===bp.pool)?.cost===0) continue;
           const div = Number(bp.dividend) || 0;
           dayPayout += div; dp[bp.pool].payout += div; dp[bp.pool].wins += 1;
         }
@@ -368,6 +372,7 @@ async function raceDayReportIsSettled(db: D1Database, value: any): Promise<boole
       daysFound: dayRows.length, daysEvaluated, racesBet: totalRacesBet,
       totalCost, totalPayout, totalNet, roiPct, cumNet: cum,
       poolBreakdown: pools, points,
+      accountingPolicy: WITHDRAWAL_ACCOUNTING_POLICY, originalPoolBreakdown: originalPools, effectiveBasis: 'hypothetical-effective-not-an-actual-bet',
       pending: pendingRecent,
       pendingRecent, skippedMissingBoxData,
       cacheComplete: pendingRecent === 0,
@@ -1336,9 +1341,9 @@ export async function computeHitRateStats(db: D1Database, date: string, engine: 
     let first4Hits = 0, first4Eligible = 0;
     let quartetHits = 0;  // 四重彩：頭四名要順序全中
     let top4SumIntersect = 0, top4Eligible = 0;
-    const invalidInputRaces = picksData.races.filter((r:any)=>r.withdrawal && r.withdrawal.status !== 'valid').map((r:any)=>({raceNumber:r.raceNumber,status:r.withdrawal.status,originalTop4:r.withdrawal.original}));
+    const invalidInputRaces = picksData.races.filter((r:any)=>r.withdrawal && r.withdrawal.status !== 'valid').map((r:any)=>({raceNumber:r.raceNumber,status:r.withdrawal.status,originalTop4:r.withdrawal.original,hasWithdrawal:r.withdrawal.hasWithdrawal,changes:r.withdrawal.changes,accounting:raceAccounting(r.withdrawal.original,[],r.withdrawal.withdrawnHorseNumbers??[],false,null)}));
     const races = picksData.races.filter((r:any)=>!r.withdrawal || r.withdrawal.status === 'valid').map((race: any) => {
-      const actualSorted = (actualByRace.get(race.raceNumber) ?? []).sort((a: any, b: any) => a.finishing_position - b.finishing_position);
+      const actualSorted = (actualByRace.get(race.raceNumber) ?? []).filter((a: any) => Number(a.finishing_position) > 0).sort((a: any, b: any) => a.finishing_position - b.finishing_position);
       const predictedTop3 = (race.picks ?? []).slice(0, 3);
       const predictedTop2 = predictedTop3.slice(0, 2);
       const predictedTop4 = (race.picks ?? []).slice(0, 4);
@@ -1432,6 +1437,11 @@ export async function computeHitRateStats(db: D1Database, date: string, engine: 
       return {
         raceNumber: race.raceNumber, title: race.title, distance: race.distance, going: race.going,
         withdrawal: race.withdrawal ?? null,
+        originalTop4: race.withdrawal?.original ?? predictedTop4.map((p:any)=>p.horseNumber),
+        effectiveTop4: predictedTop4.map((p:any)=>p.horseNumber),
+        hasWithdrawal: race.withdrawal?.hasWithdrawal ?? false,
+        postLockJockeyChange: race.withdrawal?.postLockJockeyChange ?? false,
+        accounting: raceAccounting(race.withdrawal?.original ?? predictedTop4.map((p:any)=>p.horseNumber),predictedTop4.map((p:any)=>p.horseNumber),race.withdrawal?.withdrawnHorseNumbers??[],true,wantBoxPayouts && boxDivsComplete ? divByRaceNumber.get(race.raceNumber) ?? {} : null,actualSorted.length>=4?{FF:actualSorted.length<6,QUARTET:actualSorted.length<6,TRIO:actualSorted.length<5,TIERCE:actualSorted.length<4}:{}),
         predictedTop3: predictedTop3.map((p: any) => ({
           rank: p.rank, horseNumber: p.horseNumber, horseId: p.horseId,
           nameCh: p.nameCh, jockeyCh: p.jockeyCh, trainerCh: p.trainerCh,
@@ -1495,7 +1505,9 @@ export async function computeHitRateStats(db: D1Database, date: string, engine: 
       meeting,
       races,
       summary: {
-        withdrawalPolicy: ACCOUNTING_POLICY, invalidInputRaces,
+        withdrawalPolicy: ACCOUNTING_POLICY, accountingPolicy: WITHDRAWAL_ACCOUNTING_POLICY, invalidInputRaces,
+        withdrawalRaces: races.filter((r:any)=>r.hasWithdrawal).map((r:any)=>r.raceNumber),
+        splitTop4: Object.fromEntries(['unchanged','post-lock-withdrawal','post-lock-jockey-change'].map(group=>{const selected=races.filter((r:any)=>r.actualTop4.length>=4&&(group==='post-lock-withdrawal'?r.hasWithdrawal:group==='post-lock-jockey-change'?r.postLockJockeyChange:!r.hasWithdrawal&&!r.postLockJockeyChange));return [group,{races:selected.length,originalHits:selected.reduce((n:number,r:any)=>n+r.originalTop4.filter((h:number)=>r.actualTop4.some((a:any)=>a.horseNumber===h)).length,0),effectiveHits:selected.reduce((n:number,r:any)=>n+r.top4IntersectCount,0)}];})),
         racesEvaluated,
         top1HitRate: rate(top1Hits, racesEvaluated),
         top3AnyHitRate: rate(top3AnyHits, racesEvaluated),

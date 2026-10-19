@@ -1,3 +1,6 @@
+import {readChangesManifest} from './withdrawal-input';
+import {assertChangeResultConsistent} from '../../src/lib/racing-change-records';
+import {parseHkjcChangesPage} from '../../src/lib/hkjc-changes';
 // scripts/backtest/dump-features.ts
   //
   // Export per-runner feature CSV for LightGBM walk-forward training.
@@ -53,9 +56,15 @@
   // produced by /admin/api/entries-upcoming-export. Same feature columns
   // are computed; finishing_position / is_top1 / is_top3 emitted as 0.
   const UPCOMING_JSON = arg('upcoming-json', '');
+  const changePages=readChangesManifest(arg('changes-manifest',process.env.HKJC_CHANGES_MANIFEST??''));
+  const changeByMeeting=new Map(changePages.map(p=>[p.date+':'+p.venue,p]));
 
   const db = new Database(DB_PATH, { readonly: true });
-  db.pragma('cache_size = -200000'); // 200MB cache
+  db.pragma('cache_size = -200000');
+  if(db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='hkjc_source_versions'").get()) {
+    const versions=db.prepare("SELECT raw FROM hkjc_source_versions WHERE kind='changes' ORDER BY captured_at").all() as {raw:string}[];
+    for(const v of versions){const page=parseHkjcChangesPage(v.raw);if(!page)throw new Error('training-official-changes-unreadable');const k=page.date+':'+page.venue;const old=changeByMeeting.get(k);changeByMeeting.set(k,old?{...page,changes:[...old.changes,...page.changes]}:page);}
+  } // 200MB cache
 
   // ── ELO readers ────────────────────────────────────────────────────────
     // FIX 2026-05-06: previous query had two bugs that returned null for ALL ELOs:
@@ -677,7 +686,7 @@
   // ── Race iteration ──────────────────────────────────────────────────────
   type RaceMeta = { id: string; date: string; venue: string; race_number: number; distance: number; going: string; class: string | null };
   type RunnerRow = {
-    race_id: string; horse_id: string; jockey_id: string | null; trainer_id: string | null;
+    race_id: string; horse_id: string; horse_number: number | null; jockey_id: string | null; trainer_id: string | null;
     finishing_position: number; draw: number | null; actual_weight: number | null; win_odds: number | null;
     lbw: string | null;
     gear: string | null;
@@ -727,6 +736,7 @@
       list.push({
         race_id: raceId,
         horse_id: e.horse_id,
+        horse_number: e.horse_number != null ? Number(e.horse_number) : null,
         jockey_id: e.jockey_id || null,
         trainer_id: e.trainer_id || null,
         finishing_position: 0,  // unknown — placeholder
@@ -752,7 +762,7 @@
        ORDER BY rm.date ASC, r.id ASC`).all(FROM, TO) as RaceMeta[];
 
     qRunners = db.prepare(`
-      SELECT race_id, horse_id, jockey_id, trainer_id, finishing_position,
+      SELECT race_id, horse_id, horse_number, jockey_id, trainer_id, finishing_position,
              draw, actual_weight, win_odds, lbw, gear
         FROM race_results
        WHERE race_id = ?
@@ -889,7 +899,7 @@
       // draw / field_size; draw_x_dist = draw_pct × distance/1000.
       'hc_starts','hc_top3','class_hist_avg','class_step',
       'jq_starts','jq_top3','tq_starts','tq_top3','draw_pct','draw_x_dist',
-      'finishing_position','is_top1','is_top3',
+      'finishing_position','is_top1','is_top3','has_withdrawal','post_lock_jockey_change','withdrawal_evidence',
     ];
   writeFileSync(OUT, HEADER.join(',') + '\n');
 
@@ -911,8 +921,11 @@
   for (let i = 0; i < races.length; i++) {
     const meta = races[i];
     const runners: RunnerRow[] = UPCOMING_MODE
-      ? (runnersByRace.get(meta.id) || [])
+      ? [...(runnersByRace.get(meta.id) || [])]
       : (qRunners.all(meta.id) as RunnerRow[]);
+    const changePage=changeByMeeting.get(meta.date+':'+meta.venue);
+    const raceHasWithdrawal=changePage?.changes.some(c=>c.raceNumber===meta.race_number&&(c.kind==='scratched'||c.kind==='replaced'))??false;
+    if(changePage)for(let j=runners.length-1;j>=0;j--){const r=runners[j];const name=(db.prepare('SELECT name_ch FROM horses WHERE id=?').get(r.horse_id) as {name_ch:string}|undefined)?.name_ch; if(!name||r.horse_number===null)throw new Error('change-runner-identity-unverified');const change=changePage.changes.find(c=>c.raceNumber===meta.race_number&&c.horseNumber===r.horse_number&&c.horseName===name&&(c.kind==='scratched'||c.kind==='replaced')); if(change){assertChangeResultConsistent(true,UPCOMING_MODE?null:r.finishing_position);runners.splice(j,1);}}
     if (runners.length < 4) continue;
 
     // sort by finish position to identify top1/top3 horse_ids for label
@@ -1191,6 +1204,7 @@
           r.finishing_position,
           r.horse_id === top1Id ? 1 : 0,
           top3Set.has(r.horse_id) ? 1 : 0,
+          raceHasWithdrawal?1:0, '', changePage?'official-manifest':'unverified',
         ].map(csv).join(',');
       buf.push(row + '\n');
       written++;

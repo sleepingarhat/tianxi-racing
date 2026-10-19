@@ -3,7 +3,7 @@ import { officialCardQuery } from './official-card-query';
 import { effectiveTop4 } from './withdrawal-substitution';
 import {PREDICTION_COLUMNS} from './freeze-recovery';
 import { getMeetingLockState } from './lock-window';
-export const ACCOUNTING_POLICY = 'official-withdrawals-v2';
+export const ACCOUNTING_POLICY = 'official-withdrawals-v3-split';
 const CARD_URL = 'https://info.cld.hkjc.com/graphql/base/';
 async function sha(raw: string) { return [...new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(raw)))].map(n=>n.toString(16).padStart(2,'0')).join(''); }
 export async function ensureOfficialTables(db: D1Database) {
@@ -135,5 +135,11 @@ export async function assertFreezeInput(db:D1Database,date:string,venue:string,l
 export function applyOfficialSelection(picks:any[],raceNumber:number,changes:HkjcChangesPage|null,lockAt:string|null) {
   const marked=picks.map(p=>{const c=officialWithdrawal(changes?.changes??[],raceNumber,p.horseNumber??p.horse_number,p.nameCh??p.name_ch);return {...p,horseNumber:Number(p.horseNumber??p.horse_number),rank:Number(p.rank??p.predicted_rank),withdrawn:!!c,announcedAtIso:c?.announcedAtIso};});
   const state=effectiveTop4(marked,lockAt);
-  return {...state,picks:state.status==='valid'?marked.filter(p=>!p.withdrawn):[]};
+  const raceChanges=(changes?.changes??[]).filter(c=>c.raceNumber===raceNumber);
+  const jockeyChanges=raceChanges.filter(c=>c.kind==='other'&&/騎師|策騎/.test(c.text));
+  const locked=Date.parse(lockAt??'');
+  const postLockJockeyChange=jockeyChanges.some(c=>Number.isFinite(locked)&&Number.isFinite(Date.parse(c.announcedAtIso??''))&&Date.parse(c.announcedAtIso??'')>locked);
+  const hasUnappliedPrelockJockeyChange=jockeyChanges.some(c=>{if(!Number.isFinite(locked)||!Number.isFinite(Date.parse(c.announcedAtIso??'')))return true;if(Date.parse(c.announcedAtIso??'')>locked)return false;const jockey=c.text.match(/由騎師\s+(\S+)\s+策騎/);const p=marked.find(p=>p.horseNumber===c.horseNumber&&(p.nameCh??p.name_ch)===c.horseName);return !jockey||!p||(p.jockeyCh??p.jockey_ch)!==jockey[1];});
+  const status=hasUnappliedPrelockJockeyChange?'invalid-prelock-input':state.status;
+  return {...state,status,effective:status==='valid'?state.effective:[],hasWithdrawal:raceChanges.some(c=>c.kind==='scratched'||c.kind==='replaced'),withdrawnHorseNumbers:marked.filter(p=>p.withdrawn).map(p=>p.horseNumber),changes:raceChanges,postLockJockeyChange,picks:status==='valid'?marked.filter(p=>!p.withdrawn).sort((a,b)=>a.rank-b.rank):[]};
 }
