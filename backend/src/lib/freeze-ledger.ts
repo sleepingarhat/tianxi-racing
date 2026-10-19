@@ -1,3 +1,4 @@
+import {readOfficialChanges,applyOfficialSelection} from './hkjc-preflight';
 import { assertOriginalFreezeReadable } from './freeze-recovery';
 /**
  * 凍結對帳表 (freeze ledger) — MEASURE ONLY.
@@ -57,6 +58,7 @@ export type LedgerMeeting = {
   /** 鎖後先寫入嘅場次：只作對帳參考，「鎖後、唔計分」，唔入任何凍結指標。 */
   postLockRaces: number[];
   postLockNote: string | null;
+  invalidInputRaces?: {raceNumber:number;status:string;originalTop4:number[]}[];
 };
 
 /** 鎖點 tick 每 5 分鐘一次，所以鎖點後 10 分鐘內寫入嘅首份快照仍算鎖點快照。 */
@@ -134,16 +136,7 @@ export async function computeFreezeLedgerForDate(
   }
 
   await assertOriginalFreezeReadable(db,date,engine);
-  const frozen = await db
-    .prepare(
-      `SELECT race_number, horse_number, predicted_rank, p_win, generated_at
-         FROM prediction_log
-        WHERE date = ? AND engine = ? AND variant = 'baseline' AND predicted_rank IS NOT NULL
-        ORDER BY race_number ASC, predicted_rank ASC`,
-    )
-    .bind(date, engine)
-    .all<any>()
-    .catch(() => ({ results: [] as any[] }));
+  const frozen = await db.prepare(`SELECT pl.race_number,pl.horse_number,pl.predicted_rank,pl.p_win,pl.generated_at,h.name_ch FROM prediction_log pl LEFT JOIN horses h ON h.id=pl.horse_id WHERE pl.date=? AND pl.engine=? AND pl.variant='baseline' AND pl.predicted_rank IS NOT NULL ORDER BY pl.race_number,pl.predicted_rank`).bind(date,engine).all<any>();
   const frozenByRace = new Map<number, any[]>();
   for (const r of frozen?.results ?? []) {
     if (!frozenByRace.has(r.race_number)) frozenByRace.set(r.race_number, []);
@@ -173,6 +166,13 @@ export async function computeFreezeLedgerForDate(
     }
     base.postLockRaces.sort((a, b) => a - b);
     if (base.postLockRaces.length) base.postLockNote = '鎖後、唔計分';
+  }
+  const changes=venue ? await readOfficialChanges(db,date,venue) : null;
+  base.invalidInputRaces=[];
+  for(const [rn,rows] of frozenByRace) {
+    const state=applyOfficialSelection(rows,rn,changes,lock.lockAt);
+    if(state.status!=='valid') {base.invalidInputRaces.push({raceNumber:rn,status:state.status,originalTop4:state.original});frozenByRace.delete(rn);}
+    else frozenByRace.set(rn,state.picks);
   }
   if (!frozenByRace.size) {
     base.source = 'missing-log';

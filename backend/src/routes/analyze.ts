@@ -1,3 +1,4 @@
+import {ACCOUNTING_POLICY,refreshOfficialCard,verifyPredictionInput,predictionBindingStatements,officialWriteGuard,readOfficialChanges,applyOfficialSelection} from '../lib/hkjc-preflight';
 import { assertOriginalFreezeReadable, validateRows } from '../lib/freeze-recovery';
 import { Hono } from 'hono';
 import type { Env, AnalyzeRequest } from '../types';
@@ -98,7 +99,7 @@ async function raceDayReportIsSettled(db: D1Database, value: any): Promise<boole
   // P0 architect fix 2026-05-21: cache version tag invalidates pre-ensemble
   // rows so admin doesn't serve stale ELO-only payloads as if they were
   // TX-Oracle v3 ensemble results. Bumping this constant is a one-shot evict.
-  const HIT_RATE_CACHE_VERSION = 'tx3';
+  const HIT_RATE_CACHE_VERSION = 'tx4-official';
   function _engineKey(engine: string): string {
     return `${engine}-${HIT_RATE_CACHE_VERSION}`;
   }
@@ -213,6 +214,7 @@ async function raceDayReportIsSettled(db: D1Database, value: any): Promise<boole
       ).bind(date, _engineKey(engine)).first<{ payload_json: string; computed_at: string }>();
       if (!row?.payload_json) return null;
       const parsed = JSON.parse(row.payload_json);
+      if (parsed.summary?.withdrawalPolicy !== ACCOUNTING_POLICY && await db.prepare("SELECT 1 FROM hkjc_source_versions WHERE date=? AND kind='changes' LIMIT 1").bind(date).first().catch(()=>null)) return null;
       parsed.cachedAt = row.computed_at;
       return parsed;
     } catch { return null; }
@@ -305,6 +307,7 @@ async function raceDayReportIsSettled(db: D1Database, value: any): Promise<boole
 
     for (const d of dayRows) {
       let cached: any = cacheMap.get(d.date) || null;
+      if (cached?.summary?.withdrawalPolicy !== ACCOUNTING_POLICY && await db.prepare("SELECT 1 FROM hkjc_source_versions WHERE date=? AND kind='changes' LIMIT 1").bind(d.date).first().catch(()=>null)) cached = null;
       let ok = !!(cached && cached.summary && cached.summary.boxDivsFetched === true);
       if (!ok) {
         const isRecent = d.date >= recentCutoff;
@@ -600,6 +603,7 @@ async function raceDayReportIsSettled(db: D1Database, value: any): Promise<boole
       formRows.push(...(res.results ?? []));
     }
     const stmts: D1PreparedStatement[] = [];
+    if(payload.officialInput) stmts.push(db.prepare("DELETE FROM prediction_log WHERE date=? AND engine=? AND variant=?").bind(payload.date,engine,variant));
     for (const race of payload.races) {
       if (!race?.picks?.length || race.raceNumber == null || race.raceNumber === 0) continue;
       if (completion && alreadyLogged.has(Number(race.raceNumber))) continue; // 已鎖場次永不覆寫
@@ -637,7 +641,16 @@ async function raceDayReportIsSettled(db: D1Database, value: any): Promise<boole
       }
     }
     if (!stmts.length) return { rows: 0 };
+    const finalGuard = await predictionWritesAreFrozen(db,payload.date,payload.venue,engine);
+    if(finalGuard.frozen) throw new Error('lock-crossed-during-compute-no-write');
     // A meeting is one transaction: any failed row rolls the entire write back.
+    if(payload.officialInput) {
+      if(!finalGuard.lockAt) throw new Error('official-lock-deadline-missing');
+      stmts.unshift(officialWriteGuard(db,payload.date,payload.venue,payload.officialInput,finalGuard.lockAt));
+      stmts.push(...predictionBindingStatements(db,payload,payload.officialInput));
+      stmts.push(officialWriteGuard(db,payload.date,payload.venue,payload.officialInput,finalGuard.lockAt));
+      stmts.push(db.prepare('DELETE FROM hkjc_transaction_checks'));
+    }
     await db.batch(stmts);
     if (completion) await markLockCompletion(db, payload.date, engine, stmts.length);
     await writeLockMeta(db, payload, engine, completion).catch(() => {});
@@ -1166,6 +1179,9 @@ async function loadFrozenPicksForHitRate(
     const pk = byRace.get(rn);
     if (!pk || pk.length < 4) return null;
   }
+  const venue = await db.prepare(`SELECT venue FROM race_meetings WHERE date=? AND venue IN ('ST','HV') LIMIT 1`).bind(date).first<string>('venue');
+  const changes = venue ? await readOfficialChanges(db,date,venue) : null;
+  const lockState = await getMeetingLockState(db,date,venue);
   const races = raceOrder.map((rn: number) => {
     const picks = (byRace.get(rn) ?? [])
       .slice()
@@ -1191,6 +1207,7 @@ async function loadFrozenPicksForHitRate(
         lgbModelVersion: r.lgb_model_version,
         scoreSource: r.score_source,
       }));
+    const withdrawal = applyOfficialSelection(picks,rn,changes,lockState.lockAt);
     const lgbHits = picks.filter((p: any) => p.scoreSource === 'lgb' || p.lgbScore != null).length;
     const anyLgb = lgbHits > 0;
     // Accountability: the frozen rows carry the ensemble alpha actually used at
@@ -1208,7 +1225,8 @@ async function loadFrozenPicksForHitRate(
       title: null,
       distance: meta.distance,
       going: meta.going,
-      picks,
+      picks: withdrawal.picks,
+      originalPicks: picks, withdrawal: { ...withdrawal, picks: undefined },
       // Race-level scoreSource kept compatible with summary aggregation
       // (includes('tx-oracle') → ensemble; startsWith('elo') → elo-only).
       scoreSource: anyLgb
@@ -1276,6 +1294,7 @@ export async function computeHitRateStats(db: D1Database, date: string, engine: 
   const postLockRaces = picksData ? await postLockRaceNumbers(db, date, (meeting as any)?.venue ?? null, engine) : [];
   const picksFromFrozenLog = !!picksData && postLockRaces.length === 0;
   if (!picksData) {
+    if(alphaOverride == null && eloWeightsOverride == null && drawModelOverride == null && drawScaleOverride == null && await readOfficialChanges(db,date,(meeting as any)?.venue??''))return {error:'官方更改已有存證，但缺完整原凍結；不以賽後重算列正式戰績',status:503};
     picksData = await computePicksFromEntries(db, date, meeting, entries, engine, alphaOverride, eloWeightsOverride, drawModelOverride, drawScaleOverride);
   }
   // ── 模型四揀複式 box-bet payouts (mirror tools/tg_notify build_extras) ──
@@ -1317,7 +1336,8 @@ export async function computeHitRateStats(db: D1Database, date: string, engine: 
     let first4Hits = 0, first4Eligible = 0;
     let quartetHits = 0;  // 四重彩：頭四名要順序全中
     let top4SumIntersect = 0, top4Eligible = 0;
-    const races = picksData.races.map((race: any) => {
+    const invalidInputRaces = picksData.races.filter((r:any)=>r.withdrawal && r.withdrawal.status !== 'valid').map((r:any)=>({raceNumber:r.raceNumber,status:r.withdrawal.status,originalTop4:r.withdrawal.original}));
+    const races = picksData.races.filter((r:any)=>!r.withdrawal || r.withdrawal.status === 'valid').map((race: any) => {
       const actualSorted = (actualByRace.get(race.raceNumber) ?? []).sort((a: any, b: any) => a.finishing_position - b.finishing_position);
       const predictedTop3 = (race.picks ?? []).slice(0, 3);
       const predictedTop2 = predictedTop3.slice(0, 2);
@@ -1411,6 +1431,7 @@ export async function computeHitRateStats(db: D1Database, date: string, engine: 
       }
       return {
         raceNumber: race.raceNumber, title: race.title, distance: race.distance, going: race.going,
+        withdrawal: race.withdrawal ?? null,
         predictedTop3: predictedTop3.map((p: any) => ({
           rank: p.rank, horseNumber: p.horseNumber, horseId: p.horseId,
           nameCh: p.nameCh, jockeyCh: p.jockeyCh, trainerCh: p.trainerCh,
@@ -1474,6 +1495,7 @@ export async function computeHitRateStats(db: D1Database, date: string, engine: 
       meeting,
       races,
       summary: {
+        withdrawalPolicy: ACCOUNTING_POLICY, invalidInputRaces,
         racesEvaluated,
         top1HitRate: rate(top1Hits, racesEvaluated),
         top3AnyHitRate: rate(top3AnyHits, racesEvaluated),
@@ -3222,9 +3244,11 @@ analyzeRoutes.get('/factors', (c) => {
           }
           if (!meeting) return { error: `${targetDate} 賽馬日記錄不存在`, status: 404 };
 
+          const inputLock = await getMeetingLockState(db, targetDate, meeting.venue);
+          const officialInput = !inputLock.locked && engine === 'v12' ? await refreshOfficialCard(db,targetDate,meeting.venue) : null;
           // Architect fix: venue-scoped cache key so HV/ST don't collide; ?venue= bypasses.
           const cacheKey = `${engine}::${meeting.venue}`;
-          if (!fresh && !forceVenue) {
+          if (!fresh && !forceVenue && !officialInput) {
             const cached = await readRaceDayReportCache(db, targetDate, cacheKey);
             if (cached) return cached;
           }
@@ -3389,8 +3413,11 @@ analyzeRoutes.get('/factors', (c) => {
           computeMs, generatedAt: new Date().toISOString(),
         };
         // Phase A: write each prediction to prediction_log for back-test (idempotent).
+        if (officialInput) await verifyPredictionInput(db,payload,officialInput);
+        payload.officialInput = officialInput;
         const logResult = await writePredictionLog(db, payload, 'baseline').catch((e) => ({ rows: 0, error: String(e?.message ?? e) }));
         payload.predictionLog = logResult;
+        if (officialInput && (logResult.rows === 0 || ("frozen" in logResult && logResult.frozen))) throw new Error("official-prelock-write-not-completed");
         if ("error" in logResult) { payload.freezeError = true; throw new Error(String(logResult.error)); }
 
         await writeRaceDayReportCache(db, targetDate, cacheKey, meeting.venue, payload, computeMs).catch(() => {});

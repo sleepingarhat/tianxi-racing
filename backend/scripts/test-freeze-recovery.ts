@@ -30,7 +30,12 @@ assert.equal(sqlite.query("SELECT json_object('v',factor_bonus) AS value FROM pr
 assert.throws(()=>validateRows([rows[0],rows[0],rows[2],rows[3]],date,'v12'));console.log('PASS duplicate horses/ranks rejected');
 assert.throws(()=>validateRows(rows.slice(0,3),date,'v12'));console.log('PASS incomplete four picks rejected');
 assert.throws(()=>missingOriginalRows(rows,[{...rows[0],horse_elo:1600}]));console.log('PASS original NULL never replaced by live value');
-let out=await recoverOriginalFreeze(db,date,'ST',lock,'v12',now);assert.equal(out.ok,true,JSON.stringify(out));await assertOriginalFreezeReadable(db,date,'v12');console.log('PASS complete pre-lock original captured and read back');
+sqlite.exec("ALTER TABLE entries_upcoming ADD COLUMN source_commit TEXT;CREATE TABLE hkjc_input_bindings(date TEXT,engine TEXT,prediction_json TEXT,card_sha TEXT,changes_sha TEXT);CREATE TABLE hkjc_transaction_checks(ok INTEGER CHECK(ok=1));UPDATE entries_upcoming SET source_commit='card'");
+const bindingJson=JSON.stringify(rows);
+await db.prepare('INSERT INTO hkjc_input_bindings VALUES(?,?,?,?,?)').bind(date,'v12',bindingJson,'card','changes').run();
+const binding={bindingJson,cardSha:'card',changesSha:'changes'};
+const rejected=await recoverOriginalFreeze(db,date,'ST',lock,'v12',now,{...binding,bindingJson:JSON.stringify(rows.map((r,i)=>i===0?{...r,final_score:9999}:r))});assert.equal(rejected.ok,false);assert.equal(sqlite.query('SELECT COUNT(*) AS n FROM prediction_original_snapshots').get()?.n,0);console.log('PASS altered prediction binding blocks snapshot capture');
+let out=await recoverOriginalFreeze(db,date,'ST',lock,'v12',now,binding);assert.equal(out.ok,true,JSON.stringify(out));await assertOriginalFreezeReadable(db,date,'v12');console.log('PASS complete pre-lock original captured and read back');
 assert.throws(()=>sqlite.query("UPDATE prediction_original_snapshots SET sha256='bad'" ).run());console.log('PASS original snapshot immutable');
 assert.throws(()=>sqlite.query("UPDATE prediction_log SET final_score=2000 WHERE horse_id='H1'").run());console.log('PASS frozen score rewrite blocked');
 assert.throws(()=>sqlite.query("DELETE FROM prediction_log WHERE horse_id='H1'").run());console.log('PASS accidental frozen deletion blocked');

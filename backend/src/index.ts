@@ -1,3 +1,4 @@
+import {captureOfficialChanges,assertFreezeInput} from './lib/hkjc-preflight';
 import { recoverOriginalFreeze } from './lib/freeze-recovery';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
@@ -255,10 +256,11 @@ app.onError((err, c) => {
       return c.json({ ok: true, ...out, ranAt: new Date().toISOString() });
     });
 
-  async function refreshRaceDayReport(env: Env): Promise<{ ok: boolean; date?: string; venue?: string; races?: number; computeMs?: number; seedSummary?: any; error?: string }> {
+  async function refreshRaceDayReport(env: Env, date?: string): Promise<{ ok: boolean; date?: string; venue?: string; races?: number; computeMs?: number; seedSummary?: any; error?: string }> {
     try {
       await ensureRaceDayReportCacheTable(env.DB);
       const url = new URL('https://internal/api/analyze/today-picks?fresh=1');
+      if(date) url.searchParams.set('date',date);
       const req = new Request(url.toString(), {
         method: 'GET',
         headers: buildAdminBearerHeaders(env),
@@ -281,9 +283,18 @@ app.onError((err, c) => {
       const meeting = await findMeetingForLockTick(env.DB);
       if (!meeting) return { ok: true, action: 'no-fixture' };
       const lock = await getMeetingLockState(env.DB, meeting.date, meeting.venue);
-      if (!lock.locked) return { ok: true, action: 'pre-lock', date: meeting.date, lockAt: lock.lockAt };
+      if (!lock.locked) {
+        if(lock.minutesToLock != null && lock.minutesToLock <= 10) {
+          const report=await refreshRaceDayReport(env,meeting.date);
+          if(!report.ok) return {ok:false,action:'blocked',error:report.error??'official-preflight-failed'};
+          return {ok:true,action:'official-prelock-recomputed',date:meeting.date,lockAt:lock.lockAt};
+        }
+        return { ok: true, action: 'pre-lock', date: meeting.date, lockAt: lock.lockAt };
+      }
       if (lock.source === 'error' || !lock.lockAt || !meeting.venue) return { ok: false, action: 'blocked', error: 'lock-state-unavailable' };
-      const recovery = await recoverOriginalFreeze(env.DB,meeting.date,meeting.venue,lock.lockAt);
+      const original = await env.DB.prepare("SELECT 1 FROM prediction_original_snapshots WHERE date=? AND engine='v12'").bind(meeting.date).first();
+      const inputBinding=!original ? await assertFreezeInput(env.DB,meeting.date,meeting.venue,lock.lockAt) : undefined;
+      const recovery = await recoverOriginalFreeze(env.DB,meeting.date,meeting.venue,lock.lockAt,'v12',Date.now(),inputBinding);
       if (!recovery.ok || recovery.action === 'restored-original') {
         // Event-driven delivery from the existing lock tick; never another poller.
         try {
@@ -441,6 +452,7 @@ app.onError((err, c) => {
       ctx.waitUntil(lockMeetingIfDue(env).then((r) => console.log('[cron] lock tick', r)));
       // The 5-minute tick does nothing else — heavy jobs stay on their own slots.
       if (String(_event?.cron ?? '') === '*/5 * * * *') return;
+      ctx.waitUntil(captureOfficialChanges(env.DB).catch(e=>console.warn('official changes capture failed',String(e))));
       ctx.waitUntil(
         refreshHitRateCache(env)
           .then((r) => console.log('[cron] hit-rate refresh', r))

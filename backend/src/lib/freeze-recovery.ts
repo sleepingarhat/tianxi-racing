@@ -63,7 +63,7 @@ export async function ensureRecoveryTables(db: D1Database) {
   await db.prepare(`CREATE TRIGGER IF NOT EXISTS frozen_prediction_original_insert BEFORE INSERT ON prediction_log WHEN EXISTS (SELECT 1 FROM prediction_original_snapshots s WHERE s.date=NEW.date AND s.engine=NEW.engine) AND NOT EXISTS (SELECT 1 FROM prediction_original_snapshots s,json_each(s.snapshot_json,'$.rows') j WHERE s.date=NEW.date AND s.engine=NEW.engine AND ${matches}) BEGIN SELECT RAISE(ABORT,'not an original prediction'); END`).run();
 }
 async function rowsFor(db: D1Database,date: string,engine: string) { const r = await db.prepare(`SELECT ${PREDICTION_COLUMNS.join(',')} FROM prediction_log WHERE date=? AND engine=? AND variant='baseline' ORDER BY race_number,predicted_rank,horse_id`).bind(date,engine).all<Row>(); return r.results ?? []; }
-export async function recoverOriginalFreeze(db: D1Database, date: string, venue: string, lockAt: string, engine = 'v12', now = Date.now()): Promise<RecoveryResult> {
+export async function recoverOriginalFreeze(db: D1Database, date: string, venue: string, lockAt: string, engine = 'v12', now = Date.now(), inputBinding?: {bindingJson:string;cardSha:string;changesSha:string}): Promise<RecoveryResult> {
   let result: RecoveryResult;
   try {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !['ST','HV'].includes(venue) || !Number.isFinite(Date.parse(lockAt)) || now < Date.parse(lockAt)) throw new Error('not-a-confirmed-lock');
@@ -88,7 +88,12 @@ export async function recoverOriginalFreeze(db: D1Database, date: string, venue:
       // still guard the read/write race inside this single INSERT transaction.
       const sameFields = PREDICTION_COLUMNS.map(c => `p.${c} IS json_extract(j.value,'$.${c}')`).join(' AND ');
       const insert = db.prepare(`INSERT OR IGNORE INTO prediction_original_snapshots(date,engine,snapshot_json,sha256,captured_at) SELECT ?,?,?,?,? WHERE (SELECT COUNT(*) FROM prediction_log WHERE date=? AND engine=? AND variant='baseline') = ? AND NOT EXISTS (SELECT 1 FROM json_each(?) j LEFT JOIN prediction_log p ON p.date=? AND p.engine=? AND p.variant='baseline' AND p.race_number=json_extract(j.value,'$.race_number') AND p.horse_id=json_extract(j.value,'$.horse_id') WHERE p.horse_id IS NULL OR NOT (${sameFields}))`).bind(date,engine,text,hash,new Date(now).toISOString(),date,engine,rows.length,JSON.stringify(rows),date,engine);
-      await db.batch([insert]);
+      const guards: D1PreparedStatement[]=[];
+      if(inputBinding) {
+        const eq=PREDICTION_COLUMNS.map(c=>`p.${c} IS json_extract(j.value,'$.${c}')`).join(' AND ');
+        guards.push(db.prepare(`INSERT INTO hkjc_transaction_checks(ok) SELECT CASE WHEN EXISTS(SELECT 1 FROM hkjc_input_bindings WHERE date=? AND engine=? AND prediction_json=? AND card_sha=? AND changes_sha=?) AND (SELECT COUNT(*) FROM prediction_log WHERE date=? AND engine=? AND variant='baseline')=json_array_length(?) AND NOT EXISTS(SELECT 1 FROM json_each(?) j LEFT JOIN prediction_log p ON p.date=? AND p.engine=? AND p.variant='baseline' AND p.race_number=json_extract(j.value,'$.race_number') AND p.horse_id=json_extract(j.value,'$.horse_id') WHERE p.horse_id IS NULL OR NOT (${eq})) AND NOT EXISTS(SELECT 1 FROM entries_upcoming WHERE race_date=? AND venue=? AND race_number>0 AND source_commit IS NOT ?) THEN 1 ELSE 0 END`).bind(date,engine,inputBinding.bindingJson,inputBinding.cardSha,inputBinding.changesSha,date,engine,inputBinding.bindingJson,inputBinding.bindingJson,date,engine,date,venue,inputBinding.cardSha));
+      }
+      await db.batch([...guards,insert,...(inputBinding?[db.prepare('DELETE FROM hkjc_transaction_checks')]:[])]);
       saved=await db.prepare(`SELECT snapshot_json,sha256 FROM prediction_original_snapshots WHERE date=? AND engine=?`).bind(date,engine).first<{snapshot_json:string;sha256:string}>();
       if (!saved) throw new Error('concurrent-capture-retry');
     }
