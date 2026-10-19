@@ -159,6 +159,13 @@ def _parse_records(html, trainer_code, season):
     return records
 
 
+def merge_verified_records(existing, fresh):
+    """Refresh adds evidence; never replace a previously saved historical row."""
+    import pandas as pd
+    return pd.concat([existing, fresh], ignore_index=True).drop_duplicates(
+        subset=['trainer_code', 'date', 'race_index', 'horse_name'], keep='first')
+
+
 # ── 1. Load trainer codes ─────────────────────────────────────────────────────
 
 trainer_map = {}  # code -> name
@@ -178,20 +185,9 @@ if not trainer_map:
     print("No trainer codes found — exiting")
     raise SystemExit(0)
 
-# Determine which trainers still need records
-done = set()
-for fname in os.listdir(RECORDS_DIR):
-    if not fname.startswith("trainer_") or not fname.endswith(".csv"):
-        continue
-    path = os.path.join(RECORDS_DIR, fname)
-    try:
-        if os.path.getsize(path) > 200:  # has data rows
-            done.add(fname.replace("trainer_", "").replace(".csv", ""))
-    except Exception:
-        pass
-
-todo = [c for c in trainer_map if c not in done]
-print(f"Already done: {len(done)} | To scrape: {len(todo)}")
+# Existing files are not proof that the latest official records were collected.
+todo = list(trainer_map)
+print(f"Refreshing {len(todo)} known trainers; existing records remain on failed reads")
 
 if not todo:
     print("All trainers already scraped.")
@@ -216,16 +212,22 @@ for i, code in enumerate(todo, 1):
             log_failed(FAILED_LOG, code, f"fetch {season}: {e}")
             continue
 
+        if not name or name == code or name not in BeautifulSoup(resp.text, 'html.parser').get_text():
+            log_failed(FAILED_LOG, code, f"identity unavailable {season}; preserving existing records")
+            continue
         recs = _parse_records(resp.text, code, season)
         print(f"  {season}: {len(recs)} records")
         all_records.extend(recs)
         time.sleep(0.4)
 
     if all_records:
-        pd.DataFrame(all_records).to_csv(out_file, index=False, encoding="utf-8-sig")
+        fresh = pd.DataFrame(all_records)
+        if os.path.exists(out_file):
+            existing = pd.read_csv(out_file, encoding='utf-8-sig', dtype=str).fillna('')
+            fresh = merge_verified_records(existing, fresh)
+        fresh.to_csv(out_file, index=False, encoding="utf-8-sig")
         print(f"  Saved {len(all_records)} total records")
     else:
-        pd.DataFrame(columns=RECORD_COLS).to_csv(out_file, index=False, encoding="utf-8-sig")
-        print(f"  No records found (wrote empty file)")
+        print(f"  No verified records found; existing file untouched, no empty file created")
 
 print("\nTrainer data scraping complete!")
