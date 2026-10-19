@@ -54,7 +54,7 @@ jockeys = {}  # code -> name
 def extract_jockeys_from_page(driver, jockeys):
     links = driver.find_elements(
         By.XPATH,
-        "//table//a[contains(@href,'jockeypastrec')]"
+        "//table//a[contains(@href,'jockeypastrec') or contains(@href,'jockeyprofile')]"
     )
     for l in links:
         href = l.get_attribute("href") or ""
@@ -80,15 +80,26 @@ print(f"Found {len(jockeys)} jockeys: {list(jockeys.items())[:5]}...")
 
 # ── 2. Determine what still needs scraping ───────────────────────────────────
 
+def needs_records_retry(code, known_profiles, records_file):
+    from pathlib import Path
+    path = Path(records_file)
+    return code not in known_profiles or not path.exists() or path.stat().st_size < 250
+
 profiles_file = os.path.join(PROFILES_DIR, "jockey_profiles.csv")
 done = set()
 if os.path.exists(profiles_file):
     try:
-        done = set(pd.read_csv(profiles_file, encoding="utf-8-sig")["jockey_code"].astype(str))
+        existing_profiles = pd.read_csv(profiles_file, encoding="utf-8-sig").fillna('')
+        done = set(existing_profiles["jockey_code"].astype(str))
+        for _, row in existing_profiles.iterrows():
+            code = str(row.get('jockey_code', '')).strip()
+            name = str(row.get('jockey_name', '')).strip()
+            if code and name:
+                jockeys.setdefault(code, name)
     except Exception:
         pass
 
-todo = [c for c in jockeys if c not in done]
+todo = [c for c in jockeys if needs_records_retry(c, done, os.path.join(RECORDS_DIR, f'jockey_{c}.csv'))]
 print(f"Already done: {len(done)} | Remaining: {len(todo)}")
 
 # ── 3. Scrape ────────────────────────────────────────────────────────────────
@@ -109,6 +120,10 @@ for i, code in enumerate(todo, 1):
             log_failed(FAILED_LOG, code, f"load failed season={season}")
             continue
         time.sleep(1)
+
+        if not name or name not in driver.find_element(By.TAG_NAME, 'body').text:
+            log_failed(FAILED_LOG, code, f'identity unavailable season={season}; checking next season')
+            continue
 
         tables = driver.find_elements(By.TAG_NAME, "table")
         if not tables:
@@ -197,15 +212,19 @@ for i, code in enumerate(todo, 1):
         except Exception as e:
             print(f"  Warning records (season={season}): {e}")
 
-    all_profiles.append(profile)
+    if all_records:
+        all_profiles.append(profile)
     print(f"  {name}: {len(all_records)} race records across seasons")
 
-    if all_records and not os.path.exists(records_file):
+    if all_records:
         full_cols = RECORD_COLS + ["date", "venue"]
         save_df = pd.DataFrame(all_records)
         for col in full_cols:
             if col not in save_df.columns:
                 save_df[col] = ""
+        if os.path.exists(records_file):
+            existing_records = pd.read_csv(records_file, encoding='utf-8-sig', dtype=str).fillna('')
+            save_df = pd.concat([existing_records, save_df], ignore_index=True).drop_duplicates(subset=['jockey_code', 'date', 'race_index', 'horse_name'], keep='first')
         save_df.to_csv(records_file, index=False, encoding="utf-8-sig")
 
     if i % 10 == 0 and all_profiles:
