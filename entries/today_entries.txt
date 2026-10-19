@@ -1,4 +1,4 @@
-# meeting=2026-10-19 racecourse=ST written=2026-10-17
+# meeting=2026-10-19 racecourse=ST written=2026-10-19
 E058
 E436
 E471
@@ -95,7 +95,6 @@ K507
 K534
 K546
 K547
-K554
 K572
 K582
 K585
