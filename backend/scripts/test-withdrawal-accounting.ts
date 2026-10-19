@@ -12,7 +12,13 @@ for(const [pool,gross,refund,cost] of [['FF',10,10,0],['TRIO',40,30,10],['TIERCE
  const p=settleSingleBox(pool,[8,13,6,2],[2],[]); assert.deepEqual([p.grossCost,p.refund,p.cost],[gross,refund,cost]);
 }
 const r=raceAccounting([8,13,6,2],[8,13,6,10],[2],true,{TRI:[{nums:['8','13','6'],div:123.4}]});
-assert.equal(r.original.pools[1]?.payout,123.4); assert.equal(r.effective.pools[1]?.refund,0); assert.equal(r.effective.pools[1]?.cost,40);
+assert.equal(r.original.pools[1]?.payout,123.4);
+assert.equal(r.effective.includedInOfficialPnl,false);
+assert.deepEqual(r.effective.pools,[]);
+assert.equal(r.original.pools.reduce((n,p)=>n+p.grossCost,0),530);
+assert.equal(r.original.pools.reduce((n,p)=>n+p.refund,0),460);
+assert.equal(r.original.pools.reduce((n,p)=>n+p.cost,0),70);
+assert.ok(Math.abs(r.original.pools.reduce((n,p)=>n+(p.net??0),0)-53.4)<1e-9);
 assert.equal(settleSingleBox('TRIO',[1,2,3,4],[],[]).net,-40);
 assert.equal(settleSingleBox('TRIO',[1,2,3,4],[],null).payout,null);
 assert.equal(settleSingleBox('TRIO',[1,2,3,4],[],null,10,true).refund,40);

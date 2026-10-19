@@ -1,9 +1,9 @@
 # Withdrawal accounting candidate — not deployed
 
-- Policy: official-withdrawals-v3-split. Original frozen ranks/scores and identities remain unchanged.
+- Policy: official-withdrawals-v4-original-only. Original frozen ranks/scores and identities remain unchanged.
 - Invalid prelock inputs remain in incident metadata, excluded from scoring and strategy costs; a correctly refreshed/recomputed prelock card remains valid.
-- Original-at-lock hypothetical single-race units and effective strategy units are separate. No actual user bet is inferred.
-- Rule 3.10(a): only affected combinations refund. Four-pick original with one withdrawn: FF gross/refund/cost 10/10/0; TRIO 40/30/10; TIERCE 240/180/60; QUARTET 240/240/0. Total 530/460/70. Effective four-pick scenario is separately costed at 530 when pools remain open.
+- Official P&L includes only original-at-lock hypothetical units with official refunds/dividends. Effective selections are display-only alternatives, not official costs or payouts. No actual user bet or automatic rebet is inferred.
+- Rule 3.10(a): only affected combinations refund. Four-pick original with one withdrawn: FF gross/refund/cost 10/10/0; TRIO 40/30/10; TIERCE 240/180/60; QUARTET 240/240/0. Total 530/460/70. Effective four-pick alternatives never enter official P&L.
 - Rule 3.10(b)(iii): DT/TT original tickets use official first/second/third favourites excluding retained selections, never engine substitutes; missing official favourite evidence returns pending/null, not refund or loss. Shared calculator exists; full DT/TT endpoint integration remains pending.
 - Rule 3.9 pool closures follow actual starter thresholds only after results evidence is complete. Dead-heat dividends retain decimal cents and sum only covered combinations.
 - Locked jockey changes preserve ranks and scores and produce a separate metric group. Unknown change timing/prelock unapplied jockey changes fail closed.
