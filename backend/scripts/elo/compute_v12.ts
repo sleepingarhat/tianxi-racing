@@ -36,6 +36,9 @@ import {
   type AxisType,
 } from './engine_v12.js';
 import { normalizeSurface, distanceBucket } from '../ingest/lib/parsers.js';
+import { readChangesManifest } from '../backtest/withdrawal-input';
+import { officialWithdrawal } from '../../src/lib/hkjc-changes';
+import { assertChangeResultConsistent } from '../../src/lib/racing-change-records';
 
 interface Args {
   db: string;
@@ -100,6 +103,8 @@ async function main(): Promise<void> {
   log('elo12', `run=${args.runLabel} from=${args.fromDate} to=${args.toDate} reset=${args.reset}`);
 
   const db = openDb(args.db);
+  const changePages = readChangesManifest(process.env.HKJC_CHANGES_MANIFEST ?? '');
+  const pageByMeeting = new Map(changePages.map(p => [p.date + ':' + p.venue, p]));
   ensureSchema(db, [
     resolve(process.cwd(), 'src', 'db', 'schema.sql'),
     resolve(process.cwd(), 'src', 'db', 'schema_v2.sql'),
@@ -152,12 +157,7 @@ async function main(): Promise<void> {
   db.pragma('temp_store = MEMORY');
   db.pragma('cache_size = -262144');
 
-  if (args.reset) {
-    db.prepare(`DELETE FROM horse_elo_snapshots WHERE id LIKE 'v12:%'`).run();
-    db.prepare(`DELETE FROM jockey_elo_snapshots WHERE id LIKE 'v12:%'`).run();
-    db.prepare(`DELETE FROM trainer_elo_snapshots WHERE id LIKE 'v12:%'`).run();
-    log('elo12', 'reset v12 snapshots only');
-  }
+  // Participant validation below must finish before resetting any Elo snapshots.
 
   db.prepare(
     `INSERT INTO elo_runs (id, run_label, k_factor, initial_rating, burn_in_from, engine_version,
@@ -210,6 +210,16 @@ async function main(): Promise<void> {
   const races = new Map<string, { key: RaceKey; runners: FormRow[] }>();
   for (const r of rows) {
     if (!r.venue || r.race_number == null) continue;
+    const page = pageByMeeting.get(r.race_date + ':' + r.venue);
+    if(r.race_date >= '2026-10-19' && !page) throw new Error('elo-official-meeting-coverage-missing');
+    const horse = db.prepare('SELECT id,name_ch FROM horses WHERE id=? OR code=?').get(r.horse_id,r.horse_id) as {id:string;name_ch:string}|undefined;
+    const result = horse ? db.prepare(`SELECT rr.horse_number,rr.finishing_position,j.name_ch AS jockey_name FROM race_results rr JOIN races ra ON ra.id=rr.race_id JOIN race_meetings m ON m.id=ra.meeting_id LEFT JOIN jockeys j ON j.id=rr.jockey_id WHERE m.date=? AND m.venue=? AND ra.race_number=? AND rr.horse_id=?`).get(r.race_date,r.venue,r.race_number,horse.id) as {horse_number:number;finishing_position:number|null;jockey_name:string|null}|undefined : undefined;
+    if(page?.changes.some(c=>c.raceNumber===r.race_number) && (!horse || !result)) throw new Error('elo-change-runner-identity-unverified');
+    if(result && horse && officialWithdrawal(page?.changes ?? [],r.race_number,result.horse_number,horse.name_ch)) {
+      assertChangeResultConsistent(true,result.finishing_position); continue;
+    }
+    if(result?.jockey_name) r.jockey_name = result.jockey_name;
+    else if(page?.changes.some(c=>c.raceNumber===r.race_number&&c.kind==='other'&&/騎師|策騎/.test(c.text))) throw new Error('elo-actual-jockey-unverified');
     const ks = `${r.race_date}|${r.venue}|${r.race_number}`;
     if (!races.has(ks)) races.set(ks, { key: { date: r.race_date, venue: r.venue, raceNo: r.race_number }, runners: [] });
     const race = races.get(ks);
@@ -221,6 +231,14 @@ async function main(): Promise<void> {
     return a.key.raceNo - b.key.raceNo;
   });
   log('elo12', `reconstructed ${sortedRaces.length} races`);
+  if (args.reset) {
+    db.transaction(() => {
+      db.prepare(`DELETE FROM horse_elo_snapshots WHERE id LIKE 'v12:%'`).run();
+      db.prepare(`DELETE FROM jockey_elo_snapshots WHERE id LIKE 'v12:%'`).run();
+      db.prepare(`DELETE FROM trainer_elo_snapshots WHERE id LIKE 'v12:%'`).run();
+    })();
+    log('elo12', 'validated participants; reset v12 snapshots only');
+  }
 
   // State stores: key = `${entityId}|${axisKey}`
   const horseStore = new Map<string, V12AxisState>();

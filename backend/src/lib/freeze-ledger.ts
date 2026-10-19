@@ -179,7 +179,7 @@ export async function computeFreezeLedgerForDate(
     const state=applyOfficialSelection(rows,rn,changes,lock.lockAt);
     withdrawalStates.set(rn,state);
     if(state.status!=='valid') {base.invalidInputRaces.push({raceNumber:rn,status:state.status,originalTop4:state.original});frozenByRace.delete(rn);}
-    else frozenByRace.set(rn,state.picks);
+    // Keep original rows for official scoring; alternatives live in withdrawalStates only.
   }
   if (!frozenByRace.size) {
     base.source = 'missing-log';
@@ -232,7 +232,7 @@ export async function computeFreezeLedgerForDate(
   const races: LedgerRace[] = [];
   for (const rn of [...frozenByRace.keys()].sort((a, b) => a - b)) {
     const picks = frozenByRace.get(rn) ?? [];
-    const actual = (resByRace.get(rn) ?? []).filter((r) => Number(r.pos) > 0);
+    const actual = (resByRace.get(rn) ?? []).filter((r) => Number(r.pos) > 0 && Number(r.pos) < 99 && !(withdrawalStates.get(rn)?.withdrawnHorseNumbers ?? []).includes(Number(r.horse_number)));
     const predictedTop4 = picks.slice(0, 4).map((p) => Number(p.horse_number));
     const predictedTop3 = predictedTop4.slice(0, 3);
     const finished = actual.slice().sort((a, b) => Number(a.pos) - Number(b.pos));

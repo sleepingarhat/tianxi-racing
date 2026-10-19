@@ -341,13 +341,14 @@ async function raceDayReportIsSettled(db: D1Database, value: any): Promise<boole
         if (!settled || new Set(m4).size !== 4) continue;
         for (const op of race.accounting?.original?.pools ?? []) {const a=originalPools[op.pool];if(!a)continue;a.grossCost+=op.grossCost;a.refund+=op.refund;a.cost+=op.cost;if(op.payout==null)a.pending++;else a.payout+=op.payout;a.net=a.pending?null:a.payout-a.cost;}
         racesBet++;
-        const effectivePools=race.accounting?.effective?.pools;
-        dayCost += effectivePools?effectivePools.reduce((n:number,p:any)=>n+p.cost,0):PER_RACE;
-        for (const k of ['FF','TRIO','TIERCE','QUARTET']) { pools[k].cost += effectivePools?.find((p:any)=>p.pool===k)?.cost ?? poolCost[k]; pools[k].bets++; }
-        for (const bp of (race.boxPayouts || [])) {
-          if (!dp[bp.pool] || race.accounting?.effective?.pools?.find((p:any)=>p.pool===bp.pool)?.cost===0) continue;
-          const div = Number(bp.dividend) || 0;
-          dayPayout += div; dp[bp.pool].payout += div; dp[bp.pool].wins += 1;
+        const settledPools = race.accounting?.original?.pools;
+        if (!settledPools?.length || settledPools.some((p:any)=>p.payout == null)) { racesBet--; continue; }
+        dayCost += settledPools.reduce((n:number,p:any)=>n+p.cost,0);
+        for (const op of settledPools) {
+          if (!pools[op.pool] || !dp[op.pool]) continue;
+          pools[op.pool].cost += op.cost; pools[op.pool].bets++;
+          dayPayout += op.payout; dp[op.pool].payout += op.payout;
+          if (op.hits > 0) dp[op.pool].wins++;
         }
       }
       if (!racesBet) continue;
@@ -1343,10 +1344,12 @@ export async function computeHitRateStats(db: D1Database, date: string, engine: 
     let top4SumIntersect = 0, top4Eligible = 0;
     const invalidInputRaces = picksData.races.filter((r:any)=>r.withdrawal && r.withdrawal.status !== 'valid').map((r:any)=>({raceNumber:r.raceNumber,status:r.withdrawal.status,originalTop4:r.withdrawal.original,hasWithdrawal:r.withdrawal.hasWithdrawal,changes:r.withdrawal.changes,accounting:raceAccounting(r.withdrawal.original,[],r.withdrawal.withdrawnHorseNumbers??[],false,null)}));
     const races = picksData.races.filter((r:any)=>!r.withdrawal || r.withdrawal.status === 'valid').map((race: any) => {
-      const actualSorted = (actualByRace.get(race.raceNumber) ?? []).filter((a: any) => Number(a.finishing_position) > 0).sort((a: any, b: any) => a.finishing_position - b.finishing_position);
-      const predictedTop3 = (race.picks ?? []).slice(0, 3);
+      const originalPicks = race.originalPicks ?? race.picks ?? [];
+      const effectivePicks = race.picks ?? [];
+      const actualSorted = (actualByRace.get(race.raceNumber) ?? []).filter((a: any) => Number(a.finishing_position) > 0 && Number(a.finishing_position) < 99 && !(race.withdrawal?.withdrawnHorseNumbers ?? []).includes(Number(a.horse_number))).sort((a: any, b: any) => a.finishing_position - b.finishing_position);
+      const predictedTop3 = originalPicks.slice(0, 3);
       const predictedTop2 = predictedTop3.slice(0, 2);
-      const predictedTop4 = (race.picks ?? []).slice(0, 4);
+      const predictedTop4 = originalPicks.slice(0, 4);
       const actualTop3 = actualSorted.slice(0, 3);
       const actualTop2 = actualSorted.slice(0, 2);
       const actualTop4 = actualSorted.slice(0, 4);
@@ -1438,7 +1441,9 @@ export async function computeHitRateStats(db: D1Database, date: string, engine: 
         raceNumber: race.raceNumber, title: race.title, distance: race.distance, going: race.going,
         withdrawal: race.withdrawal ?? null,
         originalTop4: race.withdrawal?.original ?? predictedTop4.map((p:any)=>p.horseNumber),
-        effectiveTop4: predictedTop4.map((p:any)=>p.horseNumber),
+        effectiveTop4: effectivePicks.slice(0,4).map((p:any)=>p.horseNumber),
+        alternativeIncludedInOfficialMetrics: false,
+        alternativeTop4IntersectCount: actualTop4.length === 4 && effectivePicks.length >= 4 ? effectivePicks.slice(0,4).filter((p:any)=>actualTop4Ids.has(p.horseId)).length : null,
         hasWithdrawal: race.withdrawal?.hasWithdrawal ?? false,
         postLockJockeyChange: race.withdrawal?.postLockJockeyChange ?? false,
         accounting: raceAccounting(race.withdrawal?.original ?? predictedTop4.map((p:any)=>p.horseNumber),predictedTop4.map((p:any)=>p.horseNumber),race.withdrawal?.withdrawnHorseNumbers??[],true,wantBoxPayouts && boxDivsComplete ? divByRaceNumber.get(race.raceNumber) ?? {} : null,actualSorted.length>=4?{FF:actualSorted.length<6,QUARTET:actualSorted.length<6,TRIO:actualSorted.length<5,TIERCE:actualSorted.length<4}:{}),
@@ -1507,7 +1512,7 @@ export async function computeHitRateStats(db: D1Database, date: string, engine: 
       summary: {
         withdrawalPolicy: ACCOUNTING_POLICY, accountingPolicy: WITHDRAWAL_ACCOUNTING_POLICY, invalidInputRaces,
         withdrawalRaces: races.filter((r:any)=>r.hasWithdrawal).map((r:any)=>r.raceNumber),
-        splitTop4: Object.fromEntries(['unchanged','post-lock-withdrawal','post-lock-jockey-change'].map(group=>{const selected=races.filter((r:any)=>r.actualTop4.length>=4&&(group==='post-lock-withdrawal'?r.hasWithdrawal:group==='post-lock-jockey-change'?r.postLockJockeyChange:!r.hasWithdrawal&&!r.postLockJockeyChange));return [group,{races:selected.length,originalHits:selected.reduce((n:number,r:any)=>n+r.originalTop4.filter((h:number)=>r.actualTop4.some((a:any)=>a.horseNumber===h)).length,0),effectiveHits:selected.reduce((n:number,r:any)=>n+r.top4IntersectCount,0)}];})),
+        splitTop4: Object.fromEntries(['unchanged','post-lock-withdrawal','post-lock-jockey-change'].map(group=>{const selected=races.filter((r:any)=>r.actualTop4.length>=4&&(group==='post-lock-withdrawal'?r.hasWithdrawal:group==='post-lock-jockey-change'?r.postLockJockeyChange:!r.hasWithdrawal&&!r.postLockJockeyChange));return [group,{races:selected.length,originalHits:selected.reduce((n:number,r:any)=>n+r.originalTop4.filter((h:number)=>r.actualTop4.some((a:any)=>a.horseNumber===h)).length,0),effectiveHits:selected.reduce((n:number,r:any)=>n+(r.alternativeTop4IntersectCount??0),0),alternativeIncludedInOfficialMetrics:false}];})),
         racesEvaluated,
         top1HitRate: rate(top1Hits, racesEvaluated),
         top3AnyHitRate: rate(top3AnyHits, racesEvaluated),

@@ -924,6 +924,8 @@ import {parseHkjcChangesPage} from '../../src/lib/hkjc-changes';
       ? [...(runnersByRace.get(meta.id) || [])]
       : (qRunners.all(meta.id) as RunnerRow[]);
     const changePage=changeByMeeting.get(meta.date+':'+meta.venue);
+    if(meta.date >= '2026-10-19' && !changePage) throw new Error('training-official-meeting-coverage-missing');
+    if(!UPCOMING_MODE && changePage?.changes.some(c=>c.raceNumber===meta.race_number&&c.kind==='other'&&/騎師|策騎/.test(c.text))) throw new Error('training-frozen-jockey-lineage-required');
     const raceHasWithdrawal=changePage?.changes.some(c=>c.raceNumber===meta.race_number&&(c.kind==='scratched'||c.kind==='replaced'))??false;
     if(changePage)for(let j=runners.length-1;j>=0;j--){const r=runners[j];const name=(db.prepare('SELECT name_ch FROM horses WHERE id=?').get(r.horse_id) as {name_ch:string}|undefined)?.name_ch; if(!name||r.horse_number===null)throw new Error('change-runner-identity-unverified');const change=changePage.changes.find(c=>c.raceNumber===meta.race_number&&c.horseNumber===r.horse_number&&c.horseName===name&&(c.kind==='scratched'||c.kind==='replaced')); if(change){assertChangeResultConsistent(true,UPCOMING_MODE?null:r.finishing_position);runners.splice(j,1);}}
     if (runners.length < 4) continue;

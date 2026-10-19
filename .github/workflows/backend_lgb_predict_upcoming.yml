@@ -100,10 +100,18 @@ jobs:
           echo "key=$KEY" >> $GITHUB_OUTPUT
           echo "Cache key: $KEY"
 
+      - name: Verify official change evidence before imports and feature caches
+        working-directory: tianxi-backend
+        env:
+          GITHUB_TOKEN: ${{ secrets.TIANXI_BACKEND_PAT }}
+        run: |
+          python scripts/backtest/sync-official-changes.py
+          echo "HKJC_CHANGES_MANIFEST=$PWD/official-changes-manifest.json" >> "$GITHUB_ENV"
+
       - name: Compute feature-cache key (data + dump-features.ts hash)
         id: featsig
         run: |
-          FEAT_HASH=$(sha256sum tianxi-backend/scripts/backtest/dump-features.ts | cut -c1-12)
+          FEAT_HASH=$(cat tianxi-backend/scripts/backtest/dump-features.ts tianxi-backend/scripts/backtest/withdrawal-input.ts tianxi-backend/official-changes-manifest.json | sha256sum | cut -c1-12)
           DATA_SHA=$(cd hkjc-data && git rev-parse HEAD)
           SCRIPTS_HASH=$(echo "${{ steps.sig.outputs.key }}" | awk -F- '{print $NF}')
           # Feature-hash FIRST so restore-keys can fall back to yesterday's
@@ -364,7 +372,7 @@ jobs:
         run: |
           curl -fsS -X POST -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' \
             --data @model-bundle/lock-manifest.json \
-            https://tianxi-backend.tianxi-entertainment.workers.dev/admin/api/model-manifest || echo "manifest publish failed (non-blocking)"
+            https://tianxi-backend.tianxi-entertainment.workers.dev/admin/api/model-manifest
 
       - name: Upload artifacts
         if: always()

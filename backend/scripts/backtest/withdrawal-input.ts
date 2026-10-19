@@ -3,9 +3,9 @@ import {createHash} from 'node:crypto';
 import {parseHkjcChangesPage,type HkjcChangesPage} from '../../src/lib/hkjc-changes';
 /** Explicit source manifest, never infer withdrawal from DNF/PU/UR. */
 export function readChangesManifest(path:string):HkjcChangesPage[] {
- if(!path)return [];
+ if(!path)throw new Error('official-change-manifest-required');
  const body=JSON.parse(readFileSync(path,'utf8'));
- if(!Array.isArray(body.snapshots))throw new Error('official-change-manifest-required');
+ if(!Array.isArray(body.snapshots)||!body.snapshots.length)throw new Error('official-change-manifest-required');
  const pages=body.snapshots.map((s:any)=>{
   const p=typeof s.rawHtml==='string'?parseHkjcChangesPage(s.rawHtml):null;
   if(createHash('sha256').update(s.rawHtml??'').digest('hex')!==s.sha256)throw new Error('training-change-sha-mismatch');

@@ -3,7 +3,7 @@ import { officialCardQuery } from './official-card-query';
 import { effectiveTop4 } from './withdrawal-substitution';
 import {PREDICTION_COLUMNS} from './freeze-recovery';
 import { getMeetingLockState } from './lock-window';
-export const ACCOUNTING_POLICY = 'official-withdrawals-v3-split';
+export const ACCOUNTING_POLICY = 'official-withdrawals-v5-original-metrics';
 const CARD_URL = 'https://info.cld.hkjc.com/graphql/base/';
 async function sha(raw: string) { return [...new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(raw)))].map(n=>n.toString(16).padStart(2,'0')).join(''); }
 export async function ensureOfficialTables(db: D1Database) {

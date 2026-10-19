@@ -47,7 +47,7 @@ await assert.rejects(()=>assertFreezeInput(db,'2026-10-19','ST',lock),/active-ca
 assert.throws(()=>sqlite.query("UPDATE hkjc_source_versions SET raw='changed'").run());
 assert.throws(()=>sqlite.query('DELETE FROM hkjc_source_versions').run());
 globalThis.fetch=original;
-assert.equal(ACCOUNTING_POLICY,'official-withdrawals-v3-split');
+assert.equal(ACCOUNTING_POLICY,'official-withdrawals-v5-original-metrics');
 console.log('PASS official official timing, card completeness, stale-source freeze, immutable evidence and receipt checks');
 
 const jockeyPost={...post,changes:[{...post.changes[0],horseNumber:1,horseName:"馬1",kind:"other" as const,text:"將由騎師 潘頓 策騎"}]};

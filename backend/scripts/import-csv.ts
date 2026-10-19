@@ -328,6 +328,7 @@ function importResults(stmts: Stmts, db: Database.Database, filePath: string) {
     const firstRow = rows[0];
     const date = firstRow.date;
     const venue = normalizeVenue(firstRow.venue);
+    if(date >= '2026-10-19' && !changePages.some(p=>p.date===date&&p.venue===venue)) throw new Error('import-official-meeting-coverage-missing');
     const mId = meetingId(date, venue);
 
     // 從 rows 推斷場地狀況

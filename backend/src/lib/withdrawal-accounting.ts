@@ -1,5 +1,5 @@
 /** Read-only HKJC Rule 3.10 accounting. Model replacements are NOT ticket replacements. */
-export const WITHDRAWAL_ACCOUNTING_POLICY = 'official-withdrawals-v4-original-only';
+export const WITHDRAWAL_ACCOUNTING_POLICY = 'official-withdrawals-v5-original-metrics';
 export const WITHDRAWAL_RULE_SOURCE = 'https://www.hkjc.com/english/betting/template_betting_rule_files/pdf/Horse_Race_Rule_3_Eng_20260330.pdf';
 export type SinglePool = 'FF' | 'TRIO' | 'TIERCE' | 'QUARTET';
 export type Dividend = { nums: string[]; div: number };
@@ -60,7 +60,7 @@ export function settleCrossTrioTicket(pool: 'DT' | 'TT', legs: Leg[], dividends:
 export function raceAccounting(original: number[], effective: number[], withdrawals: number[], eligible: boolean, divs: Record<string,Dividend[]> | null, poolRefunds: Partial<Record<SinglePool,boolean>> = {}) {
   const settle = (ns: number[]) => Object.entries(specs).map(([pool,spec]) => settleSingleBox(pool as SinglePool,ns,withdrawals,divs === null ? null : divs[spec.code] ?? [],10,poolRefunds[pool as SinglePool] === true));
   return { policy: WITHDRAWAL_ACCOUNTING_POLICY, hasWithdrawal: withdrawals.length > 0, withdrawnHorseNumbers: withdrawals,
-    originalTop4: original, effectiveTop4: eligible ? effective : [], scoringEligible: eligible && effective.length === 4,
+    originalTop4: original, effectiveTop4: eligible ? effective : [], scoringEligible: eligible && original.length === 4,
     original: { basis: 'hypothetical-original-at-lock', pools: eligible ? settle(original) : [], status: eligible ? 'available' : 'excluded-invalid-input' },
     effective: { basis: 'display-only-alternative-not-in-official-pnl', includedInOfficialPnl: false, pools: [], status: eligible && effective.length === 4 ? 'display-only' : 'excluded-invalid-input' },
     crossRace: { pools: ['DT','TT'], rule: 'official-favourite-per-ticket-not-engine-substitute', status: withdrawals.length ? 'requires-official-favourites-and-ticket-legs' : 'no-withdrawal' }, ruleSource: WITHDRAWAL_RULE_SOURCE };
