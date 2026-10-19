@@ -157,6 +157,14 @@ def scrape_year(year: int) -> List[Dict]:
     return rows
 
 
+def merge_fixture_rows(old_rows, new_rows):
+    """Calendar disappearance is not cancellation evidence; retain original dates."""
+    merged = {row['date']: dict(row) for row in old_rows}
+    for row in new_rows:
+        merged[row['date']] = {**merged.get(row['date'], {}), **row}
+    return [merged[key] for key in sorted(merged)]
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--year", type=int, default=None)
@@ -184,12 +192,10 @@ def main():
 
     df_new = pd.DataFrame(all_rows).drop_duplicates(subset=["date"]).sort_values("date")
 
-    # Merge with existing cache — keep dates outside scraped year range
+    # Preserve historical scheduled dates; cancellations require separate evidence.
     if os.path.exists(OUTPUT_CSV):
         df_old = pd.read_csv(OUTPUT_CSV)
-        years_set = set(years)
-        df_keep = df_old[~df_old["season_year"].isin(years_set)]
-        df_final = pd.concat([df_keep, df_new], ignore_index=True).drop_duplicates(subset=["date"]).sort_values("date")
+        df_final = pd.DataFrame(merge_fixture_rows(df_old.to_dict('records'), df_new.to_dict('records')))
     else:
         df_final = df_new
 
