@@ -2,7 +2,7 @@
   "scan_date": "2026-10-19",
   "repo_root": "/home/runner/work/tianxi-racing/tianxi-racing",
   "overall_severity": "critical",
-  "critical_gap_count": 21,
+  "critical_gap_count": 31,
   "warn_gap_count": 12,
   "recommendation": "gha_next_delta_will_fix",
   "categories": {
@@ -36,13 +36,18 @@
     },
     "horse_profiles": {
       "name": "horse_profiles",
-      "expected": 1187,
-      "present": 1183,
+      "expected": 1195,
+      "present": 1186,
       "missing": [
         "L332",
+        "L342",
         "L445",
         "L448",
-        "L486"
+        "L452",
+        "L486",
+        "L510",
+        "L564",
+        "M021"
       ],
       "stale": [
         "K402",
@@ -59,24 +64,29 @@
         "K265"
       ],
       "notes": [
-        "4 horses raced in last 180d have NO profile",
+        "9 horses raced in last 180d have NO profile",
         "total profiles in DB: 6099"
       ],
       "severity": "critical"
     },
     "horse_form_records": {
       "name": "horse_form_records",
-      "expected": 1187,
-      "present": 1183,
+      "expected": 1195,
+      "present": 1186,
       "missing": [
         "L332",
+        "L342",
         "L445",
         "L448",
-        "L486"
+        "L452",
+        "L486",
+        "L510",
+        "L564",
+        "M021"
       ],
       "stale": [],
       "notes": [
-        "4 recent-cohort horses have NO form_records file",
+        "9 recent-cohort horses have NO form_records file",
         "total form_records files: 6099"
       ],
       "severity": "critical"
