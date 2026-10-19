@@ -3,7 +3,7 @@
   "repo_root": "/home/runner/work/tianxi-racing/tianxi-racing",
   "overall_severity": "warn",
   "critical_gap_count": 0,
-  "warn_gap_count": 5,
+  "warn_gap_count": 4,
   "recommendation": "monitor_no_block",
   "categories": {
     "race_artefacts": {
@@ -87,15 +87,11 @@
     "trainer_records": {
       "name": "trainer_records",
       "expected": 68,
-      "present": 67,
-      "missing": [
-        "CJA"
-      ],
+      "present": 68,
+      "missing": [],
       "stale": [],
-      "notes": [
-        "1 trainer profiles have no records file"
-      ],
-      "severity": "warn"
+      "notes": [],
+      "severity": "ok"
     },
     "trial_results": {
       "name": "trial_results",
