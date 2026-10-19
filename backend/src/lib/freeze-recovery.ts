@@ -83,10 +83,11 @@ export async function recoverOriginalFreeze(db: D1Database, date: string, venue:
       const snapshot: Snapshot = {schema:1,date,engine,venue,lockAt,rows,meta};
       const text=JSON.stringify(snapshot); const hash=await digest(text);
       // Capture guard and snapshot insertion share one transaction. A concurrent draft cannot change its rows.
-      // The insert itself checks exact ordered content inside SQLite; no read/write race.
-      const ordered = `SELECT ${PREDICTION_COLUMNS.join(',')} FROM prediction_log WHERE date=? AND engine=? AND variant='baseline' ORDER BY race_number,predicted_rank,horse_id`;
-      const objectArgs=PREDICTION_COLUMNS.flatMap(c => [`'${c}'`,c]).join(',');
-      const insert = db.prepare(`INSERT OR IGNORE INTO prediction_original_snapshots(date,engine,snapshot_json,sha256,captured_at) SELECT ?,?,?,?,? WHERE (SELECT json_group_array(json_object(${objectArgs})) FROM (${ordered})) = ?`).bind(date,engine,text,hash,new Date(now).toISOString(),date,engine,JSON.stringify(rows));
+      // Compare typed values, not JSON formatting: SQLite serializes REAL 1 as 1.0,
+      // while JavaScript serializes it as 1. Counts + every field (including NULL)
+      // still guard the read/write race inside this single INSERT transaction.
+      const sameFields = PREDICTION_COLUMNS.map(c => `p.${c} IS json_extract(j.value,'$.${c}')`).join(' AND ');
+      const insert = db.prepare(`INSERT OR IGNORE INTO prediction_original_snapshots(date,engine,snapshot_json,sha256,captured_at) SELECT ?,?,?,?,? WHERE (SELECT COUNT(*) FROM prediction_log WHERE date=? AND engine=? AND variant='baseline') = ? AND NOT EXISTS (SELECT 1 FROM prediction_log p WHERE p.date=? AND p.engine=? AND p.variant='baseline' AND NOT EXISTS (SELECT 1 FROM json_each(?) j WHERE ${sameFields}))`).bind(date,engine,text,hash,new Date(now).toISOString(),date,engine,rows.length,date,engine,JSON.stringify(rows));
       await db.batch([insert]);
       saved=await db.prepare(`SELECT snapshot_json,sha256 FROM prediction_original_snapshots WHERE date=? AND engine=?`).bind(date,engine).first<{snapshot_json:string;sha256:string}>();
       if (!saved) throw new Error('concurrent-capture-retry');
