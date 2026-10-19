@@ -64,8 +64,8 @@ jobs:
     needs: season_gate
     if: >-
       needs.season_gate.outputs.skip != 'true' &&
-      (github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success')
-    # Only run when parent succeeded, or manual dispatch
+      (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success')
+    # Scheduled fallback, successful upstream, or manual dispatch; failed parents stay blocked
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
