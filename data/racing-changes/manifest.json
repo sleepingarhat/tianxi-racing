@@ -20,6 +20,13 @@
       "sourceUrl": "https://racing.hkjc.com/zh-hk/local/information/changes",
       "date": "2026-10-19",
       "venue": "ST"
+    },
+    {
+      "path": "data/racing-changes/2026-10-21/HV-82ead670ae2367d6c5b4934825b6cd77fc9e8509737385bab61070e9cd66e161.html",
+      "sha256": "82ead670ae2367d6c5b4934825b6cd77fc9e8509737385bab61070e9cd66e161",
+      "sourceUrl": "https://racing.hkjc.com/zh-hk/local/information/changes",
+      "date": "2026-10-21",
+      "venue": "HV"
     }
   ]
 }
