@@ -89,6 +89,7 @@ jobs:
         if: steps.guard.outputs.run == 'true'
         run: |
           SKIP="${{ github.event.inputs.skip_scrapers }}"
+          FAILED=0
           for scraper in TrialResults_Scraper.py JockeyData_Scraper.py; do
             short=$(echo "$scraper" | sed 's/_Scraper\.py//')
             if echo ",$SKIP," | grep -q ",$short,"; then
@@ -98,9 +99,10 @@ jobs:
               continue
             fi
             echo "::group::$scraper"
-            python "$scraper" || echo "  $scraper exited non-zero — continuing"
+            python "$scraper" || { echo "  $scraper failed — not verified"; FAILED=1; }
             echo "::endgroup::"
           done
+          exit "$FAILED"
 
       - name: Push Pool B data to main
         if: steps.guard.outputs.run == 'true'
