@@ -1,0 +1,141 @@
+name: Targeted official reference repair
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: targeted-official-reference-repair
+  cancel-in-progress: false
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install requests beautifulsoup4
+      - name: Collect verified official reference rows
+        run: |
+          python3 - <<'PY'
+          import csv,hashlib,json,re
+          from pathlib import Path
+          from datetime import datetime,timezone
+          from urllib.parse import urljoin
+          import requests
+          from bs4 import BeautifulSoup
+          from horse_profile_fields import parse_profile_html,merge_profile_rows,PROFILE_CSV_FIELDS,profile_completeness
+          stamp=datetime.now(timezone.utc).isoformat()
+          archive=Path('audit_reports/official-repair')/stamp.replace(':','-')
+          archive.mkdir(parents=True)
+          sources=[];outputs=[];unresolved=[]
+          def read(path):
+              with open(path,encoding='utf-8-sig') as f:return list(csv.DictReader(f))
+          def write(path,fields,rows):
+              if not rows:raise ValueError('Empty output '+path)
+              with open(path,'w',encoding='utf-8-sig',newline='') as f:
+                  w=csv.DictWriter(f,fieldnames=fields,extrasaction='ignore',lineterminator='\n');w.writeheader();w.writerows(rows)
+              outputs.append({'path':path,'sha256':hashlib.sha256(Path(path).read_bytes()).hexdigest(),'rows':len(rows)})
+          def get(url,identity):
+              r=requests.get(url,timeout=40);r.raise_for_status();s=BeautifulSoup(r.content,'html.parser')
+              sha=hashlib.sha256(r.content).hexdigest();(archive/(sha+'.html')).write_bytes(r.content)
+              valid=identity in s.get_text(' ',strip=True)
+              sources.append({'url':url,'sha256':sha,'identity':identity,'verified':valid,'read_at':stamp})
+              return s,r.text,valid
+          def location(raw):
+              m=re.fullmatch(r'(沙田|跑馬地)?(草地|全天候跑道|全天候|沙地跑道|沙地|泥地)"?([^"]*)"?',raw.strip())
+              return (m.group(1) or '',m.group(2),m.group(3).strip()) if m else (raw,'','')
+          assert location('沙田草地"C+3"')==('沙田','草地','C+3')
+          assert location('全天候')==('','全天候','')
+          missing='L332 L342 L445 L448 L452 L486 L510 L564 M021'.split()
+          stale='K402 G312 K028 K216 L045 L005 G095 K431 L048 H419 G292 K265'.split()
+          path='horses/profiles/horse_profiles.csv';profiles=read(path);old={r['horse_no']:r for r in profiles}
+          fields='horse_no race_index place date racecourse track course distance_m going race_class draw rating trainer jockey lbw win_odds actual_wt_lbs running_position finish_time declared_wt_lbs gear'.split()
+          rawfields='race_index place date racecourse distance_m going race_class draw rating trainer jockey lbw win_odds actual_wt_lbs running_position finish_time declared_wt_lbs gear'.split()
+          for code in missing+stale:
+              url='https://racing.hkjc.com/racing/information/Chinese/Horse/Horse.aspx?HorseNo='+code
+              s,html,valid=get(url,'('+code+')')
+              if not valid:raise ValueError('Horse identity '+code)
+              profile=parse_profile_html(html,code)
+              if profile_completeness(profile)<5:raise ValueError('Profile incomplete '+code)
+              forms=[]
+              for tr in s.find_all('tr'):
+                  c=[td.get_text(' ',strip=True) for td in tr.find_all('td',recursive=False)]
+                  if len(c)<18 or not c[0].isdigit() or '/' not in c[2]:continue
+                  row=dict(zip(rawfields,c[:18]),horse_no=code)
+                  row['racecourse'],row['track'],row['course']=location(c[3])
+                  if not re.fullmatch(r'\d{2}/\d{2}/(?:\d{2}|\d{4})',row['date']) or not row['distance_m'].isdigit():raise ValueError('Form schema '+code)
+                  if code in missing and not row['track']:raise ValueError('Form location '+code)
+                  forms.append(row)
+              if not forms:raise ValueError('No verified forms '+code)
+              keys=[(r['date'],r['race_index']) for r in forms]
+              if len(keys)!=len(set(keys)):raise ValueError('Duplicate forms '+code)
+              profile.update(last_race_date=max(datetime.strptime(r['date'],'%d/%m/%y' if len(r['date'])==8 else '%d/%m/%Y') for r in forms).date().isoformat(),profile_last_scraped=stamp[:10],profile_checked_at=stamp,profile_source_url=url,profile_source_kind='HKJC public horse profile',profile_parser_version='hkjc-labels-v2')
+              old[code]=merge_profile_rows(old.get(code),profile)
+              if code in missing:write('horses/form_records/form_'+code+'.csv',fields,forms)
+              print('verified horse',code,len(forms))
+          write(path,PROFILE_CSV_FIELDS,list(old.values()))
+          jfields='jockey_code jockey_name season race_index place total_starters track course distance_m race_class going horse_name draw rating trainer gear body_wt_lbs actual_wt_lbs date venue'.split()
+          for code,name in {'BA':'巴度','BEP':'布浩榮','BHW':'班德禮','CJR':'高力德','HCY':'何澤堯'}.items():
+              rows=[];available=True
+              for season in ['Current','Previous']:
+                  url=f'https://racing.hkjc.com/zh-hk/local/information/jockeypastrec?jockeyid={code}&season={season}';seen=set()
+                  while url:
+                      if url in seen or len(seen)>=30:raise ValueError('Pagination incomplete '+code)
+                      seen.add(url);s,html,valid=get(url,name)
+                      if not valid:available=False;break
+                      date=venue=''
+                      for tr in s.find_all('tr'):
+                          c=[td.get_text(' ',strip=True) for td in tr.find_all('td',recursive=False)]
+                          if c and len(c)<=3 and re.match(r'\d{2}/\d{2}/\d{4}',c[0]):date=c[0][:10];venue=c[0][10:].strip().split(' ')[0]
+                          if len(c)!=13 or not c[0].isdigit():continue
+                          _,track,course=location(c[2]);place,_,total=c[1].partition('/')
+                          if not track or venue not in ('沙田','跑馬地') or not c[3].isdigit():raise ValueError('Jockey schema '+code)
+                          datetime.strptime(date,'%d/%m/%Y')
+                          row=dict(zip('race_index track distance_m race_class going horse_name draw rating trainer gear body_wt_lbs actual_wt_lbs'.split(),[c[0]]+c[2:]),jockey_code=code,jockey_name=name,season=season,place=place,total_starters=total,date=date,venue=venue,course=course)
+                          row['track']=track;rows.append(row)
+                      links={urljoin(url,a['href']) for a in s.find_all('a',href=True) if a.get_text(' ',strip=True)=='下一頁'}
+                      if len(links)>1:raise ValueError('Ambiguous pagination '+code)
+                      url=next(iter(links),None)
+                  if not available:break
+              if not available or not rows:unresolved.append({'code':code,'reason':'official identity unavailable; no placeholder'});continue
+              unique={}
+              for row in rows:
+                  key=(row['season'],row['date'],row['race_index'])
+                  if key in unique and unique[key]!=row:raise ValueError('Conflicting jockey record '+code)
+                  unique[key]=row
+              write('jockeys/records/jockey_'+code+'.csv',jfields,list(unique.values()));print('verified jockey',code,len(unique))
+          url='https://racing.hkjc.com/zh-hk/local/information/trainerprofile?trainerid=CJA';s,html,valid=get(url,'甘敏斯')
+          if not valid:raise ValueError('Trainer identity unavailable')
+          trainers=read('trainers/trainer_profiles.csv')
+          if any(r['trainer_code']=='CJA' and r['trainer_name']!='甘敏斯' for r in trainers):raise ValueError('Trainer identity conflict')
+          if not any(r['trainer_code']=='CJA' for r in trainers):trainers.append({'trainer_code':'CJA','trainer_name':'甘敏斯'})
+          write('trainers/trainer_profiles.csv',['trainer_code','trainer_name'],trainers)
+          url='https://www.hkjc.com/english/pressrelease/mcs01_showhtml.asp?SelType=NEWS&filename=20260916_141430_E_NEWS.htm';s,html,valid=get(url,'Cancellation of race meeting on 20 September')
+          text=s.get_text(' ',strip=True)
+          if not valid or 'Sunday, 20 September 2026' not in text or 'will be cancelled' not in text:raise ValueError('Cancellation evidence incomplete')
+          fixtures=read('data/fixtures/fixtures.csv');fields=list(fixtures[0]);write('data/fixtures/fixtures.csv',fields,[r for r in fixtures if r['date']!='2026-09-20'])
+          (archive/'manifest.json').write_text(json.dumps({'sources':sources,'outputs':outputs,'unresolved':unresolved,'scope':'current references and current fixture calendar only; no predictions, snapshots, results, models or training writes'},ensure_ascii=False,indent=2))
+          print('unresolved',unresolved)
+          PY
+      - name: Re-run integrity audit
+        run: python3 tools/data_integrity_audit.py --repo-root . || true
+      - name: Save verified references and audit
+        run: |
+          git config user.name '天喜 Bot'
+          git config user.email 'bot@tianxi.ai'
+          git add horses/profiles/horse_profiles.csv horses/form_records/form_L332.csv horses/form_records/form_L342.csv horses/form_records/form_L445.csv horses/form_records/form_L448.csv horses/form_records/form_L452.csv horses/form_records/form_L486.csv horses/form_records/form_L510.csv horses/form_records/form_L564.csv horses/form_records/form_M021.csv jockeys/records/jockey_BA.csv jockeys/records/jockey_BHW.csv jockeys/records/jockey_HCY.csv trainers/trainer_profiles.csv data/fixtures/fixtures.csv audit_reports/
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m '[data][skip ci] verified targeted official reference repair; no frozen writes'
+          git push origin HEAD:main
+      - name: Report audit without hiding remaining gaps
+        run: |
+          python3 - <<'PY'
+          import json
+          r=json.load(open('audit_reports/integrity_latest.json'))
+          print('critical',r['critical_gap_count'],'warn',r['warn_gap_count'])
+          if r['critical_gap_count']>2:raise SystemExit(1)
+          PY
