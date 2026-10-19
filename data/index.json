@@ -1,8 +1,8 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-10-18T16:21:39+00:00",
+  "generated_at": "2026-10-19T09:53:21+00:00",
   "generator": "tools/build_manifest.py",
-  "git_head": "1765e51562af7c3c279f181c307d00ef2cfbdd76",
+  "git_head": "75baa39a2a2695e76f0c8c93091966b418d314e4",
   "repo": "sleepingarhat/tianxi-database",
   "branch": "main",
   "base_url": {
@@ -15,8 +15,8 @@
     "readme": "README.md"
   },
   "summary": {
-    "race_days": 948,
-    "race_artefact_files": 4734,
+    "race_days": 949,
+    "race_artefact_files": 4739,
     "fixtures_rows": 231,
     "horse_form_files": 6099,
     "horse_profile_rows": 6099,
@@ -49,16 +49,16 @@
       "path_template": "data/{year}/{kind}_{date}.csv",
       "raw_url_template": "https://raw.githubusercontent.com/sleepingarhat/tianxi-database/main/data/{year}/{kind}_{date}.csv",
       "count_by_kind": {
-        "results": 942,
-        "commentary": 948,
-        "dividends": 948,
-        "sectional": 948,
-        "video": 948
+        "results": 943,
+        "commentary": 949,
+        "dividends": 949,
+        "sectional": 949,
+        "video": 949
       },
-      "distinct_race_days": 948,
+      "distinct_race_days": 949,
       "date_range": {
         "start": "2016-01-01",
-        "end": "2026-10-14"
+        "end": "2026-10-19"
       },
       "season_years": [
         2016,
@@ -74,7 +74,7 @@
         2026
       ],
       "example": {
-        "results": "data/2026/results_2026-10-14.csv"
+        "results": "data/2026/results_2026-10-19.csv"
       }
     },
     "fixtures": {
@@ -175,9 +175,9 @@
   "integrity": {
     "latest_report": "audit_reports/integrity_latest.json",
     "raw_url": "https://raw.githubusercontent.com/sleepingarhat/tianxi-database/main/audit_reports/integrity_latest.json",
-    "scan_date": "2026-10-18",
+    "scan_date": "2026-10-19",
     "overall_severity": "critical",
-    "critical_gap_count": 1,
+    "critical_gap_count": 21,
     "warn_gap_count": 12,
     "recommendation": "gha_next_delta_will_fix"
   },
