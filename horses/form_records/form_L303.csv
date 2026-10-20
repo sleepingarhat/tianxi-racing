@@ -1,4 +1,5 @@
 ﻿horse_no,race_index,place,date,racecourse,track,course,distance_m,going,race_class,draw,rating,trainer,jockey,lbw,win_odds,actual_wt_lbs,running_position,finish_time,declared_wt_lbs,gear
+L303,110,13,19/10/26,沙田,草地,C+3,1800,好,4,13,58,沈集成,梁家俊,11-1/2,129,134,7 6 4 4 13,1.48.70,1024,B/TT
 L303,073,13,04/10/26,沙田,草地,B,1400,好/快,4,3,60,沈集成,梁家俊,7,125,135,7 7 7 13,1.21.95,1005,B1/TT
 L303,010,13,06/09/26,沙田,草地,A,1200,好/快,3,4,62,沈集成,鍾易禮,23-1/2,136,115,12 13 13,1.11.80,1019,TT
 L303,837,10,04/07/26,沙田,草地,C+3,1400,好/黏,3,9,65,沈集成,希威森,8-1/2,47,122,13 14 13 10,1.23.35,1029,TT

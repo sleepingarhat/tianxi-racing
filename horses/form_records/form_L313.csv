@@ -1,4 +1,5 @@
 ﻿horse_no,race_index,place,date,racecourse,track,course,distance_m,going,race_class,draw,rating,trainer,jockey,lbw,win_odds,actual_wt_lbs,running_position,finish_time,declared_wt_lbs,gear
+L313,111,14,19/10/26,沙田,草地,C+3,1400,好,4,8,56,徐雨石,蔡明紹,10-1/2,23,134,2 1 1 14,1.23.88,1202,H
 L313,050,08,27/09/26,沙田全天候,,,1200,好,4,2,58,徐雨石,黃智弘,9-3/4,89,130,5 4 8,1.11.09,1201,H
 L313,855,12,12/07/26,沙田,草地,A,1200,好/快,3,7,62,徐雨石,巫顯東,17-3/4,214,115,8 8 12,1.11.18,1192,H
 L313,822,14,01/07/26,沙田,草地,C,1000,好/快,3,9,64,徐雨石,巫顯東,3-1/4,153,117,6 4 14,0.56.72,1189,B-/H1
