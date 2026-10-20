@@ -54,4 +54,6 @@ jobs:
       - name: Deploy to Cloudflare Workers
         run: npx wrangler deploy
         env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          # 舊 CLOUDFLARE_API_TOKEN 於 2026-10-20 失效；改用排位工作驗證可用嘅金鑰。
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
