@@ -177,6 +177,14 @@
 
     let deleted = 0;
     let inserted = 0;
+    // 官方退出（Scratched）：只喺鎖點（首場前90分鐘）前從排位剔走；鎖後唔郁，原凍結保持不變。
+    const postTimes = races.map((r: any) => Date.parse(r.postTime ?? '')).filter(Number.isFinite);
+    const lockAtMs = postTimes.length ? Math.min(...postTimes) - 90 * 60_000 : NaN;
+    const preLock = Number.isFinite(lockAtMs) && Date.now() < lockAtMs;
+    const scratched: Array<{ raceNo: number; horseNo: number }> = [];
+    const deleteScratched = db.prepare(
+      'DELETE FROM entries_upcoming WHERE race_date = ? AND venue = ? AND race_number = ? AND horse_number = ?',
+    );
 
     // Guard against phantom meetings: skip only if HKJC returned no actual runners.
     // Previously checked local bulk-local.db evidence, but the local DB lags fresh
@@ -212,6 +220,11 @@
         for (const runner of runners) {
           const horseNo: number = Number(runner.no ?? runner.saddleClothNo ?? 0);
           if (!horseNo) continue;
+          if (String(runner.status ?? '').toLowerCase() === 'scratched' && preLock) {
+            deleteScratched.run(meetingDate, venueCode, raceNo, horseNo);
+            scratched.push({ raceNo, horseNo });
+            continue;
+          }
 
           const horseCode: string = runner.horse?.code ?? '';
           const horseId: string | null = horseCode ? horseCode : null; // bare code, push-delta prefixes for D1
@@ -257,6 +270,14 @@
     });
 
     tx();
+    // 交俾工作流程喺 D1 刪除同一批退出馬（push-delta 只會新增／覆寫，唔會刪）。
+    const sqlOut = process.env.SCRATCHED_SQL_OUT;
+    if (sqlOut) {
+      const { writeFileSync } = await import('node:fs');
+      const q = (v: string) => `'${v.replace(/'/g, "''")}'`;
+      writeFileSync(sqlOut, scratched.map(x => `DELETE FROM entries_upcoming WHERE race_date = ${q(meetingDate)} AND venue = ${q(venueCode)} AND race_number = ${x.raceNo} AND horse_number = ${x.horseNo};`).join('\n') + (scratched.length ? '\n' : ''));
+    }
+    console.error(`[racecard] scratched pre-lock=${preLock} removed=${scratched.map(x => `R${x.raceNo}#${x.horseNo}`).join(',') || 'none'}`);
     console.error(`[racecard] ✓ deleted ${deleted} sentinels · wrote ${inserted} enriched entries for ${meetingDate}@${venueCode}`);
   }
 
