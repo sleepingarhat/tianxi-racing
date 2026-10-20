@@ -600,10 +600,16 @@ async function raceDayReportIsSettled(db: D1Database, value: any): Promise<boole
       formRows.push(...(res.results ?? []));
     }
     const stmts: D1PreparedStatement[] = [];
+    let cleanups = 0;
     for (const race of payload.races) {
       if (!race?.picks?.length || race.raceNumber == null || race.raceNumber === 0) continue;
       if (completion && alreadyLogged.has(Number(race.raceNumber))) continue; // 已鎖場次永不覆寫
       const pace = paceEstimates(race.picks.map((p: any) => p.horseId).filter(Boolean), formRows, payload.date, Number(race.distance) || null);
+      // 鎖前草稿：同場已唔喺新排位嘅馬（例如官方退出）一併清走，同一交易內完成；鎖後補寫唔刪任何紀錄。
+      if (!completion) {
+        const keep = race.picks.map((p: any) => p.horseId).filter(Boolean) as string[];
+        if (keep.length) { cleanups++; stmts.push(db.prepare(`DELETE FROM prediction_log WHERE date = ? AND engine = ? AND variant = ? AND race_number = ? AND horse_id NOT IN (${keep.map(() => '?').join(',')})`).bind(payload.date, engine, variant, race.raceNumber, ...keep)); }
+      }
       for (const p of race.picks) {
         if (!p.horseId) continue;
         stmts.push(
@@ -636,12 +642,13 @@ async function raceDayReportIsSettled(db: D1Database, value: any): Promise<boole
         );
       }
     }
-    if (!stmts.length) return { rows: 0 };
+    const rowCount = stmts.length - cleanups;
+    if (!rowCount) return { rows: 0 };
     // A meeting is one transaction: any failed row rolls the entire write back.
     await db.batch(stmts);
-    if (completion) await markLockCompletion(db, payload.date, engine, stmts.length);
+    if (completion) await markLockCompletion(db, payload.date, engine, rowCount);
     await writeLockMeta(db, payload, engine, completion).catch(() => {});
-    return { rows: stmts.length };
+    return { rows: rowCount };
   }
 
   // One row per meeting lock: gate snapshot at write time + config fingerprint.
