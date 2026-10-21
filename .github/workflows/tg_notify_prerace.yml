@@ -40,9 +40,6 @@ jobs:
           echo "skip=$SKIP" >> "$GITHUB_OUTPUT"
 
   notify:
-    env:
-      TG_CHANNEL: "@tianxi_racing"
-      TX_SITE_BASE: "https://tianxi.racing"
     needs: season_gate
     if: needs.season_gate.outputs.skip != 'true'
     runs-on: ubuntu-latest
