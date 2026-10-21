@@ -1,0 +1,12 @@
+{
+  "snapshots": [
+    {
+      "path": "data/racing-dividends/2026-10-19/ST-f6190558d326186e9c7bc72162a6441bd5b0033ae173a258260658a6edff4ac7.html",
+      "sha256": "f6190558d326186e9c7bc72162a6441bd5b0033ae173a258260658a6edff4ac7",
+      "sourceUrl": "https://racing.hkjc.com/zh-hk/local/information/resultsall?RaceDate=2026/10/19",
+      "date": "2026-10-19",
+      "kind": "racing-dividends",
+      "venue": "ST"
+    }
+  ]
+}
