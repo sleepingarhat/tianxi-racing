@@ -1,4 +1,4 @@
-import { assertOriginalFreezeReadable } from './freeze-recovery';
+import { assertOriginalFreezeReadable, digest, FreezeBlockedError } from './freeze-recovery';
 /**
  * 凍結對帳表 (freeze ledger) — MEASURE ONLY.
  *
@@ -14,7 +14,7 @@ import { assertOriginalFreezeReadable } from './freeze-recovery';
  *   • no conclusion ("edge / no edge") is drawn here; the caller renders the
  *     table and the sample size next to it.
  */
-import { dateIsLocked } from './prediction-lock-db';
+import { dateHasSettledResults } from './prediction-lock-db';
 import { getMeetingLockState, POST_LOCK_EXCLUDED } from './lock-window';
 
 export type LedgerRace = {
@@ -40,7 +40,13 @@ export type LedgerMeeting = {
   date: string;
   venue: string | null;
   locked: boolean;
-  source: 'prediction_log' | 'not-locked' | 'missing-log' | 'no-results';
+  /**
+   * blocked    = frozen evidence blocked / failed verification for this meeting only (see blockedReason).
+   * read-error = transient read failure for this meeting only; never cached.
+   * Neither contributes to any metric; the rest of the ledger is still served.
+   */
+  source: 'prediction_log' | 'not-locked' | 'missing-log' | 'no-results' | 'blocked' | 'read-error';
+  blockedReason?: string | null;
   racesEvaluated: number;
   top4AvgIntersect: number | null;
   top4CoveragePct: number | null;
@@ -70,22 +76,26 @@ const r1 = (x: number | null) => (x == null ? null : Math.round(x * 10) / 10);
 async function loadPlaImplied(
   db: D1Database,
   date: string,
-): Promise<Map<string, number>> {
-  // Latest PLA snapshot per race/horse. odds_snapshots keeps the newest day,
-  // odds_archive keeps sampled history — read both, newest snapshot wins.
-  const out = new Map<string, number>();
+  venue: string | null,
+): Promise<Set<string>> {
+  // Which race/horse pairs ever had a positive PLA price. odds_snapshots keeps
+  // the newest day, odds_archive keeps sampled history — read both. Only key
+  // presence feeds plaCoverage, so DISTINCT (no ORDER BY / per-snapshot rows)
+  // is equivalent and much lighter. The venue filter lets SQLite use the
+  // (race_date, venue, race_number, pool_type, ...) index prefix.
+  const out = new Set<string>();
+  const hk = venue === 'ST' || venue === 'HV' ? venue : null;
   const sql = (table: string) =>
-    `SELECT race_number, combination, odds, snapshot_at FROM ${table}
-      WHERE race_date = ? AND pool_type = 'PLA' AND odds IS NOT NULL AND odds > 0
-      ORDER BY snapshot_at ASC`;
-  for (const table of ['odds_archive', 'odds_snapshots']) {
+    `SELECT DISTINCT race_number, combination FROM ${table}
+      WHERE race_date = ?${hk ? ' AND venue = ?' : ''} AND pool_type = 'PLA' AND odds IS NOT NULL AND odds > 0`;
+  const reads = ['odds_archive', 'odds_snapshots'].map(async (table) => {
     try {
-      const res = await db.prepare(sql(table)).bind(date).all<any>();
-      for (const r of res?.results ?? []) {
-        out.set(`${r.race_number}:${String(r.combination).trim()}`, Number(r.odds));
-      }
+      const stmt = db.prepare(sql(table));
+      const res = await (hk ? stmt.bind(date, hk) : stmt.bind(date)).all<any>();
+      for (const r of res?.results ?? []) out.add(`${r.race_number}:${String(r.combination).trim()}`);
     } catch { /* table may not exist on this env */ }
-  }
+  });
+  await Promise.all(reads);
   return out;
 }
 
@@ -126,24 +136,60 @@ export async function computeFreezeLedgerForDate(
     postLockNote: null,
   };
 
-  const locked = await dateIsLocked(db, date, venue);
+  // Same rule as dateIsLocked(): settled results lock the date, otherwise the
+  // T−1.5h lock state decides. One lock-state read now serves both the locked
+  // check and the post-lock integrity window below (was read twice).
+  const [settled, lock, completionOk] = await Promise.all([
+    dateHasSettledResults(db, date, venue),
+    getMeetingLockState(db, date, venue),
+    (async () => {
+      try {
+        return !!(await db.prepare(`SELECT 1 AS x FROM lock_completion_log WHERE date = ? AND engine = ?`).bind(date, engine).first());
+      } catch { return false; }
+    })(),
+  ]);
+  const locked = settled || lock.locked;
   base.locked = locked;
   if (!locked) {
     base.source = 'not-locked';
     return base; // 未鎖一律唔入表：呢張表只讀已鎖凍結
   }
 
-  await assertOriginalFreezeReadable(db,date,engine);
-  const frozen = await db
-    .prepare(
-      `SELECT race_number, horse_number, predicted_rank, p_win, generated_at
-         FROM prediction_log
-        WHERE date = ? AND engine = ? AND variant = 'baseline' AND predicted_rank IS NOT NULL
-        ORDER BY race_number ASC, predicted_rank ASC`,
-    )
-    .bind(date, engine)
-    .all<any>()
-    .catch(() => ({ results: [] as any[] }));
+  const [verifyError, frozen, results] = await Promise.all([
+    assertOriginalFreezeReadable(db, date, engine).then(() => null, (e: unknown) => e),
+    db
+      .prepare(
+        `SELECT race_number, horse_number, predicted_rank, p_win, generated_at
+           FROM prediction_log
+          WHERE date = ? AND engine = ? AND variant = 'baseline' AND predicted_rank IS NOT NULL
+          ORDER BY race_number ASC, predicted_rank ASC`,
+      )
+      .bind(date, engine)
+      .all<any>()
+      .catch(() => ({ results: [] as any[] })),
+    db
+      .prepare(
+        `SELECT r.race_number AS race_number, rr.horse_number AS horse_number,
+                rr.finishing_position AS pos, rr.win_odds AS win_odds
+           FROM race_results rr
+           JOIN races r ON r.id = rr.race_id
+           JOIN race_meetings rm ON rm.id = r.meeting_id
+          WHERE rm.date = ? AND rm.venue IN ('ST','HV')
+          ORDER BY r.race_number, rr.finishing_position`,
+      )
+      .bind(date)
+      .all<any>()
+      .catch(() => ({ results: [] as any[] })),
+  ]);
+  if (verifyError) {
+    // 單日凍結證據被阻截：只標呢一日，唔拖低成張表。
+    if (verifyError instanceof FreezeBlockedError) {
+      base.source = 'blocked';
+      base.blockedReason = verifyError.message;
+      return base;
+    }
+    throw verifyError; // transient read error → caller marks this meeting read-error
+  }
   const frozenByRace = new Map<number, any[]>();
   for (const r of frozen?.results ?? []) {
     if (!frozenByRace.has(r.race_number)) frozenByRace.set(r.race_number, []);
@@ -151,13 +197,8 @@ export async function computeFreezeLedgerForDate(
   }
   // 鎖點完整性：只計鎖點快照（lockAt+10 分鐘內）或者 T−90 補寫一次
   // （lock_completion_log 有紀錄、且喺首場開跑前）。其餘一律「鎖後、唔計分」。
-  const lock = await getMeetingLockState(db, date, venue);
   const lockMs = lock.lockAt ? Date.parse(lock.lockAt) : NaN;
   const firstMs = lock.firstPostAt ? Date.parse(lock.firstPostAt) : NaN;
-  let completionOk = false;
-  try {
-    completionOk = !!(await db.prepare(`SELECT 1 AS x FROM lock_completion_log WHERE date = ? AND engine = ?`).bind(date, engine).first());
-  } catch { completionOk = false; }
   if (Number.isFinite(lockMs)) {
     const limit = completionOk && Number.isFinite(firstMs) ? firstMs : lockMs + LOCK_TICK_GRACE_MS;
     for (const [rn, rows] of [...frozenByRace.entries()]) {
@@ -179,19 +220,6 @@ export async function computeFreezeLedgerForDate(
     return base;
   }
 
-  const results = await db
-    .prepare(
-      `SELECT r.race_number AS race_number, rr.horse_number AS horse_number,
-              rr.finishing_position AS pos, rr.win_odds AS win_odds
-         FROM race_results rr
-         JOIN races r ON r.id = rr.race_id
-         JOIN race_meetings rm ON rm.id = r.meeting_id
-        WHERE rm.date = ? AND rm.venue IN ('ST','HV')
-        ORDER BY r.race_number, rr.finishing_position`,
-    )
-    .bind(date)
-    .all<any>()
-    .catch(() => ({ results: [] as any[] }));
   const resByRace = new Map<number, any[]>();
   for (const r of results?.results ?? []) {
     if (!resByRace.has(r.race_number)) resByRace.set(r.race_number, []);
@@ -221,7 +249,7 @@ export async function computeFreezeLedgerForDate(
     return base; // 已鎖但未完場：出殼、指標留空
   }
 
-  const plaImplied = await loadPlaImplied(db, date);
+  const plaImplied = await loadPlaImplied(db, date, venue);
   const races: LedgerRace[] = [];
   for (const rn of [...frozenByRace.keys()].sort((a, b) => a - b)) {
     const picks = frozenByRace.get(rn) ?? [];
@@ -325,14 +353,118 @@ export async function computeFreezeLedgerForDate(
   return base;
 }
 
+// ── Per-meeting snapshot (freeze_ledger_meeting) ───────────────────────────
+// A meeting's ledger row is a pure function of its frozen prediction_log rows
+// (immutable after lock) and its official results. Once the meeting is locked,
+// verified and fully settled, the computed row is written once and re-served,
+// so a ledger request is 1 query instead of ~10 per meeting.
+// Table is created by backend/src/db/migrations/20261022_freeze_ledger_meeting.sql.
+// Until that migration is applied every read/write here fails softly and the
+// ledger is computed live exactly as before.
+/** Bump when grading logic / LedgerMeeting shape changes so old rows are recomputed. */
+export const LEDGER_SNAPSHOT_VERSION = 1;
+/** Only meetings at least this many HKT days old are snapshotted (results imports + backfills settle first). */
+const SNAPSHOT_MIN_AGE_DAYS = 2;
+const LIVE_CONCURRENCY = 6;
+
+const hkDate = (ms: number) => new Date(ms + 8 * 3600_000).toISOString().slice(0, 10);
+const addDays = (ymd: string, n: number) => new Date(Date.parse(`${ymd}T00:00:00Z`) + n * 86400_000).toISOString().slice(0, 10);
+
+/** Locked, verified, every frozen race has official results, and old enough that results are final. */
+export function ledgerSnapshotEligible(m: LedgerMeeting, nowMs: number = Date.now()): boolean {
+  if (!m.locked || m.source !== 'prediction_log' || m.racesEvaluated <= 0 || !m.races.length) return false;
+  if (m.races.some((r) => !(r.runners > 0))) return false;
+  return m.date <= addDays(hkDate(nowMs), -SNAPSHOT_MIN_AGE_DAYS);
+}
+
+function snapshotStillValid(m: LedgerMeeting): boolean {
+  // Code-level exclusions (POST_LOCK_EXCLUDED) added after the snapshot invalidate it.
+  return (POST_LOCK_EXCLUDED[m.date] ?? []).every((rn) => m.postLockRaces.includes(rn));
+}
+
+async function readLedgerSnapshots(db: D1Database, engine: string, dates: string[]): Promise<Map<string, LedgerMeeting>> {
+  const out = new Map<string, LedgerMeeting>();
+  if (!dates.length) return out;
+  const sorted = [...dates].sort();
+  const lo = sorted[0], hi = sorted[sorted.length - 1];
+  const wanted = new Set(dates);
+  // Skip any meeting whose recovery status is now blocked (ok=0): it is recomputed live and shown as blocked.
+  const joined = `SELECT f.date AS date, f.payload_json AS payload_json, f.sha256 AS sha256
+                    FROM freeze_ledger_meeting f
+                    LEFT JOIN prediction_recovery_status s ON s.date = f.date AND s.engine = f.engine
+                   WHERE f.engine = ? AND f.date >= ? AND f.date <= ? AND (s.ok IS NULL OR s.ok = 1)`;
+  const plain = `SELECT date, payload_json, sha256 FROM freeze_ledger_meeting WHERE engine = ? AND date >= ? AND date <= ?`;
+  let rows: { date: string; payload_json: string; sha256: string }[] = [];
+  try {
+    rows = (await db.prepare(joined).bind(engine, lo, hi).all<any>()).results ?? [];
+  } catch {
+    try { rows = (await db.prepare(plain).bind(engine, lo, hi).all<any>()).results ?? []; } catch { return out; } // table not migrated yet
+  }
+  for (const r of rows) {
+    if (!wanted.has(r.date)) continue;
+    try {
+      if ((await digest(r.payload_json)) !== r.sha256) continue;
+      const parsed = JSON.parse(r.payload_json) as { v?: number; meeting?: LedgerMeeting };
+      const m = parsed?.meeting;
+      if (parsed?.v !== LEDGER_SNAPSHOT_VERSION || !m || m.date !== r.date || !snapshotStillValid(m)) continue;
+      out.set(r.date, m);
+    } catch { /* corrupt row → recompute live */ }
+  }
+  return out;
+}
+
+async function writeLedgerSnapshots(db: D1Database, engine: string, meetings: LedgerMeeting[], nowMs: number): Promise<number> {
+  if (!meetings.length) return 0;
+  try {
+    const computedAt = new Date(nowMs).toISOString();
+    const stmts = await Promise.all(meetings.map(async (m) => {
+      const payload = JSON.stringify({ v: LEDGER_SNAPSHOT_VERSION, meeting: m });
+      return db
+        .prepare(`INSERT OR REPLACE INTO freeze_ledger_meeting (date, engine, payload_json, sha256, computed_at) VALUES (?, ?, ?, ?, ?)`)
+        .bind(m.date, engine, payload, await digest(payload), computedAt);
+    }));
+    await db.batch(stmts);
+    return stmts.length;
+  } catch {
+    return 0; // table not migrated yet — live compute still served
+  }
+}
+
+async function mapLimit<T, R>(items: T[], limit: number, fn: (item: T) => Promise<R>): Promise<R[]> {
+  const out = new Array<R>(items.length);
+  let next = 0;
+  const worker = async () => {
+    while (next < items.length) {
+      const i = next++;
+      out[i] = await fn(items[i]);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+  return out;
+}
+
+function readErrorMeeting(date: string, e: unknown): LedgerMeeting {
+  return {
+    date, venue: null, locked: false, source: 'read-error',
+    blockedReason: e instanceof Error ? e.message : String(e),
+    racesEvaluated: 0, top4AvgIntersect: null, top4CoveragePct: null, top4FullHits: 0,
+    top3AvgIntersect: null, top3AnyHitPct: null, placeHitPct: null, winnerHitPct: null,
+    modelWinLogloss: null, marketWinLogloss: null, favouriteHitPct: null, flatWinRoiPct: null,
+    races: [], postLockRaces: [], postLockNote: null,
+  };
+}
+
+export type FreezeLedgerSnapshotInfo = { hits: number; computed: number; written: number; readErrors: number; blocked: number };
+
 export async function computeFreezeLedger(
   db: D1Database,
-  opts?: { dates?: string[]; since?: string; engine?: string; limit?: number },
+  opts?: { dates?: string[]; since?: string; engine?: string; limit?: number; useSnapshots?: boolean; now?: number },
 ): Promise<{
   engine: string;
   generatedAt: string;
   policy: string;
   meetings: LedgerMeeting[];
+  snapshot: FreezeLedgerSnapshotInfo;
   season: {
     meetings: number;
     racesEvaluated: number;
@@ -350,6 +482,8 @@ export async function computeFreezeLedger(
   };
 }> {
   const engine = opts?.engine ?? 'v12';
+  const nowMs = opts?.now ?? Date.now();
+  const useSnapshots = opts?.useSnapshots !== false;
   let dates = opts?.dates?.filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d)) ?? [];
   if (!dates.length) {
     const since = opts?.since ?? '2026-09-01';
@@ -365,19 +499,34 @@ export async function computeFreezeLedger(
     dates = (res?.results ?? []).map((r) => r.date);
   }
 
-  const meetings: LedgerMeeting[] = [];
-  for (const d of dates) {
-    meetings.push(await computeFreezeLedgerForDate(db, d, engine));
-  }
+  const cached = useSnapshots ? await readLedgerSnapshots(db, engine, dates) : new Map<string, LedgerMeeting>();
+  const missing = dates.filter((d) => !cached.has(d));
+  // Meetings are independent: compute them concurrently (bounded) instead of one by one.
+  const live = await mapLimit(missing, LIVE_CONCURRENCY, (d) =>
+    computeFreezeLedgerForDate(db, d, engine).catch((e) => readErrorMeeting(d, e)),
+  );
+  const liveByDate = new Map(live.map((m) => [m.date, m]));
+  const written = useSnapshots
+    ? await writeLedgerSnapshots(db, engine, live.filter((m) => ledgerSnapshotEligible(m, nowMs)), nowMs)
+    : 0;
+  const meetings: LedgerMeeting[] = dates.map((d) => cached.get(d) ?? liveByDate.get(d)!);
+
   const graded = meetings.filter((m) => m.racesEvaluated > 0);
   const allRaces = graded.flatMap((m) => m.races).filter((r) => r.top4Intersect != null);
   const bets = graded.flatMap((m) => m.races).filter((r) => r.flatWinPnl != null);
   return {
     engine,
-    generatedAt: new Date().toISOString(),
+    generatedAt: new Date(nowMs).toISOString(),
     policy:
       '只讀已鎖 prediction_log（T−1.5h 或賽果入庫後）；禁回測、禁 live 重算。主尺＝四揀（入圍／覆蓋／平均相交），Top3 旁註；副尺＝位置命中；獨贏同市場隱含 logloss／模擬 EV 只旁註，永不回寫模型或指紋。',
     meetings,
+    snapshot: {
+      hits: cached.size,
+      computed: live.length,
+      written,
+      readErrors: meetings.filter((m) => m.source === 'read-error').length,
+      blocked: meetings.filter((m) => m.source === 'blocked').length,
+    },
     season: {
       meetings: graded.length,
       racesEvaluated: allRaces.length,
