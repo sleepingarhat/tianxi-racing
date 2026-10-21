@@ -51,6 +51,9 @@ jobs:
           npx tsx scripts/test-elo-v12-integration.ts
           npx tsx scripts/test-elo-asof.ts
 
+      - name: Regression test — odds 20-minute freshness boundary
+        run: bun scripts/test-odds-freshness.ts
+
       - name: Deploy to Cloudflare Workers
         run: npx wrangler deploy
         env:

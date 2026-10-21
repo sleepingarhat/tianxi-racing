@@ -1,3 +1,4 @@
+import { collectDisplayOdds } from './lib/odds-collection';
 import { recoverOriginalFreeze } from './lib/freeze-recovery';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
@@ -440,7 +441,10 @@ app.onError((err, c) => {
       // T−1.5h lock tick runs on EVERY trigger (including the 5-minute tick).
       ctx.waitUntil(lockMeetingIfDue(env).then((r) => console.log('[cron] lock tick', r)));
       // The 5-minute tick does nothing else — heavy jobs stay on their own slots.
-      if (String(_event?.cron ?? '') === '*/5 * * * *') return;
+      if (String(_event?.cron ?? '') === '*/5 * * * *') {
+        ctx.waitUntil(collectDisplayOdds(env).then(r => console.log('[cron] display odds', r)).catch(e => console.error('[cron] display odds failed', String(e))));
+        return;
+      }
       ctx.waitUntil(
         refreshHitRateCache(env)
           .then((r) => console.log('[cron] hit-rate refresh', r))

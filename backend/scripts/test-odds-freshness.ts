@@ -1,0 +1,10 @@
+import assert from 'node:assert/strict';
+import { oddsStale, parseOdds } from '../src/lib/odds-freshness';
+const now=Date.parse('2026-10-21T10:00:00Z');
+assert.equal(oddsStale('2026-10-21T09:40:00Z',now),false);
+assert.equal(oddsStale('2026-10-21T09:39:59Z',now),true);
+assert.equal(oddsStale(null,now),true);
+assert.equal(parseOdds('SCR'),null);
+assert.equal(parseOdds('3.5'),3.5);
+assert.equal(parseOdds(''),null);
+console.log('odds 20-minute boundary and nullable prices passed');

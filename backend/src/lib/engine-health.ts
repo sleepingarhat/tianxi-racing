@@ -1,3 +1,4 @@
+import { readOddsFreshness } from './odds-collection';
 /** Shared TX-Oracle health payload. Served at GET /api/analyze/engine-health */
 import { findMeetingForLockTick, getMeetingLockState } from './lock-window';
 import type { Env } from '../types';
@@ -166,6 +167,10 @@ export async function buildEngineHealth(db: Env['DB']): Promise<EngineHealth> {
     }
   } catch { checks.push({id:'freeze_recovery',label:'凍結自動修復',status:'FAIL',detail:'自動修復狀態無法核實。'}); }
 
+  try {
+    const odds = await readOddsFreshness(db);
+    checks.push({id:'display_odds_freshness',label:'賽日市場盤口時效',status:odds.stale.length?'FAIL':'PASS',detail:odds.active ? odds.stale.length ? `第${odds.stale.map(r=>r.race_number).join('、')}場盤口超過20分鐘或缺快照；只影響市場對照，原四揀不改。` : '未開跑場次盤口均在20分鐘內；五分鐘自動收料。' : '非本地賽日投注窗口或已全日開跑，不按舊盤口誤報。'});
+  } catch { checks.push({id:'display_odds_freshness',label:'賽日市場盤口時效',status:'WATCH',detail:'盤口時效讀取未成功，不代表資料正常。'}); }
   const counts = {
     pass: checks.filter((c) => c.status === 'PASS').length,
     watch: checks.filter((c) => c.status === 'WATCH').length,

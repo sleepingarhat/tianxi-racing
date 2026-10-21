@@ -18,7 +18,7 @@ oddsRoutes.get('/:date/:venue/:raceNo', async (c) => {
   const { results: snapRows } = await c.env.DB.prepare(`
     SELECT MAX(snapshot_at) AS latest
     FROM odds_snapshots
-    WHERE race_date = ? AND venue = ? AND race_number = ?
+    WHERE race_date = ? AND venue = ? AND race_number = ? AND pool_type = 'WIN'
   `).bind(date, venue, raceNo).all();
 
   const latest = (snapRows?.[0] as any)?.latest ?? null;
@@ -31,9 +31,9 @@ oddsRoutes.get('/:date/:venue/:raceNo', async (c) => {
     SELECT pool_type, combination, odds, snapshot_at
     FROM odds_snapshots
     WHERE race_date = ? AND venue = ? AND race_number = ?
-      AND snapshot_at = ?
+      AND snapshot_at = (SELECT MAX(s.snapshot_at) FROM odds_snapshots s WHERE s.race_date=? AND s.venue=? AND s.race_number=? AND s.pool_type=odds_snapshots.pool_type)
     ORDER BY pool_type, CAST(combination AS INTEGER)
-  `).bind(date, venue, raceNo, latest).all();
+  `).bind(date, venue, raceNo, date, venue, raceNo).all();
 
   // Also fetch pool totals for same snapshot time (nearest available)
   const { results: poolResults } = await c.env.DB.prepare(`

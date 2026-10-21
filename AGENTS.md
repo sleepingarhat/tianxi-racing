@@ -6,3 +6,5 @@
 
 - Freeze recovery captures only complete current-meeting pre-lock rows in an immutable hashed snapshot; repairs insert exact missing originals, never rewrite conflicts; scheduled ticks and public projections verify this snapshot. Why: recovery must preserve historical predictions and settlement.
 - Capture guards compare row counts and every typed column with NULL-safe SQLite equality inside the insert transaction, never serialized JSON text. Why: REAL 1.0 and JavaScript 1 are equal predictions and must not block immutable capture.
+
+- Existing five-minute Worker collects race-day WIN/PLA display snapshots only; health checks unstarted races at 20 minutes, notifications dedupe only after delivery. Other pool reads retain per-pool latest snapshots. Why: odds freshness never changes frozen/model records.
