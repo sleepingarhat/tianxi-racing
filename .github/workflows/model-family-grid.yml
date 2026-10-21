@@ -1,12 +1,18 @@
 name: Model family full grid research
 on:
   workflow_dispatch:
+    inputs:
+      resume_run:
+        description: Previous run containing verified daily checkpoints
+        required: false
+        type: string
 permissions:
   contents: read
+  actions: read
 jobs:
   grid:
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 360
     strategy:
       fail-fast: false
       max-parallel: 20
@@ -22,6 +28,14 @@ jobs:
           python-version: '3.12'
       - name: Install fixed research dependencies
         run: python -m pip install lightgbm==4.6.0 xgboost==3.1.1 scikit-learn==1.7.2 pandas==2.3.3
+      - name: Restore same-grid daily checkpoints
+        if: inputs.resume_run != ''
+        uses: actions/download-artifact@v4
+        with:
+          name: grid-${{ matrix.index }}
+          run-id: ${{ inputs.resume_run }}
+          github-token: ${{ github.token }}
+          path: research-output/
       - name: Verify historical input
         run: |
           curl --fail --retry 3 -L 'https://tianxi.racing/__l5e/assets-v1/9978df95-4103-4eaa-bd37-fabf4ef5a74d/training-complete-2026-10-18.csv.gz' -o /tmp/training.csv.gz
@@ -38,7 +52,7 @@ jobs:
   evaluate:
     needs: grid
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 360
     env:
       OPENBLAS_NUM_THREADS: 1
       OMP_NUM_THREADS: 1
