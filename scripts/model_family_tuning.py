@@ -229,7 +229,7 @@ def run(a):
     atomic_json(out / 'selected-parameters.json', tuning)
 
     # Phase 2: locked evaluation on latest days with each family's best params.
-    models = {name: (lambda n=name, c=tuning[n]['best']['params']: build_model(n, c))
+    models = {name: (lambda n=name, c=tuning[name]['best']['params']: build_model(n, c))
               for name in GRIDS}
     daily, races = evaluate_days(data, columns, eval_dates, models, keep_races=True)
     total_races = sum(r for _, _, r in daily['LightGBM'])
