@@ -162,25 +162,50 @@ jobs:
         if: steps.scrape.outputs.has_data == 'true'
         run: npm install -g wrangler@4
 
-      - name: Push odds delta to D1
+      - name: Push odds delta to D1 (retry + verify landed rows)
+        # wrangler `d1 execute --file` sometimes reports "Not currently importing
+        # anything" / overloaded after the import already finished or before it
+        # started. Rows use stable PK ids (ON CONFLICT upsert), so retrying a chunk
+        # never duplicates. Success is decided by counting this run's snapshot rows
+        # in D1, not by wrangler's polling message.
         if: steps.scrape.outputs.has_data == 'true'
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
         run: |
           set -eu
-          FAILED=0
           for t in odds_snapshots pool_totals; do
             for f in /tmp/d1-delta/${t}-*.sql; do
               [ -f "$f" ] || continue
               base=$(basename "$f")
-              if wrangler d1 execute tianxi-db --remote --file="$f" >/tmp/out.log 2>&1; then
-                echo "OK  $base"
-              else
-                echo "FAIL $base"
-                tail -20 /tmp/out.log
-                FAILED=1
-              fi
+              ok=0
+              for attempt in 1 2 3 4 5; do
+                if wrangler d1 execute tianxi-db --remote --yes --file="$f" >/tmp/out.log 2>&1; then
+                  echo "OK  $base (attempt $attempt)"; ok=1; break
+                fi
+                echo "RETRY $base attempt $attempt: $(grep -m1 -iE 'error|not currently|overload' /tmp/out.log || tail -1 /tmp/out.log)"
+                sleep $((attempt * 8))
+              done
+              [ "$ok" -eq 1 ] || echo "::warning::$base 未確認，最後以D1行數核對"
             done
           done
-          if [ "$FAILED" -eq 1 ]; then exit 1; fi
+
+          # Verify: every local row of this snapshot must exist in D1.
+          check() {
+            local table=$1
+            local snaps expected remote
+            snaps=$(node -e "const D=require('better-sqlite3');const d=new D('bulk-local.db');console.log(d.prepare('SELECT DISTINCT snapshot_at s FROM $table').all().map(r=>\"'\"+r.s+\"'\").join(','))")
+            [ -n "$snaps" ] || { echo "$table: no local rows"; return 0; }
+            expected=$(node -e "const D=require('better-sqlite3');const d=new D('bulk-local.db');console.log(d.prepare('SELECT COUNT(*) c FROM $table').get().c)")
+            for attempt in 1 2 3 4; do
+              remote=$(wrangler d1 execute tianxi-db --remote --json --command="SELECT COUNT(*) AS c FROM $table WHERE snapshot_at IN ($snaps)" 2>/dev/null \
+                | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{try{console.log(JSON.parse(s)[0].results[0].c)}catch(e){console.log(-1)}})")
+              echo "$table: local=$expected d1=$remote (check $attempt)"
+              [ "$remote" -ge "$expected" ] 2>/dev/null && return 0
+              sleep $((attempt * 10))
+            done
+            echo "::error::$table 只寫入 $remote / $expected 行"
+            return 1
+          }
+          check odds_snapshots
+          check pool_totals
