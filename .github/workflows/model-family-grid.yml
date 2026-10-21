@@ -1,0 +1,70 @@
+name: Model family full grid research
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  grid:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      max-parallel: 20
+      matrix:
+        index: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80]
+    env:
+      OPENBLAS_NUM_THREADS: 1
+      OMP_NUM_THREADS: 1
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install fixed research dependencies
+        run: python -m pip install lightgbm==4.6.0 xgboost==3.1.1 scikit-learn==1.7.2 pandas==2.3.3
+      - name: Verify historical input
+        run: |
+          curl --fail --retry 3 -L 'https://tianxi.racing/__l5e/assets-v1/9978df95-4103-4eaa-bd37-fabf4ef5a74d/training-complete-2026-10-18.csv.gz' -o /tmp/training.csv.gz
+          echo 'b11792304184b11bf22a249323608b56a09d3c0a919cce26d1622a64c80a3c00  /tmp/training.csv.gz' | sha256sum -c -
+      - name: Run complete thirty-day grid combination
+        run: python scripts/model_family_tuning.py --input /tmp/training.csv.gz --out research-output --grid-index ${{ matrix.index }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: grid-${{ matrix.index }}
+          path: research-output/
+          if-no-files-found: error
+          retention-days: 30
+  evaluate:
+    needs: grid
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      OPENBLAS_NUM_THREADS: 1
+      OMP_NUM_THREADS: 1
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install lightgbm==4.6.0 xgboost==3.1.1 scikit-learn==1.7.2 pandas==2.3.3
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: grid-*
+          merge-multiple: true
+          path: research-output/
+      - name: Verify historical input
+        run: |
+          curl --fail --retry 3 -L 'https://tianxi.racing/__l5e/assets-v1/9978df95-4103-4eaa-bd37-fabf4ef5a74d/training-complete-2026-10-18.csv.gz' -o /tmp/training.csv.gz
+          echo 'b11792304184b11bf22a249323608b56a09d3c0a919cce26d1622a64c80a3c00  /tmp/training.csv.gz' | sha256sum -c -
+      - name: Verify all grids before one-off final thirty-day evaluation
+        run: |
+          python -m unittest discover -s scripts -p 'test_model_family*.py'
+          python scripts/model_family_tuning.py --input /tmp/training.csv.gz --out research-output --workers 2
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: model-family-final-evaluation
+          path: research-output/
+          if-no-files-found: error
+          retention-days: 90
