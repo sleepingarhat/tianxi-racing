@@ -21,6 +21,7 @@ import { adminGateRoutes } from './routes/admin-gate';
 import { opsRoutes } from './routes/ops';
 import { membershipRoutes, proPage } from './routes/membership';
 import { getSeasonStatus } from './lib/season';
+import { refreshDataStats } from './lib/data-stats';
 import { countPredictionLogRows, findMeetingForLockTick, getMeetingLockState, LOCK_LEAD_MINUTES, lockCompletionAllowed } from './lib/lock-window';
 import { buildEngineHealth, engineHealthHtml } from './lib/engine-health';
 
@@ -485,6 +486,10 @@ app.onError((err, c) => {
       // 03:00 HKT: write freeze_ledger_meeting snapshots for newly settled meetings (no-op until the migration is applied).
       if (cron === '0 19 * * *') {
         ctx.waitUntil(warmFreezeLedgerSnapshots(env).then((r) => console.log('[cron] freeze-ledger snapshots', r)));
+      }
+      // 06:00 HKT: exact D1 data-volume counts for /api/analyze/data-stats (after the 00:23 results and 05:17 Pool-A syncs).
+      if (cron === '0 22 * * *') {
+        ctx.waitUntil(refreshDataStats(env.DB).then((r) => console.log('[cron] data-stats', { generatedAt: r.generatedAt, missing: r.missing })).catch((e) => console.error('[cron] data-stats failed', String(e))));
       }
       ctx.waitUntil(refreshRaceDayReport(env).then((r) => console.log('[cron] race-day report refresh', r)));
       ctx.waitUntil(backfillPredictionResults(env).then((r) => console.log('[cron] prediction backfill', r)));

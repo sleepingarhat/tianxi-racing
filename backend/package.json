@@ -19,6 +19,7 @@
     "test:admin-auth": "tsx scripts/test-admin-auth.ts",
     "test:prediction-lock": "tsx scripts/test-prediction-lock.ts",
     "test:freeze-ledger-perf": "bun scripts/test-freeze-ledger-perf.ts",
+    "test:data-stats": "bun scripts/test-data-stats.ts",
     "test:lock-window": "bun scripts/test-lock-window.ts"
   },
   "dependencies": {

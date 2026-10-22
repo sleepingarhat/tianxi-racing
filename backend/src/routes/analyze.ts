@@ -28,6 +28,7 @@ import { buildEngineHealth } from '../lib/engine-health';
 import { manifestFor, ensureModelManifestTable } from '../lib/model-manifest';
 import { computeFreezeLedger } from '../lib/freeze-ledger';
 import { cachedJson, jsonEtag } from '../lib/edge-cache';
+import { getDataStats } from '../lib/data-stats';
 import { FreezeBlockedError } from '../lib/freeze-recovery';
 
 import {
@@ -3832,6 +3833,33 @@ analyzeRoutes.get('/factors', (c) => {
           });
         } catch (e: any) {
           return c.json({ error: 'freeze-ledger failed', detail: e?.message ?? String(e) }, 500);
+        }
+      });
+
+      // GET /api/analyze/data-stats — 公開數據量（D1 真實 COUNT(*)，每日 06:00 HKT cron 計一次並存表）。
+      // 只讀一行 public_data_stats；唔會每個請求掃大表。網站、README 徽章、repo 文案都以此為唯一來源。
+      analyzeRoutes.get('/data-stats', async (c) => {
+        let waitUntil: ((p: Promise<unknown>) => void) | undefined;
+        try { const ctx = c.executionCtx; waitUntil = (p) => ctx.waitUntil(p); } catch { waitUntil = undefined; }
+        try {
+          return await cachedJson({
+            request: c.req.raw,
+            key: 'data-stats:v1',
+            waitUntil,
+            compute: async () => {
+              const { stats, state } = await getDataStats(c.env.DB);
+              if (!stats) throw new Error('data-stats-unavailable');
+              const body = JSON.stringify({ ok: true, ...stats });
+              const etag = await jsonEtag(body);
+              if (state === 'stale') {
+                // Older than the daily window and recompute throttled/failed: serve, but don't pin it.
+                return { body, etag, cacheControl: 'public, max-age=60', cacheable: false, freshMs: 0, staleMs: 0 };
+              }
+              return { body, etag, cacheControl: 'public, max-age=600, s-maxage=3600, stale-while-revalidate=86400', cacheable: true, freshMs: 3600_000, staleMs: 86400_000 };
+            },
+          });
+        } catch {
+          return c.json({ ok: false, error: 'data-stats-unavailable' }, 503, { 'Cache-Control': 'no-store' });
         }
       });
 
