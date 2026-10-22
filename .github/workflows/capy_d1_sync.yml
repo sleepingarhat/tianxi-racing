@@ -169,6 +169,23 @@ jobs:
         if: steps.csv.outputs.skip != 'true'
         run: npm install -g wrangler@4
 
+      - name: Ensure horse_sectional_times in D1 (idempotent) + schema guard
+        if: steps.csv.outputs.skip != 'true'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+        working-directory: tianxi-backend
+        run: |
+          set -u
+          # CREATE ... IF NOT EXISTS only. Non-fatal: a differently-shaped existing table is caught by the guard below.
+          wrangler d1 execute tianxi-db --remote --file=src/db/migrations/20261022_sync_trials_sectionals.sql >/tmp/mig.log 2>&1 \
+            || { echo "::warning::sync-tables migration did not fully apply"; tail -5 /tmp/mig.log; }
+          wrangler d1 execute tianxi-db --remote --json --command="PRAGMA table_info(horse_sectional_times)" > /tmp/pi_hst.json 2>/dev/null || echo '[]' > /tmp/pi_hst.json
+          if ! npx tsx scripts/d1-schema-guard.ts --db=bulk-local.db --table=horse_sectional_times --pragma-json=/tmp/pi_hst.json; then
+            echo "::warning::horse_sectional_times not pushed this run (D1 schema mismatch); race results unaffected"
+            rm -f /tmp/d1-delta/horse_sectional_times-*.sql
+          fi
+
       - name: Push delta to D1 (FK-parent-first order)
         if: steps.csv.outputs.skip != 'true'
         env:
@@ -177,7 +194,8 @@ jobs:
         working-directory: tianxi-backend
         run: |
           set -eu
-          ORDER=(horses jockeys trainers race_meetings races race_results running_comments dividends horse_elo_snapshots jockey_elo_snapshots trainer_elo_snapshots)
+          # horse_sectional_times after races + horses (FK parents); rows with a parent missing in D1 are skipped by push-delta's FK guard.
+          ORDER=(horses jockeys trainers race_meetings races race_results horse_sectional_times running_comments dividends horse_elo_snapshots jockey_elo_snapshots trainer_elo_snapshots)
           FAILED=0
           for t in "${ORDER[@]}"; do
             for f in /tmp/d1-delta/${t}-*.sql; do
@@ -213,6 +231,10 @@ jobs:
           wrangler d1 execute tianxi-db --remote \
             --command="SELECT COUNT(*) AS meetings, MAX(date) AS latest FROM race_meetings" \
             --json | tail -40
+          # Informational only (never fails the run).
+          wrangler d1 execute tianxi-db --remote \
+            --command="SELECT COUNT(*) AS sectionals_for_date FROM horse_sectional_times WHERE race_id LIKE 'race_${{ steps.resolve.outputs.date }}_%'" \
+            --json | tail -20 || true
 
       - name: Cleanup duplicate / phantom meeting rows
         if: steps.csv.outputs.skip != 'true'

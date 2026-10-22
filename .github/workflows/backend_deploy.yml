@@ -33,6 +33,9 @@ jobs:
       - name: Regression test — freeze-ledger isolation, snapshot and cache
         run: bun scripts/test-freeze-ledger-perf.ts
 
+      - name: Regression test — D1 sync of sectionals + barrier trials (push-delta e2e, FK ON, re-run safe)
+        run: npx tsx scripts/test-push-delta-sync.ts
+
       - name: Regression test — public data-stats (D1 counts stored daily, never per request)
         run: bun scripts/test-data-stats.ts
 

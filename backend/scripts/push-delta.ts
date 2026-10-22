@@ -40,7 +40,9 @@ function main() {
 
   // --include selector: 'race' (default, fast post-race-day sync), 'pool-a' (trackwork/injury/form),
   // 'elo' (ELO snapshots only, for post-compute sync), 'entries' (forward-looking racecard
-  // upcoming meetings), or 'all' for everything.
+  // upcoming meetings), 'sectionals' (one-off horse_sectional_times backfill for
+  // --since..--until; insert-only + FK-guarded), or 'all' for everything.
+  // 'race' includes horse_sectional_times; 'pool-a' includes trial_sessions/trial_runners.
   const include = (arg('include', 'race') || 'race').toLowerCase();
   const wantRace    = include === 'race'    || include === 'all';
   const wantPoolA   = include === 'pool-a'  || include === 'all';
@@ -50,6 +52,16 @@ function main() {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(until) || until < since) throw new Error('invalid --until date');
   const wantEntries = include === 'entries' || include === 'all';
   const wantOdds    = include === 'odds'    || include === 'all';
+  // 'sectionals' = one-off historical backfill of horse_sectional_times only
+  // (races/horses already in D1). Insert-only, FK-guarded on the D1 side, so it
+  // never rewrites existing rows and never fails on a missing parent.
+  const wantSectionalBackfill = include === 'sectionals';
+  // Batched (insert-only) statements per output file; >1 cuts wrangler round trips for backfills.
+  // Barrier-trial window (pool-a). Defaults to --since; widen it alone for a one-off trials backfill
+  // without re-pushing months of trackwork/form.
+  const trialsSince = arg('trials-since', since);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(trialsSince)) throw new Error('invalid --trials-since date');
+  const batchStatements = Math.max(1, Math.min(50, Number(arg('batch-statements', '1')) || 1));
 
   // Table definitions with date-scoping filters
   // ORDER MATTERS: FK parents first (horses/jockeys/trainers) → meetings → races → dependents
@@ -88,8 +100,12 @@ function main() {
 
   // Horses/jockeys/trainers need to union refs from race_results AND pool-a tables
   // (otherwise FK fails when a trackwork row references a horse not in recent races)
+  const tableExists = (name: string) =>
+    !!db.prepare(`SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?`).get(name);
   const horseRefs: string[] = [];
   if (wantRace)  horseRefs.push(`SELECT DISTINCT horse_id FROM race_results WHERE race_id IN (${recentRaceIds})`);
+  // Sectional horse ids come from the same import-csv horseId() as race_results; union for safety.
+  if (wantRace && tableExists('horse_sectional_times')) horseRefs.push(`SELECT DISTINCT horse_id FROM horse_sectional_times WHERE race_id IN (${recentRaceIds})`);
   if (wantPoolA) {
     horseRefs.push(`SELECT DISTINCT horse_id FROM horse_trackwork WHERE trackwork_date >= '${since}'`);
     horseRefs.push(`SELECT DISTINCT horse_id FROM horse_injury WHERE injury_date >= '${since}'`);
@@ -97,6 +113,11 @@ function main() {
     horseRefs.push(
       `SELECT DISTINCT horse_id FROM horse_profile_extra
        WHERE substr(COALESCE(profile_checked_at, profile_last_scraped, ''), 1, 10) >= '${since}'`,
+    );
+    // Trial runners store the bare HKJC code; local horses.id is canonical 'horse_<code>'.
+    if (tableExists('trial_runners') && tableExists('trial_sessions')) horseRefs.push(
+      `SELECT DISTINCT ('horse_' || horse_id) FROM trial_runners
+        WHERE session_id IN (SELECT id FROM trial_sessions WHERE trial_date >= '${trialsSince}')`,
     );
   }
   if (wantElo) {
@@ -139,6 +160,9 @@ function main() {
     plan.push({ table: 'race_results',          where: `race_id IN (${recentRaceIds})` });
     plan.push({ table: 'running_comments',      where: `race_id IN (${recentRaceIds})` });
     plan.push({ table: 'dividends',             where: `race_id IN (${recentRaceIds})` });
+    // Per-horse sectionals: import-csv writes them into bulk-local.db from
+    // sectional_times_<date>.csv but they were never pushed (D1 daily-sync gap).
+    plan.push({ table: 'horse_sectional_times', where: `race_id IN (${recentRaceIds})` });
     plan.push({ table: 'horse_elo_snapshots',   where: `as_of_date >= '${since}' AND ('horse_' || horse_id) IN (SELECT id FROM horses)` });
     plan.push({ table: 'jockey_elo_snapshots',  where: `as_of_date >= '${since}' AND ('jockey_' || jockey_id) IN (SELECT id FROM jockeys)` });
     plan.push({ table: 'trainer_elo_snapshots', where: `as_of_date >= '${since}' AND ('trainer_' || trainer_id) IN (SELECT id FROM trainers)` });
@@ -152,6 +176,17 @@ function main() {
     plan.push({ table: 'horse_trackwork',    where: `trackwork_date >= '${since}'` });
     plan.push({ table: 'horse_injury',       where: `injury_date    >= '${since}'` });
     plan.push({ table: 'horse_form_records', where: `race_date      >= '${since}'` });
+    // Barrier trials (Pool B scrape → ingest `trials`): sessions by date, then their runners.
+    plan.push({ table: 'trial_sessions', where: `trial_date >= '${trialsSince}'` });
+    plan.push({ table: 'trial_runners',  where: `session_id IN (SELECT id FROM trial_sessions WHERE trial_date >= '${trialsSince}')` });
+  }
+
+  if (wantSectionalBackfill) {
+    plan.push({
+      table: 'horse_sectional_times',
+      where: `race_id IN (SELECT r.id FROM races r JOIN race_meetings m ON m.id = r.meeting_id
+                           WHERE m.date >= '${since}' AND m.date <= '${until}' AND m.${HK_VENUE_FILTER})`,
+    });
   }
 
   if (wantEntries) {
@@ -189,6 +224,17 @@ function main() {
     horse_profile_extra: { horse_id: 'horse_' },
     // Entries ingest writes bare code (E436) into horse_id; prefix for FK.
     entries_upcoming: { horse_id: 'horse_' },
+    // Trials ingest writes bare code (K246); D1 readers query by horses.id.
+    trial_runners: { horse_id: 'horse_' },
+  };
+
+  // D1-side FK guard: rows are inserted via `INSERT … SELECT * FROM (VALUES …) AS v
+  // WHERE v.<col> IN (SELECT id FROM <parent>)`, so a row whose parent is absent
+  // from D1 is skipped instead of failing the whole statement/file with
+  // SQLITE_CONSTRAINT_FOREIGNKEY. (OR IGNORE does not cover FK violations.)
+  const FK_GUARD: Record<string, Record<string, string>> = {
+    horse_sectional_times: { race_id: 'races', horse_id: 'horses' },
+    trial_runners: { session_id: 'trial_sessions', horse_id: 'horses' },
   };
 
   // Tables whose natural conflict key is a secondary UNIQUE index (not the PK).
@@ -247,7 +293,7 @@ function main() {
     // skip silently — children reference by id which matches our local id.
     const FK_PARENT_SKIP_UPDATE = new Set(['horses', 'jockeys', 'trainers']);
     const skipUpdate = FK_PARENT_SKIP_UPDATE.has(table);
-    const updateSetClause = skipUpdate
+    const updateSetClause = skipUpdate || wantSectionalBackfill
       ? ''
       : nonConflictCols.length
       ? nonConflictCols.map((c) => `${c}=excluded.${c}`).join(', ')
@@ -258,7 +304,19 @@ function main() {
     // play. For INSERT-only tables we can still batch.
     const oneStatementPerRow = conflictCols.length > 0 && updateSetClause !== '';
     const rowsPerStatement = oneStatementPerRow ? 1 : ROWS_PER_CHUNK;
-    const statementsPerChunk = oneStatementPerRow ? ROWS_PER_CHUNK : 1;
+    const statementsPerChunk = oneStatementPerRow ? ROWS_PER_CHUNK : batchStatements;
+    const guard = FK_GUARD[table];
+    const guardWhere = guard
+      ? Object.entries(guard)
+          .filter(([col]) => cols.includes(col))
+          .map(([col, parent]) => `v.column${cols.indexOf(col) + 1} IN (SELECT id FROM ${parent})`)
+          .join(' AND ')
+      : '';
+    // INSERT … VALUES … or, when FK-guarded, INSERT … SELECT * FROM (VALUES …) AS v WHERE <parents exist>.
+    const head = (valuesSql: string) =>
+      guardWhere
+        ? `INSERT INTO ${table} (${cols.join(',')}) SELECT * FROM (VALUES ${valuesSql}) AS v WHERE ${guardWhere}`
+        : `INSERT INTO ${table} (${cols.join(',')}) VALUES ${valuesSql}`;
 
     let chunkIdx = 0;
     for (let i = 0; i < rows.length; i += rowsPerStatement * statementsPerChunk) {
@@ -279,13 +337,15 @@ function main() {
         }).join(',');
         let sql: string;
         if (conflictCols.length && updateSetClause) {
-          sql = `INSERT INTO ${table} (${cols.join(',')}) VALUES ${valuesSql} ON CONFLICT(${conflictCols.join(',')}) DO UPDATE SET ${updateSetClause};`;
+          sql = `${head(valuesSql)} ON CONFLICT(${conflictCols.join(',')}) DO UPDATE SET ${updateSetClause};`;
         } else if (skipUpdate) {
           // INSERT OR IGNORE skips row on ANY uniqueness failure (PK or secondary UNIQUE)
           // — correct for FK-parent tables where existence is all that matters.
           sql = `INSERT OR IGNORE INTO ${table} (${cols.join(',')}) VALUES\n${valuesSql};`;
         } else if (conflictCols.length) {
-          sql = `INSERT INTO ${table} (${cols.join(',')}) VALUES\n${valuesSql}\nON CONFLICT(${conflictCols.join(',')}) DO NOTHING;`;
+          sql = guardWhere
+            ? `${head(valuesSql)} ON CONFLICT(${conflictCols.join(',')}) DO NOTHING;`
+            : `INSERT INTO ${table} (${cols.join(',')}) VALUES\n${valuesSql}\nON CONFLICT(${conflictCols.join(',')}) DO NOTHING;`;
         } else {
           sql = `INSERT OR REPLACE INTO ${table} (${cols.join(',')}) VALUES\n${valuesSql};`;
         }
