@@ -122,6 +122,22 @@ db.exec(`
   CREATE TABLE running_comments (
     race_id TEXT, horse_id TEXT, comment_text TEXT, language TEXT
   );
+  -- Barrier trials, shape per schema_v2.sql (what the D1 sync writes).
+  CREATE TABLE trial_sessions (
+    id TEXT PRIMARY KEY, trial_date TEXT NOT NULL, venue TEXT NOT NULL, session_number INTEGER,
+    distance INTEGER, going TEXT, track TEXT, total_runners INTEGER, source_commit TEXT
+  );
+  CREATE TABLE trial_runners (
+    id TEXT PRIMARY KEY, session_id TEXT NOT NULL, horse_id TEXT NOT NULL, horse_number INTEGER,
+    finishing_position INTEGER, time_text TEXT, time_sec REAL, jockey_name TEXT, jockey_id TEXT,
+    lbw TEXT, gear TEXT, comment TEXT, ingested_at TEXT
+  );
+  INSERT INTO trial_sessions VALUES
+    ('ts_old', '2026-07-01', '沙田全天候跑道', 1, 1050, '好地', 'awt', 10, NULL),
+    ('ts_new', '2026-08-12', '沙田草地', 3, 1200, '好地', 'turf', 12, NULL);
+  INSERT INTO trial_runners VALUES
+    ('trr_old', 'ts_old', 'horse_J343', NULL, 4, '1.01.20', 61.2, '潘頓', NULL, '2-1/4', 'B', '慢閘', NULL),
+    ('trr_new', 'ts_new', 'horse_J343', NULL, 2, '1.10.96', 70.96, '布文', NULL, 'NOSE', NULL, '末段追近', NULL);
 
   INSERT INTO race_meetings (id, date, venue) VALUES ('meeting_past', '2026-08-01', 'ST');
   INSERT INTO races (id, meeting_id, race_number, distance, class, going, track, course) VALUES ('race_past', 'meeting_past', 3, 1400, '第三班', '好地', '草地', 'B');
@@ -179,9 +195,20 @@ async function main() {
 
   const form = await json('/api/horses/horse_J343/form?limit=3');
   assert(form.horse.totalStarts === 17 && form.horse.totalWins === 7, 'form header record mismatch');
+  // /form barrierTrials: newest first, real columns (previously always [] — stale column names).
+  assert(Array.isArray(form.barrierTrials) && form.barrierTrials.length === 2, `form trials missing: ${JSON.stringify(form.barrierTrials)}`);
+  const [t0] = form.barrierTrials;
+  assert(t0.date === '2026-08-12' && t0.venue === '沙田草地' && t0.distance === 1200 && t0.going === '好地', 'form trial session fields');
+  assert(t0.position === 2 && t0.totalRunners === 12 && t0.time === '1.10.96' && t0.jockey === '布文' && t0.comment === '末段追近', 'form trial runner fields');
+  assert(t0.timeSec === 70.96 && t0.lbw === 'NOSE' && t0.track === 'turf', 'form trial extra fields');
+  const noTrials = await json('/api/horses/horse_J127/form?limit=3');
+  assert(Array.isArray(noTrials.barrierTrials) && noTrials.barrierTrials.length === 0, 'horse without trials should get []');
 
   const research = await json('/api/horses/horse_J343/research?limit=3');
   assert(research.horse.record.totalStarts === 17, 'research record mismatch');
+  // /research (horse page) and /form now agree on trials.
+  const rt = research.training?.barrierTrials ?? [];
+  assert(rt.length === 2 && rt[0].date === t0.date && rt[0].position === t0.position && rt[0].jockey === t0.jockey && rt[0].time === t0.time, `research/form trials disagree: ${JSON.stringify(rt[0])}`);
   assert(research.raceContext === null, 'race context leaked without raceId');
 
   const raceResearch = await json('/api/horses/horse_J343/research?limit=3&raceId=race_future');
