@@ -135,28 +135,67 @@ export async function getMeetingLockState(
   };
 }
 
+/** How long after its FIRST post time a meeting stays the lock-tick / lock-state meeting. */
+export const LOCK_TICK_WINDOW_HOURS = 8;
+
+const HKT_OFFSET_MS = 8 * 3600_000;
+/** HKT calendar date (YYYY-MM-DD) of an instant. */
+function hktDate(ms: number): string {
+  return new Date(ms + HKT_OFFSET_MS).toISOString().slice(0, 10);
+}
+
+type FixtureRow = { date: string; venue: string | null; post_time: string | null };
+
+/**
+ * Pure selection over fixture rows. All comparisons are on epoch instants, never
+ * on ISO strings: post_time is stored with a +08:00 offset while cutoffs are
+ * computed in UTC, and comparing those lexicographically shifts the window by 8h.
+ * A meeting qualifies while its TRUE first post (MIN over all its races) is
+ * within the last LOCK_TICK_WINDOW_HOURS or in the future; the earliest wins.
+ */
+export function selectMeetingForLockTick(
+  rows: FixtureRow[],
+  now: number,
+): { date: string; venue: string | null; firstPostAt: string } | null {
+  const cutoffMs = now - LOCK_TICK_WINDOW_HOURS * 3600_000;
+  const meetings = new Map<string, { date: string; venue: string | null; firstMs: number; firstPostAt: string }>();
+  for (const r of rows) {
+    if (!r?.date || !r.post_time || isCancelledMeeting(r.date)) continue;
+    const ms = Date.parse(r.post_time);
+    if (!Number.isFinite(ms)) continue;
+    const key = `${r.date}|${r.venue ?? ''}`;
+    const cur = meetings.get(key);
+    if (!cur || ms < cur.firstMs) meetings.set(key, { date: r.date, venue: r.venue ?? null, firstMs: ms, firstPostAt: r.post_time });
+  }
+  let best: { date: string; venue: string | null; firstMs: number; firstPostAt: string } | null = null;
+  for (const m of meetings.values()) {
+    if (m.firstMs < cutoffMs) continue;
+    if (!best || m.firstMs < best.firstMs) best = m;
+  }
+  return best ? { date: best.date, venue: best.venue, firstPostAt: best.firstPostAt } : null;
+}
+
 /**
  * The next (or currently running) HK meeting we may have to lock, taken from
  * fixtures — never from results. Returns the meeting whose first post time is
- * the closest one not older than 8 hours.
+ * the closest one not older than 8 hours (compared as instants).
  */
 export async function findMeetingForLockTick(
   db: Env['DB'],
   now: number = Date.now(),
 ): Promise<{ date: string; venue: string | null; firstPostAt: string } | null> {
-  const cutoff = new Date(now - 8 * 3600_000).toISOString();
+  // Coarse, index-friendly prefilter on the HKT race_date (same format both sides);
+  // one extra day of slack so a meeting whose window spans HKT midnight is kept.
+  const fromDate = hktDate(now - LOCK_TICK_WINDOW_HOURS * 3600_000 - 86400_000);
   try {
-    const row = await db.prepare(
-      `SELECT race_date AS date, venue, MIN(post_time) AS pt
+    const res = await db.prepare(
+      `SELECT race_date AS date, venue, MIN(post_time) AS post_time
          FROM entries_upcoming
-        WHERE post_time IS NOT NULL AND race_number > 0 AND post_time >= ?
+        WHERE race_date >= ? AND post_time IS NOT NULL AND race_number > 0
           AND race_date NOT IN ('2026-09-19')
-        GROUP BY race_date, venue
-        ORDER BY pt ASC
-        LIMIT 1`,
-    ).bind(cutoff).first<{ date: string; venue: string | null; pt: string }>();
-    if (!row?.date || !row?.pt) return null;
-    return { date: row.date, venue: row.venue ?? null, firstPostAt: row.pt };
+        GROUP BY race_date, venue, race_number`,
+    ).bind(fromDate).all<FixtureRow>();
+    return selectMeetingForLockTick(res?.results ?? [], now);
   } catch {
     return null;
   }
