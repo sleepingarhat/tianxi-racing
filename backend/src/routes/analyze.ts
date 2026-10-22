@@ -27,6 +27,8 @@ import { factorScores, paceEstimates, configFingerprint, PACE_METHOD, type FormR
 import { buildEngineHealth } from '../lib/engine-health';
 import { manifestFor, ensureModelManifestTable } from '../lib/model-manifest';
 import { computeFreezeLedger } from '../lib/freeze-ledger';
+import { cachedJson, jsonEtag } from '../lib/edge-cache';
+import { FreezeBlockedError } from '../lib/freeze-recovery';
 
 import {
   ADMIN_AUTH_POLICY,
@@ -3802,10 +3804,31 @@ analyzeRoutes.get('/factors', (c) => {
           const dates = datesRaw
             ? datesRaw.split(',').map((s) => s.trim()).filter((s) => /^\d{4}-\d{2}-\d{2}$/.test(s))
             : undefined;
-          const since = c.req.query('since') ?? undefined;
-          const payload = await computeFreezeLedger(c.env.DB, { dates, since });
-          return c.json(payload, 200, {
-            'Cache-Control': 'public, max-age=120, s-maxage=300',
+          const sinceRaw = c.req.query('since');
+          const since = sinceRaw && /^\d{4}-\d{2}-\d{2}$/.test(sinceRaw) ? sinceRaw : undefined;
+          const key = `freeze-ledger:v1:dates=${(dates ?? []).slice().sort().join(',')}:since=${since ?? ''}`;
+          let waitUntil: ((p: Promise<unknown>) => void) | undefined;
+          try { const ctx = c.executionCtx; waitUntil = (p) => ctx.waitUntil(p); } catch { waitUntil = undefined; }
+          return await cachedJson({
+            request: c.req.raw,
+            key,
+            waitUntil,
+            compute: async () => {
+              const payload = await computeFreezeLedger(c.env.DB, { dates, since });
+              const body = JSON.stringify(payload);
+              // ETag ignores generatedAt so an unchanged ledger revalidates to 304.
+              const etag = await jsonEtag(JSON.stringify({ e: payload.engine, m: payload.meetings, s: payload.season }));
+              const transient = payload.snapshot.readErrors > 0;
+              // A single fully settled meeting served from its immutable snapshot never changes.
+              const settledSingle = !!dates && dates.length === 1 && payload.snapshot.hits === 1;
+              if (transient) {
+                return { body, etag, cacheControl: 'no-store', cacheable: false, freshMs: 0, staleMs: 0 };
+              }
+              if (settledSingle) {
+                return { body, etag, cacheControl: 'public, max-age=86400, s-maxage=604800, immutable', cacheable: true, freshMs: 86400_000, staleMs: 7 * 86400_000 };
+              }
+              return { body, etag, cacheControl: 'public, max-age=60, s-maxage=300, stale-while-revalidate=86400', cacheable: true, freshMs: 300_000, staleMs: 86400_000 };
+            },
           });
         } catch (e: any) {
           return c.json({ error: 'freeze-ledger failed', detail: e?.message ?? String(e) }, 500);
@@ -4213,6 +4236,9 @@ analyzeRoutes.get('/factors', (c) => {
             let totalTop4Intersect = 0, totalTop4Eligible = 0;
             const perMeeting: any[] = [];
             const errors: any[] = [];
+            // Meetings whose frozen evidence is blocked / failed verification. Deterministic,
+            // so (unlike transient errors) they must not stop the rollup from being cached.
+            const blocked: any[] = [];
             for (const m of meetingDates) {
               try {
                 // Cache-first: avoid Worker timeout when iterating many meetings.
@@ -4241,7 +4267,10 @@ analyzeRoutes.get('/factors', (c) => {
                 totalQuartet += s.quartetHits ?? 0;
                 totalTop4Intersect += s.top4SumIntersect ?? 0;
                 totalTop4Eligible += s.top4Eligible ?? 0;
-              } catch (e: any) { errors.push({date: m.date, error: e?.message || String(e)}); }
+              } catch (e: any) {
+                if (e instanceof FreezeBlockedError) blocked.push({date: m.date, error: e.message});
+                else errors.push({date: m.date, error: e?.message || String(e)});
+              }
             }
             const rRate = (n: number, d: number) => d ? Math.round(n / d * 1000) / 10 : null;
             const payload: any = {
@@ -4265,7 +4294,7 @@ analyzeRoutes.get('/factors', (c) => {
               trioHits: totalTrio, tierceHits: totalTierce,
               first4Hits: totalFirst4, first4Eligible: totalFirst4Eligible,
               quartetHits: totalQuartet,
-              perMeeting, errors,
+              perMeeting, errors, blocked,
               generatedAt: new Date().toISOString(),
             };
             // 唔好將失敗／空結果寫入全日快取：之前一次 D1 短暫失敗會令成日顯示 0 場。

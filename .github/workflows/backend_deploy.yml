@@ -30,6 +30,9 @@ jobs:
       - name: Regression test — immutable freeze recovery and REAL values
         run: bun scripts/test-freeze-recovery.ts
 
+      - name: Regression test — freeze-ledger isolation, snapshot and cache
+        run: bun scripts/test-freeze-ledger-perf.ts
+
       - name: Replay test — market-blend odds-key contract
         run: npx tsx scripts/test-market-blend.ts
 

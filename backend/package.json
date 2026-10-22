@@ -17,7 +17,8 @@
     "test:public-today-picks": "tsx scripts/test-public-today-picks.ts",
     "test:membership": "tsx scripts/test-membership.ts",
     "test:admin-auth": "tsx scripts/test-admin-auth.ts",
-    "test:prediction-lock": "tsx scripts/test-prediction-lock.ts"
+    "test:prediction-lock": "tsx scripts/test-prediction-lock.ts",
+    "test:freeze-ledger-perf": "bun scripts/test-freeze-ledger-perf.ts"
   },
   "dependencies": {
     "hkjc-api": "^1.0.5",

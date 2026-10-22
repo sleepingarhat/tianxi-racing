@@ -46,7 +46,12 @@ export function missingOriginalRows(original: Row[], current: Row[]): Row[] {
   return original.filter(r => !seen.has(`${r.race_number}:${r.horse_id}`));
 }
 export async function digest(text: string) { return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text)))).map(n => n.toString(16).padStart(2,'0')).join(''); }
+/** Per-isolate memo: the DDL below is idempotent, so once it has run in this isolate the 5-minute lock tick can skip ~11 DDL round trips. */
+let recoveryTablesReady = false;
+/** Test hook: force the next ensureRecoveryTables call to run the DDL again. */
+export function resetRecoveryTablesMemo() { recoveryTablesReady = false; verifiedReads.clear(); }
 export async function ensureRecoveryTables(db: D1Database) {
+  if (recoveryTablesReady) return;
   await db.prepare(`CREATE TABLE IF NOT EXISTS prediction_original_snapshots (date TEXT NOT NULL, engine TEXT NOT NULL, snapshot_json TEXT NOT NULL, sha256 TEXT NOT NULL, captured_at TEXT NOT NULL, PRIMARY KEY(date,engine))`).run();
   await db.prepare(`CREATE TABLE IF NOT EXISTS prediction_recovery_history (id INTEGER PRIMARY KEY AUTOINCREMENT, date TEXT NOT NULL, engine TEXT NOT NULL, checked_at TEXT NOT NULL, ok INTEGER NOT NULL, action TEXT NOT NULL, restored INTEGER NOT NULL, error TEXT)`).run();
   await db.prepare(`CREATE TABLE IF NOT EXISTS prediction_recovery_status (date TEXT NOT NULL, engine TEXT NOT NULL, checked_at TEXT NOT NULL, ok INTEGER NOT NULL, action TEXT NOT NULL, restored INTEGER NOT NULL, error TEXT, PRIMARY KEY(date,engine))`).run();
@@ -61,6 +66,7 @@ export async function ensureRecoveryTables(db: D1Database) {
   // Inserts after capture must be an exact copy of an original row, including NULL.
   const matches = PREDICTION_COLUMNS.map(c => `json_extract(j.value,'$.${c}') IS NEW.${c}`).join(' AND ');
   await db.prepare(`CREATE TRIGGER IF NOT EXISTS frozen_prediction_original_insert BEFORE INSERT ON prediction_log WHEN EXISTS (SELECT 1 FROM prediction_original_snapshots s WHERE s.date=NEW.date AND s.engine=NEW.engine) AND NOT EXISTS (SELECT 1 FROM prediction_original_snapshots s,json_each(s.snapshot_json,'$.rows') j WHERE s.date=NEW.date AND s.engine=NEW.engine AND ${matches}) BEGIN SELECT RAISE(ABORT,'not an original prediction'); END`).run();
+  recoveryTablesReady = true;
 }
 async function rowsFor(db: D1Database,date: string,engine: string) { const r = await db.prepare(`SELECT ${PREDICTION_COLUMNS.join(',')} FROM prediction_log WHERE date=? AND engine=? AND variant='baseline' ORDER BY race_number,predicted_rank,horse_id`).bind(date,engine).all<Row>(); return r.results ?? []; }
 export async function recoverOriginalFreeze(db: D1Database, date: string, venue: string, lockAt: string, engine = 'v12', now = Date.now()): Promise<RecoveryResult> {
@@ -68,6 +74,7 @@ export async function recoverOriginalFreeze(db: D1Database, date: string, venue:
   try {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !['ST','HV'].includes(venue) || !Number.isFinite(Date.parse(lockAt)) || now < Date.parse(lockAt)) throw new Error('not-a-confirmed-lock');
     await ensureRecoveryTables(db);
+    const previous = await db.prepare(`SELECT ok FROM prediction_recovery_status WHERE date=? AND engine=?`).bind(date,engine).first<{ok:number}>().catch(() => null);
     let saved = await db.prepare(`SELECT snapshot_json,sha256 FROM prediction_original_snapshots WHERE date=? AND engine=?`).bind(date,engine).first<{snapshot_json:string;sha256:string}>();
     if (!saved) {
       // Only current meeting, only genuinely pre-lock rows; never manufacture a historical original.
@@ -99,7 +106,10 @@ export async function recoverOriginalFreeze(db: D1Database, date: string, venue:
     const current=await rowsFor(db,date,engine);
     const checkedAt=new Date(now).toISOString();
     const before=await auditOriginalRaces(snapshot.rows,current,date,engine);
-    await db.batch(before.map(a=>db.prepare(`INSERT INTO prediction_race_audit_history(date,engine,race_number,checked_at,expected,actual,ok,fingerprint,error) VALUES (?,?,?,?,?,?,?,?,?)`).bind(date,engine,a.race_number,checkedAt,a.expected,a.actual,a.ok?1:0,a.fingerprint,a.error)));
+    // Unchanged re-check (previous status ok, every race passes, nothing missing): the per-race audit
+    // history already holds this exact result, so do not append identical rows on every tick.
+    const unchanged = previous?.ok === 1 && before.every(a=>a.ok) && before.every(a=>a.expected===a.actual);
+    if (!unchanged) await db.batch(before.map(a=>db.prepare(`INSERT INTO prediction_race_audit_history(date,engine,race_number,checked_at,expected,actual,ok,fingerprint,error) VALUES (?,?,?,?,?,?,?,?,?)`).bind(date,engine,a.race_number,checkedAt,a.expected,a.actual,a.ok?1:0,a.fingerprint,a.error)));
     const missing=missingOriginalRows(snapshot.rows,current);
     const meta=await db.prepare(`SELECT * FROM prediction_lock_meta WHERE date=? AND engine=?`).bind(date,engine).first<Row>();
     if (meta && JSON.stringify(meta) !== JSON.stringify(snapshot.meta)) throw new Error('lock-meta-conflict');
@@ -116,17 +126,54 @@ export async function recoverOriginalFreeze(db: D1Database, date: string, venue:
   try { await db.prepare(`INSERT INTO prediction_recovery_status(date,engine,checked_at,ok,action,restored,error) VALUES (?,?,?,?,?,?,?) ON CONFLICT(date,engine) DO UPDATE SET checked_at=excluded.checked_at,ok=excluded.ok,action=excluded.action,restored=excluded.restored,error=excluded.error`).bind(date,engine,new Date(now).toISOString(),result.ok?1:0,result.action,result.restored,result.error??null).run(); } catch { return blocked('recovery-status-write-failed'); }
   return result;
 }
+/** A meeting whose frozen evidence is blocked or failed verification. Deterministic (not a transient read error). */
+export class FreezeBlockedError extends Error {
+  constructor(message: string) { super(message); this.name = 'FreezeBlockedError'; }
+}
+/**
+ * Per-isolate memo of full reader verifications, keyed by date|engine|sha256|status.checked_at.
+ * A hit is only trusted when prediction_recovery_status.ok=1 for the same stored sha256 and the
+ * live baseline row count still equals the snapshot row count (catches deletion/insertion).
+ * Value rewrites are already blocked by the immutable triggers; the lock tick re-verifies hourly,
+ * and the memo expires after VERIFIED_READ_TTL_MS so a full re-check still happens regularly.
+ */
+const VERIFIED_READ_TTL_MS = 10 * 60_000;
+const verifiedReads = new Map<string, number>();
 /** Reads never trust a blocked meeting. Historical rows with no new snapshot remain legacy evidence. */
-export async function assertOriginalFreezeReadable(db:D1Database,date:string,engine:string) {
-  const status=await db.prepare(`SELECT ok,error FROM prediction_recovery_status WHERE date=? AND engine=?`).bind(date,engine).first<{ok:number;error:string|null}>();
-  if (status && !status.ok) throw new Error(status.error??'freeze-recovery-blocked');
+export async function assertOriginalFreezeReadable(db:D1Database,date:string,engine:string,now:number=Date.now()) {
+  const status=await db.prepare(`SELECT ok,error,checked_at FROM prediction_recovery_status WHERE date=? AND engine=?`).bind(date,engine).first<{ok:number;error:string|null;checked_at:string|null}>();
+  if (status && !status.ok) throw new FreezeBlockedError(status.error??'freeze-recovery-blocked');
+  const head=await db.prepare(`SELECT sha256, json_array_length(snapshot_json,'$.rows') AS expected, (SELECT COUNT(*) FROM prediction_log WHERE date=? AND engine=? AND variant='baseline') AS actual FROM prediction_original_snapshots WHERE date=? AND engine=?`).bind(date,engine,date,engine).first<{sha256:string;expected:number|null;actual:number|null}>();
+  if (!head) return;
+  const memoKey=`${date}|${engine}|${head.sha256}|${status?.checked_at ?? ''}`;
+  const seenAt=verifiedReads.get(memoKey);
+  if (status?.ok===1 && seenAt!==undefined && now-seenAt<VERIFIED_READ_TTL_MS && head.expected!=null && Number(head.expected)===Number(head.actual)) return;
   const saved=await db.prepare(`SELECT snapshot_json,sha256 FROM prediction_original_snapshots WHERE date=? AND engine=?`).bind(date,engine).first<{snapshot_json:string;sha256:string}>();
   if (!saved) return;
-  if(await digest(saved.snapshot_json)!==saved.sha256) throw new Error('original-hash-mismatch');
+  if(await digest(saved.snapshot_json)!==saved.sha256) throw new FreezeBlockedError('original-hash-mismatch');
   const original=JSON.parse(saved.snapshot_json) as Snapshot;
-  if(original.schema!==1 || original.date!==date || original.engine!==engine) throw new Error('original-identity-mismatch');
-  validateRows(original.rows,date,engine);
+  if(original.schema!==1 || original.date!==date || original.engine!==engine) throw new FreezeBlockedError('original-identity-mismatch');
+  try { validateRows(original.rows,date,engine); } catch (e) { throw new FreezeBlockedError(e instanceof Error ? e.message : 'invalid-original-row'); }
   const meta=await db.prepare(`SELECT * FROM prediction_lock_meta WHERE date=? AND engine=?`).bind(date,engine).first<Row>();
-  if(JSON.stringify(meta)!==JSON.stringify(original.meta)) throw new Error('lock-meta-conflict');
-  if(missingOriginalRows(original.rows,await rowsFor(db,date,engine)).length) throw new Error('missing-original-await-recovery');
+  if(JSON.stringify(meta)!==JSON.stringify(original.meta)) throw new FreezeBlockedError('lock-meta-conflict');
+  const current=await rowsFor(db,date,engine);
+  let missing: Row[];
+  try { missing=missingOriginalRows(original.rows,current); } catch (e) { throw new FreezeBlockedError(e instanceof Error ? e.message : 'existing-row-conflicts-with-original'); }
+  if(missing.length) throw new FreezeBlockedError('missing-original-await-recovery');
+  if (verifiedReads.size > 500) verifiedReads.clear();
+  verifiedReads.set(`${date}|${engine}|${saved.sha256}|${status?.checked_at ?? ''}`, now);
+}
+/**
+ * Lock-tick shortcut: true when this meeting's original was verified (or restored) within maxAgeMs,
+ * still has the same number of baseline rows as the immutable snapshot, and nothing is blocked.
+ * The caller then skips the full recoverOriginalFreeze pass; any count change forces a full re-check.
+ */
+export async function recentlyVerifiedOriginal(db:D1Database,date:string,engine='v12',now=Date.now(),maxAgeMs=60*60_000): Promise<boolean> {
+  try {
+    const row=await db.prepare(`SELECT p.ok AS ok, p.action AS action, p.checked_at AS checked_at, json_array_length(s.snapshot_json,'$.rows') AS expected, (SELECT COUNT(*) FROM prediction_log l WHERE l.date=p.date AND l.engine=p.engine AND l.variant='baseline') AS actual FROM prediction_recovery_status p JOIN prediction_original_snapshots s ON s.date=p.date AND s.engine=p.engine WHERE p.date=? AND p.engine=?`).bind(date,engine).first<{ok:number;action:string;checked_at:string;expected:number|null;actual:number|null}>();
+    if (!row || row.ok!==1 || !['verified-original','restored-original'].includes(row.action)) return false;
+    const checked=Date.parse(row.checked_at);
+    if (!Number.isFinite(checked) || now-checked<0 || now-checked>=maxAgeMs) return false;
+    return row.expected!=null && Number(row.expected)>0 && Number(row.expected)===Number(row.actual);
+  } catch { return false; }
 }

@@ -1,5 +1,6 @@
 import { collectDisplayOdds } from './lib/odds-collection';
-import { recoverOriginalFreeze } from './lib/freeze-recovery';
+import { recoverOriginalFreeze, recentlyVerifiedOriginal } from './lib/freeze-recovery';
+import { computeFreezeLedger } from './lib/freeze-ledger';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
@@ -284,6 +285,12 @@ app.onError((err, c) => {
       const lock = await getMeetingLockState(env.DB, meeting.date, meeting.venue);
       if (!lock.locked) return { ok: true, action: 'pre-lock', date: meeting.date, lockAt: lock.lockAt };
       if (lock.source === 'error' || !lock.lockAt || !meeting.venue) return { ok: false, action: 'blocked', error: 'lock-state-unavailable' };
+      // Already verified within the last hour and the baseline row count still matches the
+      // immutable snapshot → skip the full re-verification this tick (re-checked hourly, or
+      // immediately if any row is added/removed). Status stays ok=1, so lock-state is unchanged.
+      if (await recentlyVerifiedOriginal(env.DB, meeting.date, 'v12')) {
+        return { ok: true, action: 'verified-recent', date: meeting.date, lockAt: lock.lockAt, rows: 0 };
+      }
       const recovery = await recoverOriginalFreeze(env.DB,meeting.date,meeting.venue,lock.lockAt);
       if (!recovery.ok || recovery.action === 'restored-original') {
         // Event-driven delivery from the existing lock tick; never another poller.
@@ -416,6 +423,27 @@ app.onError((err, c) => {
     return c.json({ ...out, ranAt: new Date().toISOString() });
   });
 
+  /** Pre-build the public hit-rate rollups the track-record page reads (cache key is the UTC day). */
+  async function warmHitRateRollups(env: Env): Promise<{ days: number; ok: boolean; status?: number }[]> {
+    const out: { days: number; ok: boolean; status?: number }[] = [];
+    for (const days of [90, 30, 60, 180]) {
+      try {
+        const res = await app.fetch(new Request(`https://internal/api/analyze/hit-rate-rollup?days=${days}`), env, { waitUntil: () => {}, passThroughOnException: () => {} } as any);
+        await res.arrayBuffer().catch(() => null);
+        out.push({ days, ok: res.ok, status: res.status });
+      } catch { out.push({ days, ok: false }); }
+    }
+    return out;
+  }
+
+  /** Compute the season freeze ledger once so settled meetings get their freeze_ledger_meeting snapshot. */
+  async function warmFreezeLedgerSnapshots(env: Env) {
+    try {
+      const r = await computeFreezeLedger(env.DB);
+      return { ok: true, ...r.snapshot, meetings: r.meetings.length };
+    } catch (e: any) { return { ok: false, error: e?.message ?? String(e) }; }
+  }
+
   async function warmStrategyPnl(env: Env): Promise<{ ok: boolean; pending: number; cached?: boolean; error?: string }> {
     try {
       const req = new Request('https://internal/api/analyze/strategy-pnl?refresh=1', {
@@ -445,12 +473,19 @@ app.onError((err, c) => {
         ctx.waitUntil(collectDisplayOdds(env).then(r => console.log('[cron] display odds', r)).catch(e => console.error('[cron] display odds failed', String(e))));
         return;
       }
+      const cron = String(_event?.cron ?? '');
       ctx.waitUntil(
         refreshHitRateCache(env)
           .then((r) => console.log('[cron] hit-rate refresh', r))
           .then(() => warmStrategyPnl(env))
-          .then((r) => console.log('[cron] strategy-pnl warmup', r)),
+          .then((r) => console.log('[cron] strategy-pnl warmup', r))
+          // 11:00 HKT (03:00 UTC) is the first slot after the UTC day roll-over that keys the rollup cache.
+          .then(() => (cron === '0 3 * * *' ? warmHitRateRollups(env).then((r) => console.log('[cron] hit-rate rollup warmup', r)) : undefined)),
       );
+      // 03:00 HKT: write freeze_ledger_meeting snapshots for newly settled meetings (no-op until the migration is applied).
+      if (cron === '0 19 * * *') {
+        ctx.waitUntil(warmFreezeLedgerSnapshots(env).then((r) => console.log('[cron] freeze-ledger snapshots', r)));
+      }
       ctx.waitUntil(refreshRaceDayReport(env).then((r) => console.log('[cron] race-day report refresh', r)));
       ctx.waitUntil(backfillPredictionResults(env).then((r) => console.log('[cron] prediction backfill', r)));
       ctx.waitUntil(
