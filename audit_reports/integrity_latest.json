@@ -1,9 +1,9 @@
 {
-  "scan_date": "2026-10-21",
+  "scan_date": "2026-10-22",
   "repo_root": "/home/runner/work/tianxi-racing/tianxi-racing",
   "overall_severity": "warn",
   "critical_gap_count": 0,
-  "warn_gap_count": 15,
+  "warn_gap_count": 2,
   "recommendation": "monitor_no_block",
   "categories": {
     "race_artefacts": {
@@ -28,38 +28,23 @@
     },
     "horse_profiles": {
       "name": "horse_profiles",
-      "expected": 1190,
-      "present": 1190,
-      "missing": [],
-      "stale": [
-        "J213",
-        "J501",
-        "K029",
-        "K457",
-        "K464",
-        "K500",
-        "K502",
-        "J015",
-        "H486",
-        "H354",
-        "H087",
-        "J463",
-        "J331"
-      ],
-      "notes": [
-        "13 profiles are stale (profile_last_scraped < last_race_date)",
-        "total profiles in DB: 6108"
-      ],
-      "severity": "warn"
-    },
-    "horse_form_records": {
-      "name": "horse_form_records",
-      "expected": 1190,
-      "present": 1190,
+      "expected": 1195,
+      "present": 1195,
       "missing": [],
       "stale": [],
       "notes": [
-        "total form_records files: 6108"
+        "total profiles in DB: 6111"
+      ],
+      "severity": "ok"
+    },
+    "horse_form_records": {
+      "name": "horse_form_records",
+      "expected": 1195,
+      "present": 1195,
+      "missing": [],
+      "stale": [],
+      "notes": [
+        "total form_records files: 6111"
       ],
       "severity": "ok"
     },
@@ -116,8 +101,8 @@
     },
     "entries_upcoming": {
       "name": "entries_upcoming",
-      "expected": 3,
-      "present": 1,
+      "expected": 2,
+      "present": 0,
       "missing": [
         "2026-10-25",
         "2026-10-28"
