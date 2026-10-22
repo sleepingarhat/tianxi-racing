@@ -1,4 +1,5 @@
 ﻿horse_no,race_index,place,date,racecourse,track,course,distance_m,going,race_class,draw,rating,trainer,jockey,lbw,win_odds,actual_wt_lbs,running_position,finish_time,declared_wt_lbs,gear
+H203,125,11,21/10/26,跑馬地,草地,B,1200,好,4,10,58,伍鵬志,艾兆禮,4-1/2,49,135,4 3 11,1.11.03,1199,PC
 H203,084,06,07/10/26,跑馬地,草地,C+3,1200,好/快,4,11,59,伍鵬志,艾兆禮,3-1/2,47,135,7 6 6,1.10.50,1193,PC
 H203,064,14,01/10/26,沙田,草地,A,1200,好/快,4,14,59,伍鵬志,袁幸堯,11-1/4,59,127,6 6 14,1.10.55,1196,PC
 H203,863,07,15/07/26,跑馬地,草地,C,1200,好,4,7,59,伍鵬志,希威森,3-1/4,16,134,8 9 7,1.10.41,1199,PC

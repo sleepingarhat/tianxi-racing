@@ -1,4 +1,5 @@
 ﻿horse_no,race_index,place,date,racecourse,track,course,distance_m,going,race_class,draw,rating,trainer,jockey,lbw,win_odds,actual_wt_lbs,running_position,finish_time,declared_wt_lbs,gear
+L175,123,05,21/10/26,跑馬地,草地,B,1000,好,4,4,40,文家良,蔡明紹,3-1/4,3.3,116,3 1 5,0.57.92,1210,H/XB1
 L175,083,08,07/10/26,跑馬地,草地,C+3,1000,好/快,4,12,42,文家良,田泰安,2-3/4,7.6,118,1 1 8,0.57.60,1212,H
 L175,042,04,23/09/26,跑馬地,草地,C,1000,好,4,1,42,文家良,田泰安,1-1/2,8.4,118,1 1 4,0.57.17,1210,H
 L175,840,05,08/07/26,跑馬地,草地,B,1000,好,4,10,46,文家良,田泰安,3-1/2,10,120,4 2 5,0.57.37,1202,H/TT-

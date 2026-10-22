@@ -1,4 +1,5 @@
 ﻿horse_no,race_index,place,date,racecourse,track,course,distance_m,going,race_class,draw,rating,trainer,jockey,lbw,win_odds,actual_wt_lbs,running_position,finish_time,declared_wt_lbs,gear
+J066,124,04,21/10/26,跑馬地,草地,B,1000,好,2,9,80,伍鵬志,楊明綸,2,7.4,115,3 2 4,0.57.07,1205,TT
 J066,085,04,07/10/26,跑馬地,草地,C+3,1200,好/快,3,9,80,伍鵬志,楊明綸,3/4,17,135,2 2 4,1.09.20,1192,CP-/TT
 J066,281,WV,20/12/25,沙田,草地,C+3,1200,好,2,--,82,伍鵬志,楊明綸,--,--,118,--,--,--,--
 J066,224,11,30/11/25,沙田,草地,C,1000,好,2,1,84,伍鵬志,巴度,5-3/4,39,115,6 8 11,0.57.28,1185,CP/TT
