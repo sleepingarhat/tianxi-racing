@@ -403,17 +403,24 @@ horsesRoutes.get('/:id/form', async (c) => {
   const form = formResult.results;
   const careerStats = statsMap.get(horse.id);
 
-  // 試閘記錄 (v2: trial_runners + trial_sessions)
+  // 試閘記錄 (v2: trial_runners + trial_sessions). Columns per schema_v2.sql — same
+  // as the /research query. (The previous version selected legacy column names
+  // that don't exist — tr.jockey / tr.finish_time_text / tr.commentary /
+  // ts.distance_m … — so it always threw and the .catch() returned [] silently.)
   const { results: trials } = await c.env.DB.prepare(`
-    SELECT tr.id, tr.horse_id, tr.jockey, tr.draw, tr.finish_time_text AS time,
-           tr.finishing_position, tr.running_pos, tr.lbw, tr.gear, tr.commentary AS comment,
-           ts.trial_date, ts.venue, ts.distance_m AS distance, ts.going
+    SELECT tr.id, tr.horse_id, tr.finishing_position, tr.time_text, tr.time_sec,
+           tr.jockey_name, tr.lbw, tr.gear, tr.comment,
+           ts.trial_date, ts.venue, ts.distance, ts.going, ts.track, ts.total_runners
     FROM trial_runners tr
     JOIN trial_sessions ts ON ts.id = tr.session_id
     WHERE tr.horse_id = ?
     ORDER BY ts.trial_date DESC
     LIMIT 5
-  `).bind(horse.id).all().catch(() => ({ results: [] }));
+  `).bind(horse.id).all().catch((e: unknown) => {
+    // Only a missing table (fresh D1) is expected here; log anything else instead of hiding it.
+    console.warn('[horses/form] barrier trials read failed', String(e));
+    return { results: [] };
+  });
 
   // 晨操記錄 (v2: horse_trackwork)
   const { results: trackwork } = await c.env.DB.prepare(`
@@ -462,16 +469,23 @@ horsesRoutes.get('/:id/form', async (c) => {
       jockey: f.jockey,
       trainer: f.trainer,
     })),
+    // Same keys as before (date/venue/distance/going/position/totalRunners/time/jockey/comment),
+    // plus the extra fields /research already returns (track/timeText/timeSec/lbw/gear).
     barrierTrials: (trials ?? []).map((t: any) => ({
       date: t.trial_date,
-      venue: t.venue,
-      distance: t.distance,
-      going: t.going,
-      position: t.finishing_position,
-      totalRunners: t.total_runners,
-      time: t.time,
-      jockey: t.jockey,
-      comment: t.comment,
+      venue: t.venue ?? null,
+      distance: t.distance ?? null,
+      going: t.going ?? null,
+      track: t.track ?? null,
+      position: t.finishing_position ?? null,
+      totalRunners: t.total_runners ?? null,
+      time: t.time_text ?? (t.time_sec != null ? String(t.time_sec) : null),
+      timeText: t.time_text ?? null,
+      timeSec: t.time_sec ?? null,
+      jockey: t.jockey_name ?? null,
+      lbw: t.lbw ?? null,
+      gear: t.gear ?? null,
+      comment: t.comment ?? null,
     })),
     trackwork: (trackwork ?? []).map((tw: any) => ({
       date: tw.trackwork_date ?? tw.date,
