@@ -18,7 +18,8 @@
     "test:membership": "tsx scripts/test-membership.ts",
     "test:admin-auth": "tsx scripts/test-admin-auth.ts",
     "test:prediction-lock": "tsx scripts/test-prediction-lock.ts",
-    "test:freeze-ledger-perf": "bun scripts/test-freeze-ledger-perf.ts"
+    "test:freeze-ledger-perf": "bun scripts/test-freeze-ledger-perf.ts",
+    "test:lock-window": "bun scripts/test-lock-window.ts"
   },
   "dependencies": {
     "hkjc-api": "^1.0.5",
