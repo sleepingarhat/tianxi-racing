@@ -15,6 +15,12 @@
 [![D1 Sync](https://github.com/sleepingarhat/tianxi-database/actions/workflows/capy_d1_sync.yml/badge.svg)](https://github.com/sleepingarhat/tianxi-database/actions/workflows/capy_d1_sync.yml)
 [![Pedigree](https://github.com/sleepingarhat/tianxi-database/actions/workflows/capy_pedigree.yml/badge.svg)](https://github.com/sleepingarhat/tianxi-database/actions/workflows/capy_pedigree.yml)
 
+<!-- stats:start -->
+**即時數據量（唯一來源：生產 D1 實數，每日 06:00 HKT 自動重計）** · [JSON](https://tianxi.racing/api/public/data-stats)
+
+[![賽馬日](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Ftianxi.racing%2Fapi%2Fpublic%2Fdata-stats&query=%24.counts.raceDays&label=%E8%B3%BD%E9%A6%AC%E6%97%A5&color=b8860b&cacheSeconds=3600)](https://tianxi.racing/api/public/data-stats) [![賽事](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Ftianxi.racing%2Fapi%2Fpublic%2Fdata-stats&query=%24.counts.races&label=%E8%B3%BD%E4%BA%8B&color=b8860b&cacheSeconds=3600)](https://tianxi.racing/api/public/data-stats) [![賽果行數](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Ftianxi.racing%2Fapi%2Fpublic%2Fdata-stats&query=%24.counts.runnerResults&label=%E8%B3%BD%E6%9E%9C%E8%A1%8C%E6%95%B8&color=b8860b&cacheSeconds=3600)](https://tianxi.racing/api/public/data-stats) [![馬匹](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Ftianxi.racing%2Fapi%2Fpublic%2Fdata-stats&query=%24.counts.horses&label=%E9%A6%AC%E5%8C%B9&color=b8860b&cacheSeconds=3600)](https://tianxi.racing/api/public/data-stats) [![晨操](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Ftianxi.racing%2Fapi%2Fpublic%2Fdata-stats&query=%24.counts.trackwork&label=%E6%99%A8%E6%93%8D&color=b8860b&cacheSeconds=3600)](https://tianxi.racing/api/public/data-stats) [![最新賽果](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Ftianxi.racing%2Fapi%2Fpublic%2Fdata-stats&query=%24.range.last&label=%E6%9C%80%E6%96%B0%E8%B3%BD%E6%9E%9C&color=b8860b&cacheSeconds=3600)](https://tianxi.racing/api/public/data-stats)
+<!-- stats:end -->
+
 ---
 
 ## 👥 生態系統（3 repos）
@@ -36,10 +42,8 @@ Production URLs：
 
 | 指標 | 規模 |
 |---|---|
-| 歷史賽果年份 | **2016 – 2026**（11 年） |
-| 賽馬日總數 | **886 race days** |
-| 賽事總數 | **8,361 races**（每日 × 每場 unique） |
-| 賽果 row 數 | **106,004 rows**（每匹馬每場 1 row） |
+| 歷史賽果年份 | **2016 至今**（每日自動更新） |
+| 賽馬日／賽事／賽果 row 數 | 見頂部即時徽章（D1 實數，每日自動更新；唔再手寫總數） |
 | 每日每場 artefact | **5 種**（results / commentary / dividends / sectional_times / video_links） |
 | 馬匹 Profile 覆蓋 | 動態（backfill in progress） |
 | 練馬師 Profile | **67 位**（active roster） |

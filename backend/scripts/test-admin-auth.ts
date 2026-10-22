@@ -672,6 +672,8 @@ async function main(): Promise<void> {
       'GET /api/analyze/prediction-accuracy',
       // 凍結對帳表：aggregate-only reconciliation over locked prediction_log.
       'GET /api/analyze/freeze-ledger',
+      // Public data-volume counts (aggregate COUNT(*) from D1, stored daily). No PII.
+      'GET /api/analyze/data-stats',
       // Retrain manifests: model version, training window, gate verdict, bundle hash. No PII.
       'GET /api/analyze/model-manifests',
       'GET /api/analyze/residuals',
