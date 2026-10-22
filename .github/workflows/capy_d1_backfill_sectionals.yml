@@ -1,0 +1,120 @@
+name: Capy D1 Backfill — horse sectionals (manual, one-off)
+
+# One-off historical backfill of per-horse sectional times into D1.
+# The daily race sync (capy_d1_sync.yml) now pushes horse_sectional_times for
+# each new meeting; this fills meetings synced before that change.
+#
+# Manual only (workflow_dispatch). Safe to re-run / resume:
+#   • insert-only (ON CONFLICT DO NOTHING) — never rewrites existing rows;
+#   • FK-guarded in D1 — rows whose race/horse is absent from D1 are skipped;
+#   • per-year loop, newest first, so a timeout still leaves recent years done.
+
+on:
+  workflow_dispatch:
+    inputs:
+      from_year:
+        description: 'First year to backfill (e.g. 2016)'
+        required: true
+        default: '2016'
+      to_year:
+        description: 'Last year to backfill (e.g. 2026)'
+        required: true
+        default: '2026'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: d1-backfill-sectionals
+  cancel-in-progress: false
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - name: Checkout tianxi-database (CSV source)
+        uses: actions/checkout@v4
+        with:
+          path: tianxi-database
+          fetch-depth: 1
+
+      - name: Link tianxi-backend → 統一倉 backend/
+        run: mv "$GITHUB_WORKSPACE/tianxi-database/backend" "$GITHUB_WORKSPACE/tianxi-backend"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Validate inputs
+        env:
+          FROM_YEAR: ${{ github.event.inputs.from_year }}
+          TO_YEAR: ${{ github.event.inputs.to_year }}
+        run: |
+          set -eu
+          printf '%s' "$FROM_YEAR" | grep -Eq '^20[0-9]{2}$' || { echo "bad from_year"; exit 2; }
+          printf '%s' "$TO_YEAR" | grep -Eq '^20[0-9]{2}$' || { echo "bad to_year"; exit 2; }
+          [ "$FROM_YEAR" -le "$TO_YEAR" ] || { echo "from_year > to_year"; exit 2; }
+
+      - name: Install tianxi-backend deps
+        working-directory: tianxi-backend
+        run: npm ci --no-audit --no-fund
+
+      - name: Install wrangler
+        run: npm install -g wrangler@4
+
+      - name: Ensure horse_sectional_times in D1 (idempotent)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+        working-directory: tianxi-backend
+        run: |
+          set -u
+          wrangler d1 execute tianxi-db --remote --file=src/db/migrations/20261022_sync_trials_sectionals.sql \
+            || echo "::warning::sync-tables migration did not fully apply (guard below decides)"
+
+      - name: Backfill year by year (newest first)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          FROM_YEAR: ${{ github.event.inputs.from_year }}
+          TO_YEAR: ${{ github.event.inputs.to_year }}
+        working-directory: tianxi-backend
+        run: |
+          set -eu
+          FAILED=0
+          for Y in $(seq "$TO_YEAR" -1 "$FROM_YEAR"); do
+            [ -d "../tianxi-database/data/$Y" ] || { echo "skip $Y (no data dir)"; continue; }
+            echo "::group::year $Y"
+            rm -f bulk-local.db
+            npx tsx scripts/import-csv.ts --data-dir ../tianxi-database/data --db bulk-local.db --year "$Y" > /tmp/import.log 2>&1 || { tail -20 /tmp/import.log; FAILED=1; echo "::endgroup::"; continue; }
+            if [ "$Y" = "$TO_YEAR" ]; then
+              wrangler d1 execute tianxi-db --remote --json --command="PRAGMA table_info(horse_sectional_times)" > /tmp/pi_hst.json 2>/dev/null || echo '[]' > /tmp/pi_hst.json
+              npx tsx scripts/d1-schema-guard.ts --db=bulk-local.db --table=horse_sectional_times --pragma-json=/tmp/pi_hst.json \
+                || { echo "::error::D1 horse_sectional_times schema mismatch — aborting backfill"; exit 1; }
+            fi
+            rm -rf /tmp/d1-delta
+            npx tsx scripts/push-delta.ts --db=bulk-local.db --since="$Y-01-01" --until="$Y-12-31" \
+              --include=sectionals --batch-statements=10 --out=/tmp/d1-delta > /dev/null
+            N=0
+            for f in /tmp/d1-delta/horse_sectional_times-*.sql; do
+              [ -f "$f" ] || continue
+              ok=0
+              for try in 1 2 3; do
+                if wrangler d1 execute tianxi-db --remote --file="$f" >/tmp/out.log 2>&1; then ok=1; break; fi
+                sleep 20
+              done
+              if [ "$ok" -eq 1 ]; then N=$((N+1)); else echo "FAIL $(basename "$f")"; tail -10 /tmp/out.log; FAILED=1; fi
+            done
+            echo "year $Y: $N chunk files applied"
+            echo "::endgroup::"
+          done
+          [ "$FAILED" -eq 0 ] || exit 1
+
+      - name: Verify
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+        run: |
+          wrangler d1 execute tianxi-db --remote --json \
+            --command="SELECT substr(race_id, 6, 4) AS year, COUNT(*) AS rows FROM horse_sectional_times GROUP BY year ORDER BY year" | tail -60 || true

@@ -3,7 +3,9 @@ name: Capy D1 Sync Pool A — trackwork + injury + form
 # After capy_pool_a.yml commits fresh trackwork / injury / form_records CSVs,
 # this workflow ingests them into a scratch bulk-local.db and pushes the
 # delta to remote Cloudflare D1 (horse_trackwork / horse_injury / horse_form_records
-# tables, plus any new horses referenced).
+# tables, plus any new horses referenced), and the barrier trials scraped by
+# Pool B (capy_pool_b_daily.yml, 02:00 HK → trials/*.csv) into trial_sessions /
+# trial_runners. 05:17 HK runs after Pool B's commit.
 #
 # Triggered automatically when capy_pool_a succeeds. Also supports
 # workflow_dispatch with an explicit --since window.
@@ -17,6 +19,10 @@ on:
     inputs:
       since:
         description: 'Lookback YYYY-MM-DD (rows with date >= this value; blank = 30 days back)'
+        required: false
+        default: ''
+      trials_since:
+        description: 'Barrier-trials lookback YYYY-MM-DD (blank = same as since). Use 2025-01-01 once to backfill all trials CSV history.'
         required: false
         default: ''
   workflow_run:
@@ -80,6 +86,7 @@ jobs:
         id: resolve
         env:
           INPUT_SINCE: ${{ github.event.inputs.since }}
+          INPUT_TRIALS_SINCE: ${{ github.event.inputs.trials_since }}
         run: |
           set -eu
           S="$INPUT_SINCE"
@@ -91,21 +98,29 @@ jobs:
             echo "Invalid since date: $S" >&2
             exit 2
           fi
+          T="${INPUT_TRIALS_SINCE:-}"
+          [ -n "$T" ] || T="$S"
+          if ! printf '%s' "$T" | grep -Eq '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'; then
+            echo "Invalid trials_since date: $T" >&2
+            exit 2
+          fi
           echo "since=$S" >> $GITHUB_OUTPUT
-          echo "Resolved --since=$S"
+          echo "trials_since=$T" >> $GITHUB_OUTPUT
+          echo "Resolved --since=$S --trials-since=$T"
 
       - name: Install tianxi-backend deps
         working-directory: tianxi-backend
         run: npm install --no-audit --no-fund
 
-      - name: Ingest Pool A sources (profiles + form + trackwork + injury)
+      - name: Ingest Pool A sources (profiles + form + trackwork + injury + trials)
         working-directory: tianxi-backend
         run: |
           set -eu
           rm -f bulk-local.db
-          # scripts/ingest/index.ts handles profiles/form/trackwork/injury
+          # scripts/ingest/index.ts handles profiles/form/trackwork/injury/trials
+          # (trials = ../tianxi-database/trials/trial_sessions.csv + trial_results.csv, full checkout)
           npx tsx scripts/ingest/index.ts \
-            profiles form trackwork injury \
+            profiles form trackwork injury trials \
             --data-dir=../tianxi-database \
             --db=bulk-local.db
 
@@ -113,12 +128,14 @@ jobs:
         working-directory: tianxi-backend
         env:
           SINCE: ${{ steps.resolve.outputs.since }}
+          TRIALS_SINCE: ${{ steps.resolve.outputs.trials_since }}
         run: |
           set -eu
           rm -rf /tmp/d1-delta
           npx tsx scripts/push-delta.ts \
             --db=bulk-local.db \
             --since="$SINCE" \
+            --trials-since="$TRIALS_SINCE" \
             --include=pool-a \
             --out=/tmp/d1-delta
           ls -la /tmp/d1-delta/ | head -30 || echo "(no chunks)"
@@ -179,6 +196,23 @@ jobs:
             | jq -r '.[0].results[0].count')
           test "$REMAINING" = "0"
 
+      - name: Ensure trial tables in D1 (idempotent) + schema guard
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+        working-directory: tianxi-backend
+        run: |
+          set -u
+          wrangler d1 execute tianxi-db --remote --file=src/db/migrations/20261022_sync_trials_sectionals.sql >/tmp/mig.log 2>&1 \
+            || { echo "::warning::sync-tables migration did not fully apply"; tail -5 /tmp/mig.log; }
+          for T in trial_sessions trial_runners; do
+            wrangler d1 execute tianxi-db --remote --json --command="PRAGMA table_info($T)" > "/tmp/pi_$T.json" 2>/dev/null || echo '[]' > "/tmp/pi_$T.json"
+            if ! npx tsx scripts/d1-schema-guard.ts --db=bulk-local.db --table="$T" --pragma-json="/tmp/pi_$T.json"; then
+              echo "::warning::$T shape differs in D1 — skipping barrier-trial push this run (other Pool A tables unaffected)"
+              rm -f /tmp/d1-delta/trial_sessions-*.sql /tmp/d1-delta/trial_runners-*.sql
+            fi
+          done
+
       - name: Push Pool A delta to D1
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
@@ -187,12 +221,15 @@ jobs:
         run: |
           set -eu
           # FK-parent-first order
-          ORDER=(horses horse_profile_extra horse_trackwork horse_injury horse_form_records)
+          ORDER=(horses horse_profile_extra horse_trackwork horse_injury horse_form_records trial_sessions trial_runners)
           FAILED=0
           for t in "${ORDER[@]}"; do
             for f in /tmp/d1-delta/${t}-*.sql; do
               [ -f "$f" ] || continue
               base=$(basename "$f")
+              # Trials: same re-run rule as the race sync — a row whose natural UNIQUE key
+              # already exists under another id is skipped, never duplicated.
+              case "$t" in trial_*) sed -i -E 's/^INSERT INTO /INSERT OR IGNORE INTO /' "$f" ;; esac
               if wrangler d1 execute tianxi-db --remote --file="$f" >/tmp/out.log 2>&1; then
                 echo "OK  $base"
               else
@@ -213,3 +250,7 @@ jobs:
           wrangler d1 execute tianxi-db --remote \
             --command="SELECT 'horse_profile_extra' AS tbl, COUNT(*) AS rows FROM horse_profile_extra UNION ALL SELECT 'horse_trackwork', COUNT(*) FROM horse_trackwork UNION ALL SELECT 'horse_injury', COUNT(*) FROM horse_injury UNION ALL SELECT 'horse_form_records', COUNT(*) FROM horse_form_records" \
             --json | tail -40
+          # Informational only (never fails the run).
+          wrangler d1 execute tianxi-db --remote \
+            --command="SELECT 'trial_sessions' AS tbl, COUNT(*) AS rows, MAX(trial_date) AS latest FROM trial_sessions UNION ALL SELECT 'trial_runners', COUNT(*), NULL FROM trial_runners" \
+            --json | tail -20 || true

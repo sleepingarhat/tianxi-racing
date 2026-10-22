@@ -472,6 +472,17 @@ Elo v1.1 產物**唔會 commit 入 repo**，以 **GitHub Actions artifact** 形�
 6. **傷患紀錄** — 官方已下架
 7. **上仗備忘** — 官方已下架
 
+### CSV → D1 每日同步覆蓋（2026-10-22 補齊分段時間、試閘）
+
+| CSV | D1 表 | Workflow（HK 時間） | 範圍 |
+|---|---|---|---|
+| `results` / `commentary` / `dividends` | `race_meetings` · `races` · `race_results` · `running_comments` · `dividends` | `capy_d1_sync.yml`（00:23，後備 06:23 / 10:23） | 當日賽事 |
+| `sectional_times_YYYY-MM-DD.csv` | `horse_sectional_times` | 同上 | 當日賽事 |
+| `horses/trackwork` · `injury` · `form_records` · profiles | `horse_trackwork` · `horse_injury` · `horse_form_records` · `horse_profile_extra` | `capy_d1_sync_pool_a.yml`（05:17） | 近 30 日 |
+| `trials/trial_sessions.csv` + `trial_results.csv`（Pool B 02:00 抓取） | `trial_sessions` · `trial_runners` | 同上 | 近 30 日（`trials_since` 可放寬） |
+
+重跑安全：ID 由日期／場次／馬匹編號決定；同一行再推只會原地更新，自然鍵（如同場同馬同分段）已存在就略過，唔會重複。D1 未有嘅馬匹或賽事，該行會略過，下次同步自動補上。舊分段時間一次性補數：`capy_d1_backfill_sectionals.yml`（手動）。
+
 ### 試閘歷史限制
 
 HKJC 只保留最近 **176 個試閘日**（約一年）。早於 `2025-03-13` 嘅試閘紀錄**永久不可追溯**。
