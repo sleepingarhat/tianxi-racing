@@ -297,7 +297,7 @@ app.onError((err, c) => {
           const eventKey = `${recovery.action}:${recovery.error ?? ''}:${recovery.restored}`;
           const sent = await env.DB.prepare(`SELECT sent_at FROM prediction_recovery_notifications WHERE date=? AND event_key=?`).bind(meeting.date,eventKey).first();
           if (!sent && env.WEATHER_CRON_SECRET) {
-            const response = await fetch('https://mark-six-joy.lovable.app/api/public/telegram-alert', { method:'POST', headers:{'content-type':'application/json','x-cron-secret':env.WEATHER_CRON_SECRET}, body:JSON.stringify({kind:'freeze-recovery',date:meeting.date,action:recovery.action,restored:recovery.restored,error:recovery.error??null}), signal:AbortSignal.timeout(8000) });
+            const response = await fetch('https://tianxi.racing/api/public/telegram-alert', { method:'POST', headers:{'content-type':'application/json','x-cron-secret':env.WEATHER_CRON_SECRET}, body:JSON.stringify({kind:'freeze-recovery',date:meeting.date,action:recovery.action,restored:recovery.restored,error:recovery.error??null}), signal:AbortSignal.timeout(8000) });
             const receipt = await response.json() as {sent?:boolean};
             if (response.ok && receipt.sent === true) await env.DB.prepare(`INSERT OR IGNORE INTO prediction_recovery_notifications(date,event_key,sent_at) VALUES (?,?,?)`).bind(meeting.date,eventKey,new Date().toISOString()).run();
           }
