@@ -1,111 +1,53 @@
 #!/usr/bin/env tsx
+// Whop 會籍已停用：舊 /api/membership/* 一律 410，/pro 一律 301 去 tianxi.racing/membership。
+// 同時保留原有 projectTodayPicksForFree 回歸測試。
 
 import assert from 'node:assert/strict';
-import {
-  CHECKOUT_URLS,
-  WHOP_DAY_PRODUCT_ID,
-  WHOP_MONTH_PRODUCT_ID,
-  decryptToken,
-  deriveEntitlement,
-  encryptToken,
-  oauthCookie,
-  readCookie,
-  sessionCookie,
-  whopAuthorizationUrl,
-} from '../src/lib/membership';
+import { Hono } from 'hono';
+import { LEGACY_MEMBERSHIP_GONE, MEMBERSHIP_URL, membershipRoutes, proRoutes } from '../src/routes/membership';
 import { projectTodayPicksForFree } from '../src/lib/public-today-picks';
 
-const now = new Date('2026-08-20T12:00:00.000Z');
+const app = new Hono();
+app.route('/api/membership', membershipRoutes);
+app.route('/pro', proRoutes);
 
-assert.equal(deriveEntitlement([], now).active, false);
-assert.equal(deriveEntitlement([{
-  id: 'mem_month',
-  product: { id: WHOP_MONTH_PRODUCT_ID },
-  status: 'active',
-  expires_at: '2026-09-20T12:00:00.000Z',
-}], now).plan, 'month');
-assert.equal(deriveEntitlement([{
-  id: 'mem_cancelled',
-  product_id: WHOP_MONTH_PRODUCT_ID,
-  status: 'cancelled',
-  valid: true,
-  expires_at: '2026-09-20T12:00:00.000Z',
-}], now).active, false);
-assert.equal(deriveEntitlement([{
-  id: 'mem_cancel_period_end',
-  product_id: WHOP_MONTH_PRODUCT_ID,
-  status: 'active',
-  cancel_at_period_end: true,
-  expires_at: '2026-09-20T12:00:00.000Z',
-}], now).cancelAtPeriodEnd, true);
+async function main(): Promise<void> {
+  for (const [method, path] of [
+    ['GET', '/api/membership/login'],
+    ['GET', '/api/membership/status'],
+    ['GET', '/api/membership/checkout/day'],
+    ['GET', '/api/membership/checkout/month'],
+    ['GET', '/api/membership/oauth/callback?code=x&state=y'],
+    ['GET', '/api/membership/pro/today'],
+    ['POST', '/api/membership/logout'],
+  ] as const) {
+    const res = await app.request(path, { method });
+    assert.equal(res.status, 410, `${method} ${path} should be 410`);
+    assert.equal(res.headers.get('location'), null, `${path} must not redirect to Whop`);
+    const body = await res.json() as typeof LEGACY_MEMBERSHIP_GONE;
+    assert.equal(body.membershipUrl, MEMBERSHIP_URL);
+    assert.doesNotMatch(JSON.stringify(body), /whop\.com/i);
+  }
 
-const currentDay = deriveEntitlement([{
-  id: 'mem_day',
-  product_id: WHOP_DAY_PRODUCT_ID,
-  status: 'completed',
-  created_at: '2026-08-19T13:00:00.000Z',
-}], now);
-assert.equal(currentDay.active, true);
-assert.equal(currentDay.validUntil, '2026-08-20T13:00:00.000Z');
-assert.equal(deriveEntitlement([{
-  id: 'mem_old_day',
-  product_id: WHOP_DAY_PRODUCT_ID,
-  status: 'completed',
-  created_at: '2026-08-19T11:59:59.000Z',
-}], now).active, false);
-assert.equal(deriveEntitlement([{
-  id: 'mem_day_without_creation',
-  product_id: WHOP_DAY_PRODUCT_ID,
-  status: 'completed',
-}], now).active, false);
-assert.equal(deriveEntitlement([{
-  id: 'other_product',
-  product_id: 'prod_attacker',
-  status: 'active',
-}], now).active, false);
+  for (const path of ['/pro', '/pro/', '/pro/anything']) {
+    const res = await app.request(path);
+    assert.equal(res.status, 301, `${path} should be 301`);
+    assert.equal(res.headers.get('location'), MEMBERSHIP_URL);
+  }
 
-assert.deepEqual(CHECKOUT_URLS, {
-  day: 'https://whop.com/tianxi-2d70/38-79/',
-  month: 'https://whop.com/tianxi-2d70/198/',
-});
-
-const authorizeUrl = new URL(whopAuthorizationUrl({
-  redirectUri: 'https://tianxi.racing/api/membership/oauth/callback',
-  state: 'state-value',
-  nonce: 'nonce-value',
-  codeChallenge: 'challenge-value',
-}));
-assert.equal(authorizeUrl.searchParams.get('client_id'), 'app_G2CjSxrds7D5Qz');
-assert.equal(authorizeUrl.searchParams.get('nonce'), 'nonce-value');
-assert.equal(authorizeUrl.searchParams.get('code_challenge_method'), 'S256');
-assert.equal(authorizeUrl.searchParams.get('scope'), 'openid profile');
-
-const free = projectTodayPicksForFree({
-  date: '2026-08-20',
-  venue: 'HV',
-  races: [
-    { raceId: 'race_2026-08-20_HV_1', raceNumber: 1, picks: [{ horseNumber: 1 }] },
-    { raceId: 'race_2026-08-20_HV_2', raceNumber: 2, picks: [{ horseNumber: 2 }] },
-  ],
-});
-assert.equal(free.races.length, 1);
-assert.equal(free.races[0].raceNumber, 1);
-
-async function testCryptoAndCookie(): Promise<void> {
-  const encrypted = await encryptToken('refresh-token-secret', 'test-session-secret');
-  assert.notEqual(encrypted, 'refresh-token-secret');
-  assert.equal(await decryptToken(encrypted, 'test-session-secret'), 'refresh-token-secret');
-  const cookie = sessionCookie('opaque-session');
-  assert.match(cookie, /HttpOnly/);
-  assert.match(cookie, /Secure/);
-  assert.match(cookie, /SameSite=Lax/);
-  assert.equal(readCookie(cookie, 'tx_member'), 'opaque-session');
-  const stateCookie = oauthCookie('browser-nonce');
-  assert.match(stateCookie, /Path=\/api\/membership\/oauth\/callback/);
-  assert.match(stateCookie, /HttpOnly/);
+  const free = projectTodayPicksForFree({
+    date: '2026-08-20',
+    venue: 'HV',
+    races: [
+      { raceId: 'race_2026-08-20_HV_1', raceNumber: 1, picks: [{ horseNumber: 1 }] },
+      { raceId: 'race_2026-08-20_HV_2', raceNumber: 2, picks: [{ horseNumber: 2 }] },
+    ],
+  });
+  assert.equal(free.races.length, 1);
+  assert.equal(free.races[0].raceNumber, 1);
 }
 
-testCryptoAndCookie()
+main()
   .then(() => console.log('membership regression tests passed'))
   .catch((error) => {
     console.error(error);

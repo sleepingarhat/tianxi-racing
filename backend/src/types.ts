@@ -5,7 +5,8 @@ export interface Env {
   ADMIN_TOKEN?: string;
   WEATHER_CRON_SECRET?: string;
   SESSION_HMAC_SECRET?: string;
-  MEMBERSHIP_SESSION_SECRET?: string;
+  /** 愛駒追蹤 feed 共享密鑰（未設定時退回 WEATHER_CRON_SECRET）。 */
+  WATCH_FEED_SECRET?: string;
   ADMIN_GITHUB_USER?: string;
   AI_API_KEY: string;
   AI_API_URL: string;

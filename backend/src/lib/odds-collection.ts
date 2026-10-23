@@ -80,7 +80,7 @@ export async function collectDisplayOdds(env: Env) {
     const receipt = await env.DB.prepare(`SELECT sent_at FROM odds_alert_delivery WHERE race_date=?`).bind(after.date).first<{sent_at:string}>();
     if (env.WEATHER_CRON_SECRET && (!receipt || Date.now()-Date.parse(receipt.sent_at)>20*60_000)) {
       try {
-        const response = await fetch('https://mark-six-joy.lovable.app/api/public/telegram-alert',{method:'POST',headers:{'content-type':'application/json','x-cron-secret':env.WEATHER_CRON_SECRET},
+        const response = await fetch('https://tianxi.racing/api/public/telegram-alert',{method:'POST',headers:{'content-type':'application/json','x-cron-secret':env.WEATHER_CRON_SECRET},
           body:JSON.stringify({kind:'odds-stale',date:after.date,races:after.stale.map(r => r.race_number)}),signal:AbortSignal.timeout(8_000)});
         const result = await response.json() as {sent?:boolean};
         if (response.ok && result.sent) await env.DB.prepare(`INSERT INTO odds_alert_delivery(race_date,sent_at) VALUES (?,?) ON CONFLICT(race_date) DO UPDATE SET sent_at=excluded.sent_at`).bind(after.date,new Date().toISOString()).run();

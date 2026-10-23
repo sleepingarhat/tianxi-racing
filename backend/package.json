@@ -21,7 +21,8 @@
     "test:freeze-ledger-perf": "bun scripts/test-freeze-ledger-perf.ts",
     "test:data-stats": "bun scripts/test-data-stats.ts",
     "test:push-delta-sync": "tsx scripts/test-push-delta-sync.ts",
-    "test:lock-window": "bun scripts/test-lock-window.ts"
+    "test:lock-window": "bun scripts/test-lock-window.ts",
+    "test:watch-events": "tsx scripts/test-watch-events.ts"
   },
   "dependencies": {
     "hkjc-api": "^1.0.5",

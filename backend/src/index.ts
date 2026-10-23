@@ -19,7 +19,8 @@ import { silksSvgRoutes } from './routes/silks_svg';
 import { adminRoutes } from './routes/admin';
 import { adminGateRoutes } from './routes/admin-gate';
 import { opsRoutes } from './routes/ops';
-import { membershipRoutes, proPage } from './routes/membership';
+import { membershipRoutes, proRoutes } from './routes/membership';
+import { watchRoutes } from './routes/watch';
 import { getSeasonStatus } from './lib/season';
 import { refreshDataStats } from './lib/data-stats';
 import { countPredictionLogRows, findMeetingForLockTick, getMeetingLockState, LOCK_LEAD_MINUTES, lockCompletionAllowed } from './lib/lock-window';
@@ -163,17 +164,13 @@ app.route('/api/lounge', loungeRoutes);
 app.route('/api/silks', silksRoutes);
 app.route('/api/silks-svg', silksSvgRoutes);
 app.route('/api/membership', membershipRoutes);
+app.route('/api/watch', watchRoutes);
 app.route('/ops', opsRoutes);
 app.route('/admin', adminGateRoutes);
 app.route('/admin', adminRoutes);
 
-app.get('/pro', (c) => c.redirect('/pro/', 301));
-app.get('/pro/', (c) => c.html(proPage(), 200, {
-  'Cache-Control': 'no-store, private',
-  'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'",
-  'Referrer-Policy': 'no-referrer',
-  'X-Content-Type-Options': 'nosniff',
-}));
+// 舊 Whop 會員中心已停用 → 永久轉去 tianxi.racing 會員頁
+app.route('/pro', proRoutes);
 
 app.notFound((c) => {
   return c.json({ error: 'Not Found' }, 404);
@@ -300,7 +297,7 @@ app.onError((err, c) => {
           const eventKey = `${recovery.action}:${recovery.error ?? ''}:${recovery.restored}`;
           const sent = await env.DB.prepare(`SELECT sent_at FROM prediction_recovery_notifications WHERE date=? AND event_key=?`).bind(meeting.date,eventKey).first();
           if (!sent && env.WEATHER_CRON_SECRET) {
-            const response = await fetch('https://mark-six-joy.lovable.app/api/public/telegram-alert', { method:'POST', headers:{'content-type':'application/json','x-cron-secret':env.WEATHER_CRON_SECRET}, body:JSON.stringify({kind:'freeze-recovery',date:meeting.date,action:recovery.action,restored:recovery.restored,error:recovery.error??null}), signal:AbortSignal.timeout(8000) });
+            const response = await fetch('https://tianxi.racing/api/public/telegram-alert', { method:'POST', headers:{'content-type':'application/json','x-cron-secret':env.WEATHER_CRON_SECRET}, body:JSON.stringify({kind:'freeze-recovery',date:meeting.date,action:recovery.action,restored:recovery.restored,error:recovery.error??null}), signal:AbortSignal.timeout(8000) });
             const receipt = await response.json() as {sent?:boolean};
             if (response.ok && receipt.sent === true) await env.DB.prepare(`INSERT OR IGNORE INTO prediction_recovery_notifications(date,event_key,sent_at) VALUES (?,?,?)`).bind(meeting.date,eventKey,new Date().toISOString()).run();
           }

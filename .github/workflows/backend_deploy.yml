@@ -48,8 +48,11 @@ jobs:
       - name: Regression test — admin credentials never come from URLs
         run: npx tsx scripts/test-admin-auth.ts
 
-      - name: Regression test — membership entitlements and free tier
+      - name: Regression test — legacy Whop membership retired (410/301) and free tier
         run: npx tsx scripts/test-membership.ts
+
+      - name: Regression test — 愛駒追蹤 watch events feed
+        run: npx tsx scripts/test-watch-events.ts
 
       - name: Regression test — frozen prediction lock SSOT
         run: npx tsx scripts/test-prediction-lock.ts
