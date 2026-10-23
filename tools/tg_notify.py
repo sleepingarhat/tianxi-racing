@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Telegram free-channel auto-poster for Tianxi (@TX_Oracle).
+"""Telegram free-channel auto-poster for Tianxi (@tianxi_racing_pro, @tianxi_racing).
 
 Zero third-party deps (stdlib only) for CI robustness.
 
@@ -11,7 +11,8 @@ Reads only the public backend API (workers.dev; tianxi.racing/api/* is served by
 
 Env:
   TELEGRAM_BOT_TOKEN  (required)  bot token; bot must be admin of the channel.
-  TG_CHANNEL          (optional)  default @TX_Oracle
+  TG_CHANNEL          (optional)  comma-separated chat ids/@usernames;
+                                  default @tianxi_racing_pro,@tianxi_racing
   TX_API_BASE         (optional)  default https://tianxi-backend.tianxi-entertainment.workers.dev
   TX_SITE_BASE        (optional)  default https://tianxi-site.pages.dev
 """
@@ -29,7 +30,23 @@ from datetime import datetime, timezone, timedelta
 HK_TZ = timezone(timedelta(hours=8))
 API_BASE = os.environ.get("TX_API_BASE", "https://tianxi-backend.tianxi-entertainment.workers.dev").rstrip("/")
 SITE_BASE = os.environ.get("TX_SITE_BASE", "https://tianxi-site.pages.dev").rstrip("/")
-CHANNEL = os.environ.get("TG_CHANNEL", "@TX_Oracle")
+DEFAULT_TG_CHANNEL = "@tianxi_racing_pro,@tianxi_racing"
+
+
+def tg_channels(raw=None):
+    """Parse TG_CHANNEL (comma/whitespace-separated), de-duplicated, order kept."""
+    if raw is None:
+        raw = os.environ.get("TG_CHANNEL") or DEFAULT_TG_CHANNEL
+    out = []
+    for part in raw.replace("\n", ",").replace(" ", ",").split(","):
+        part = part.strip()
+        if part and part not in out:
+            out.append(part)
+    return out or tg_channels(DEFAULT_TG_CHANNEL)
+
+
+CHANNELS = tg_channels()
+CHANNEL = ",".join(CHANNELS)
 MEMBERSHIP_URL = SITE_BASE + "/membership/"
 RESULTS_URL = SITE_BASE + "/results/"
 
@@ -71,19 +88,11 @@ def api_get(path):
     raise last
 
 
-def tg_send(text):
-    if os.environ.get("TX_DRY_RUN"):
-        print("----- DRY RUN (would post to %s) -----" % CHANNEL)
-        print(text)
-        print("----- END DRY RUN -----")
-        return
-    token = os.environ.get("TELEGRAM_BOT_TOKEN")
-    if not token:
-        print("ERROR: TELEGRAM_BOT_TOKEN not set", file=sys.stderr)
-        sys.exit(2)
+def _tg_send_one(token, channel, text):
+    """Send to one chat. Returns (message_id, None) or (None, error_message). Never includes the token."""
     url = "https://api.telegram.org/bot%s/sendMessage" % token
     payload = json.dumps({
-        "chat_id": CHANNEL,
+        "chat_id": channel,
         "text": text,
         "parse_mode": "HTML",
         "disable_web_page_preview": True,
@@ -92,14 +101,45 @@ def tg_send(text):
     try:
         with urllib.request.urlopen(req, timeout=40) as r:
             resp = json.loads(r.read().decode("utf-8"))
-        if not resp.get("ok"):
-            print("ERROR: telegram responded not-ok: %s" % json.dumps(resp), file=sys.stderr)
-            sys.exit(3)
-        print("posted ok, message_id=%s" % resp.get("result", {}).get("message_id"))
     except urllib.error.HTTPError as e:
         body = e.read().decode("utf-8", "replace")
-        print("ERROR: telegram HTTP %s: %s" % (e.code, body), file=sys.stderr)
+        try:
+            desc = json.loads(body).get("description") or body
+        except (ValueError, AttributeError):
+            desc = body[:300]
+        return None, "ERROR: telegram sendMessage HTTP %s (chat_id=%s): %s" % (e.code, channel, desc)
+    except (urllib.error.URLError, TimeoutError, OSError) as e:
+        return None, "ERROR: telegram sendMessage network error (chat_id=%s): %s" % (channel, type(e).__name__)
+    if not resp.get("ok"):
+        return None, "ERROR: telegram sendMessage not-ok (chat_id=%s): %s" % (
+            channel, resp.get("description") or json.dumps(resp))
+    return resp.get("result", {}).get("message_id"), None
+
+
+def tg_send(text, channels=None):
+    channels = channels or tg_channels()
+    if os.environ.get("TX_DRY_RUN"):
+        print("----- DRY RUN (would post to %s) -----" % ",".join(channels))
+        print(text)
+        print("----- END DRY RUN -----")
+        return
+    token = os.environ.get("TELEGRAM_BOT_TOKEN")
+    if not token:
+        print("ERROR: TELEGRAM_BOT_TOKEN not set", file=sys.stderr)
+        sys.exit(2)
+    failed = 0
+    for channel in channels:
+        mid, err = _tg_send_one(token, channel, text)
+        if err:
+            failed += 1
+            print(err, file=sys.stderr, flush=True)
+        else:
+            print("posted ok, chat_id=%s, message_id=%s" % (channel, mid), flush=True)
+    if failed == len(channels):
+        print("ERROR: sendMessage failed for all %d chat(s)" % len(channels), file=sys.stderr)
         sys.exit(3)
+    if failed:
+        print("WARNING: sendMessage failed for %d/%d chat(s); continuing" % (failed, len(channels)), file=sys.stderr)
 
 
 def e(s):
