@@ -2,7 +2,7 @@
 """Locked posters: approved artwork as base, Noto text in data slots only."""
 from __future__ import annotations
 
-import json, os, urllib.request
+import json, os, urllib.error, urllib.request
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 
@@ -228,8 +228,32 @@ def tg_send_document(pdf_path: Path, caption: str = "") -> None:
     chunks.append(body_file)
     chunks.append(("\r\n--%s--\r\n" % boundary).encode())
     req = urllib.request.Request("https://api.telegram.org/bot%s/sendDocument" % token, data=b"".join(chunks), headers={"Content-Type": "multipart/form-data; boundary=%s" % boundary})
-    with urllib.request.urlopen(req, timeout=60) as r:
-        resp = json.loads(r.read().decode())
+    try:
+        with urllib.request.urlopen(req, timeout=60) as r:
+            resp = json.loads(r.read().decode())
+    except urllib.error.HTTPError as e:
+        # Never echo e.url / req.full_url: they contain the bot token.
+        raise SystemExit(tg_error_message("sendDocument", e.code, e.read(), channel, pdf_path.name))
     if not resp.get("ok"):
-        raise SystemExit(resp)
+        raise SystemExit(tg_error_message("sendDocument", resp.get("error_code"), resp, channel, pdf_path.name))
     print("posted", resp.get("result", {}).get("message_id"), pdf_path.name)
+
+
+def tg_error_message(method: str, status, body, chat_id: str, filename: str = "") -> str:
+    """Token-free one-line error, surfacing Telegram's `description` field."""
+    desc = None
+    if isinstance(body, (bytes, bytearray)):
+        body = body.decode("utf-8", "replace")
+    if isinstance(body, str):
+        try:
+            body = json.loads(body)
+        except ValueError:
+            desc = body.strip()[:300] or None
+    if isinstance(body, dict):
+        desc = body.get("description") or desc
+    msg = "ERROR: telegram %s HTTP %s (chat_id=%s%s): %s" % (
+        method, status, chat_id, (", file=%s" % filename) if filename else "", desc or "no description")
+    if desc and "chat not found" in desc.lower():
+        msg += (" -- the bot cannot see this chat: check the channel still exists with this @username"
+                " (or set TG_CHANNEL to its numeric -100... id) and that the bot is an admin of it")
+    return msg

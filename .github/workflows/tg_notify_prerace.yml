@@ -60,11 +60,13 @@ jobs:
         if: ${{ inputs.date == '' || inputs.date == null }}
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TG_CHANNEL: ${{ vars.TG_CHANNEL || '@TX_Oracle' }}
         run: |
           python3 tools/tg_notify.py prerace ${{ inputs.force == 'true' && '--force' || '' }}
       - name: Post per-race prediction PDFs
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TG_CHANNEL: ${{ vars.TG_CHANNEL || '@TX_Oracle' }}
         run: |
           if [ -n "${{ inputs.date }}" ]; then
             python3 tools/tg_race_cards.py prerace-races --date ${{ inputs.date }}
