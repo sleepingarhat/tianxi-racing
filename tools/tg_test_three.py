@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Send exactly 3 locked posters for one settled meeting to @TX_Oracle."""
+"""Send exactly 3 locked posters for one settled meeting to the TG_CHANNEL chats."""
 from __future__ import annotations
 
 import json, os, sys, urllib.request

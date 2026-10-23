@@ -17,7 +17,7 @@ class TgSendDocumentErrorTest(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.NamedTemporaryFile(suffix=".pdf", delete=False)
         self.tmp.write(b"%PDF-1.4 test"); self.tmp.close()
-        self.env = mock.patch.dict(os.environ, {"TELEGRAM_BOT_TOKEN": FAKE_TOKEN, "TG_CHANNEL": "@TX_Oracle"})
+        self.env = mock.patch.dict(os.environ, {"TELEGRAM_BOT_TOKEN": FAKE_TOKEN, "TG_CHANNEL": "@old_channel"})
         self.env.start(); os.environ.pop("TX_DRY_RUN", None)
 
     def tearDown(self):
@@ -35,7 +35,7 @@ class TgSendDocumentErrorTest(unittest.TestCase):
         msg = str(cm.exception.code)
         self.assertIn("Bad Request: chat not found", msg)
         self.assertIn("HTTP 400", msg)
-        self.assertIn("chat_id=@TX_Oracle", msg)
+        self.assertIn("chat_id=@old_channel", msg)
         self.assertIn("sendDocument", msg)
         self.assertNotIn(FAKE_TOKEN, msg)
         self.assertNotIn("FAKE-TOKEN", msg)

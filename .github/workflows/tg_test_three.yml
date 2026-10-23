@@ -30,6 +30,6 @@ jobs:
       - name: Render and send 3 PDFs
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TG_CHANNEL: '@TX_Oracle'
+          TG_CHANNEL: ${{ vars.TG_CHANNEL || '@tianxi_racing_pro,@tianxi_racing' }}
         run: |
           python3 tools/tg_test_three.py ${{ inputs.date }}

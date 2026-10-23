@@ -2,7 +2,7 @@
 """Locked posters: approved artwork as base, Noto text in data slots only."""
 from __future__ import annotations
 
-import json, os, urllib.error, urllib.request
+import json, os, sys, urllib.error, urllib.request
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 
@@ -208,16 +208,24 @@ def style_from_rp(rp: str) -> str:
     if n <= 7: return "\u4e2d"
     return "\u5f8c"
 
-def tg_send_document(pdf_path: Path, caption: str = "") -> None:
-    token = os.environ.get("TELEGRAM_BOT_TOKEN")
-    channel = os.environ.get("TG_CHANNEL", "@TX_Oracle")
-    if os.environ.get("TX_DRY_RUN"):
-        print("dry-run", pdf_path, caption); return
-    if not token:
-        raise SystemExit("missing TELEGRAM_BOT_TOKEN")
+DEFAULT_TG_CHANNEL = "@tianxi_racing_pro,@tianxi_racing"
+
+
+def tg_channels(raw=None) -> list:
+    """Parse TG_CHANNEL (comma/whitespace-separated chat ids / @usernames), de-duplicated, order kept."""
+    if raw is None:
+        raw = os.environ.get("TG_CHANNEL") or DEFAULT_TG_CHANNEL
+    out = []
+    for part in raw.replace("\n", ",").replace(" ", ",").split(","):
+        part = part.strip()
+        if part and part not in out:
+            out.append(part)
+    return out or tg_channels(DEFAULT_TG_CHANNEL)
+
+
+def _tg_send_document_one(token: str, channel: str, pdf_path: Path, body_file: bytes, caption: str):
+    """Send to one chat. Returns (message_id, None) on success or (None, error_message)."""
     boundary = "txposter"
-    with open(pdf_path, "rb") as f:
-        body_file = f.read()
     chunks = []
     def field(name, value):
         chunks.append(("\r\n--%s\r\nContent-Disposition: form-data; name=\"%s\"\r\n\r\n" % (boundary, name)).encode())
@@ -233,10 +241,41 @@ def tg_send_document(pdf_path: Path, caption: str = "") -> None:
             resp = json.loads(r.read().decode())
     except urllib.error.HTTPError as e:
         # Never echo e.url / req.full_url: they contain the bot token.
-        raise SystemExit(tg_error_message("sendDocument", e.code, e.read(), channel, pdf_path.name))
+        return None, tg_error_message("sendDocument", e.code, e.read(), channel, pdf_path.name)
+    except (urllib.error.URLError, TimeoutError, OSError) as e:
+        return None, "ERROR: telegram sendDocument network error (chat_id=%s, file=%s): %s" % (
+            channel, pdf_path.name, type(e).__name__)
     if not resp.get("ok"):
-        raise SystemExit(tg_error_message("sendDocument", resp.get("error_code"), resp, channel, pdf_path.name))
-    print("posted", resp.get("result", {}).get("message_id"), pdf_path.name)
+        return None, tg_error_message("sendDocument", resp.get("error_code"), resp, channel, pdf_path.name)
+    return resp.get("result", {}).get("message_id"), None
+
+
+def tg_send_document(pdf_path: Path, caption: str = "") -> None:
+    """Send the PDF to every chat in TG_CHANNEL independently.
+
+    A failing chat is logged (with Telegram's description) and does not stop the others;
+    SystemExit is raised only if *every* chat failed.
+    """
+    token = os.environ.get("TELEGRAM_BOT_TOKEN")
+    channels = tg_channels()
+    if os.environ.get("TX_DRY_RUN"):
+        print("dry-run", ",".join(channels), pdf_path, caption); return
+    if not token:
+        raise SystemExit("missing TELEGRAM_BOT_TOKEN")
+    with open(pdf_path, "rb") as f:
+        body_file = f.read()
+    errors = []
+    for channel in channels:
+        mid, err = _tg_send_document_one(token, channel, pdf_path, body_file, caption)
+        if err:
+            print(err, file=sys.stderr, flush=True)
+            errors.append(err)
+        else:
+            print("posted", channel, mid, pdf_path.name, flush=True)
+    if len(errors) == len(channels):
+        raise SystemExit("ERROR: sendDocument failed for all %d chat(s): %s" % (len(channels), " | ".join(errors)))
+    if errors:
+        print("WARNING: sendDocument failed for %d/%d chat(s); continuing" % (len(errors), len(channels)), file=sys.stderr)
 
 
 def tg_error_message(method: str, status, body, chat_id: str, filename: str = "") -> str:

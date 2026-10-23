@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Per-race + meeting PDF posters for @TX_Oracle (sendDocument)."""
+"""Per-race + meeting PDF posters for the TG_CHANNEL chats (sendDocument; default @tianxi_racing_pro,@tianxi_racing)."""
 from __future__ import annotations
 
 import argparse
@@ -13,11 +13,11 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from tx_poster import render_meeting, render_post, render_pre, tg_send_document
+from tx_poster import render_meeting, render_post, render_pre, tg_channels, tg_send_document
 
 HK_TZ = timezone(timedelta(hours=8))
 API_BASE = os.environ.get("TX_API_BASE", "https://tianxi-backend.tianxi-entertainment.workers.dev").rstrip("/")
-CHANNEL = os.environ.get("TG_CHANNEL", "@TX_Oracle")
+CHANNEL = ",".join(tg_channels())
 VENUE_CH = {"ST": "沙田", "HV": "跑馬地"}
 WEEKDAY_CH = ["週一", "週二", "週三", "週四", "週五", "週六", "週日"]
 
