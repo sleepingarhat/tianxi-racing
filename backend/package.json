@@ -22,7 +22,9 @@
     "test:data-stats": "bun scripts/test-data-stats.ts",
     "test:push-delta-sync": "tsx scripts/test-push-delta-sync.ts",
     "test:lock-window": "bun scripts/test-lock-window.ts",
-    "test:watch-events": "tsx scripts/test-watch-events.ts"
+    "test:watch-events": "tsx scripts/test-watch-events.ts",
+    "test:cors-policy": "tsx scripts/test-cors-policy.ts",
+    "test:security-guards": "bun scripts/test-security-guards.ts"
   },
   "dependencies": {
     "hkjc-api": "^1.0.5",

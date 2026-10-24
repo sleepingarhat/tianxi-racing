@@ -69,6 +69,12 @@ jobs:
       - name: Regression test — odds 20-minute freshness boundary
         run: bun scripts/test-odds-freshness.ts
 
+      - name: Regression test — CORS allowlist
+        run: npx tsx scripts/test-cors-policy.ts
+
+      - name: Regression test — security guards (JWT, Pro gate, rate limits, chat, lounge)
+        run: bun scripts/test-security-guards.ts
+
       - name: Deploy to Cloudflare Workers
         run: npx wrangler deploy
         env:
