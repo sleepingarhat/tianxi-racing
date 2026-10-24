@@ -2,7 +2,7 @@ import { collectDisplayOdds } from './lib/odds-collection';
 import { recoverOriginalFreeze, recentlyVerifiedOriginal } from './lib/freeze-recovery';
 import { computeFreezeLedger } from './lib/freeze-ledger';
 import { Hono } from 'hono';
-import { cors } from 'hono/cors';
+import { corsPolicy } from './lib/cors-policy';
 import { logger } from 'hono/logger';
 import type { Env } from './types';
 import { meetingsRoutes } from './routes/meetings';
@@ -33,7 +33,7 @@ import { auditPredictionLock, freezeExplainPayload, freezeMeetingPayload, freeze
 
 const app = new Hono<{ Bindings: Env }>();
 
-app.use('*', cors());
+app.use('*', corsPolicy());
 app.use('*', logger((message, ...rest) => {
   const match = message.match(/^((?:<--|-->)\s+\S+\s+)(\S+)(.*)$/);
   const safeMessage = match
