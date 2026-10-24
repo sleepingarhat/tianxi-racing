@@ -7,6 +7,12 @@ export interface Env {
   SESSION_HMAC_SECRET?: string;
   /** 愛駒追蹤 feed 共享密鑰（未設定時退回 WEATHER_CRON_SECRET）。 */
   WATCH_FEED_SECRET?: string;
+  /** 輪換期間仍接受嘅上一個 WATCH_FEED_SECRET。 */
+  WATCH_FEED_SECRET_PREVIOUS?: string;
+  /** Worker → 網站 /api/public/telegram-alert 專用密鑰（未設定時退回 WEATHER_CRON_SECRET）。 */
+  ALERT_HOOK_SECRET?: string;
+  /** 'off' = WATCH feed 唔再接受舊 WEATHER_CRON_SECRET。預設（未設定）= 接受，方便過渡。 */
+  LEGACY_CRON_SECRET_FALLBACK?: string;
   ADMIN_GITHUB_USER?: string;
   AI_API_KEY: string;
   AI_API_URL: string;
