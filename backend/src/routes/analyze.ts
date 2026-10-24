@@ -28,6 +28,7 @@ import { buildEngineHealth } from '../lib/engine-health';
 import { manifestFor, ensureModelManifestTable } from '../lib/model-manifest';
 import { computeFreezeLedger } from '../lib/freeze-ledger';
 import { cachedJson, jsonEtag } from '../lib/edge-cache';
+import { hasVerifiedProJwt } from '../lib/pro-gate';
 import { getDataStats } from '../lib/data-stats';
 import { FreezeBlockedError } from '../lib/freeze-recovery';
 
@@ -2275,7 +2276,7 @@ analyzeRoutes.get('/top-picks', async (c) => {
     WHERE r.id = ? AND rm.venue IN ('ST','HV')
   `).bind(raceId).first<any>();
   if (!race) return c.json({ error: '找不到該場賽事' }, 404);
-  if (!admin && !(await publicMayReadRace(c.env.DB, race))) {
+  if (!admin && !(await publicMayReadRace(c.env.DB, race)) && !(await hasVerifiedProJwt(c))) {
     return c.json({ error: 'active membership required' }, 403);
   }
 
@@ -2359,7 +2360,7 @@ analyzeRoutes.get('/explain', async (c) => {
   if (!race) return c.json({ error: '找不到該場賽事' }, 404);
 
   const admin = await hasAdminAccess(c, ADMIN_AUTH_POLICY.SESSION_OR_BEARER);
-  if (!admin && !(await publicMayReadRace(c.env.DB, race))) {
+  if (!admin && !(await publicMayReadRace(c.env.DB, race)) && !(await hasVerifiedProJwt(c))) {
     return c.json({ error: 'active membership required' }, 403);
   }
   const engine: EloEngine = admin && c.req.query('engine') === 'v11' ? 'v11' : 'v12';
@@ -3434,7 +3435,8 @@ analyzeRoutes.get('/factors', (c) => {
           }
           if (admin) return c.json(result);
           const settled = await raceDayReportIsSettled(c.env.DB, result);
-          const projected = settled
+          // 已完賽 → 公開投影；未完賽 → 免費投影（只得第一場），除非已核實 Pro JWT（PRO_ENTITLEMENT_MODE=on）。
+          const projected = settled || (await hasVerifiedProJwt(c))
             ? projectTodayPicksForPublic(result)
             : projectTodayPicksForFree(result);
           // 版本標示 SSOT：未鎖一律 draft（初版），只有讀到凍結快照先 final（最終版）。

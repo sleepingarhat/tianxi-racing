@@ -10,6 +10,16 @@ workers_dev = true
 ENVIRONMENT = "production"
 AI_API_URL = "https://api.x.ai/v1/chat/completions"
 AI_MODEL = "grok-4.20-reasoning"
+# 每次 AI 呼叫 max_tokens 上限（硬上限 3000，程式內再夾一次）
+AI_MAX_TOKENS = "1500"
+# Supabase 專案網址（公開）：/api/chat、lounge 發帖同 Pro 權限用嚟核實 JWT（JWKS）
+SUPABASE_URL = "https://mnztxtekjjvktutanblg.supabase.co"
+# 要同網站付款環境一致（網站 VITE_PAYMENTS_CLIENT_TOKEN 係 pk_live_ → live）
+PAYMENTS_ENVIRONMENT = "live"
+# Pro JWT 直接入口權限：預設 off（同現況一樣）。要開請喺呢度改做 "on" 再部署，
+# 並先用 `wrangler secret put SUPABASE_PUBLISHABLE_KEY` 設定公開 publishable key。
+PRO_ENTITLEMENT_MODE = "off"
+# LEGACY_CRON_SECRET_FALLBACK 唔放喺呢度：輪換完成後用 `wrangler secret put LEGACY_CRON_SECRET_FALLBACK`（值 off）
 # TIMESFM_API_URL set later when RunPod endpoint ready
 
 # Cloudflare D1 Database
