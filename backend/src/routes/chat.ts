@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
-import type { Env, ChatRequest } from '../types';
+import type { Env } from '../types';
+import { guardChatRequest } from '../lib/chat-guard';
 import { racingChat, parseUserIntent } from '../services/ai';
 import { getHorseCareerStats } from '../lib/horse-career-stats';
 
@@ -66,12 +67,14 @@ function requiredDataForIntent(intent: string): string[] {
 }
 
 chatRoutes.post('/', async (c) => {
-  const body = await c.req.json<ChatRequest>();
-  const { message, raceDate, raceNumber, conversationHistory } = body;
-
-  if (!message) {
-    return c.json({ error: '請輸入問題' }, 400);
+  // 濫用防護：登入 + 速率限制 + 長度上限（全部喺呼叫付費 AI 之前）
+  const guard = await guardChatRequest(c);
+  if (!guard.ok) {
+    if (guard.retryAfter) c.header('Retry-After', String(guard.retryAfter));
+    return c.json({ error: guard.error }, guard.status);
   }
+  c.header('Cache-Control', 'private, no-store');
+  const { message, raceDate, raceNumber, conversationHistory } = guard.body;
 
   try {
     // ========== Step 1: Intent Parser ==========
@@ -517,10 +520,10 @@ chatRoutes.post('/', async (c) => {
       },
     });
   } catch (err: any) {
-    console.error('Chat error:', err);
+    console.error('Chat error:', err?.name ?? 'error');
+    // 唔回傳內部錯誤訊息（可能包含上游 AI 回應或 SQL 細節）
     return c.json({
       error: '分析時發生錯誤，請稍後再試',
-      details: err.message,
     }, 500);
   }
 });

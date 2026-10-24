@@ -18,8 +18,19 @@ interface AICompletionOptions {
 }
 
 // 調用 AI Gateway（兼容 OpenRouter API）
+/** 每次 AI 呼叫嘅輸出 token 上限：AI_MAX_TOKENS（預設 1500），硬上限 3000。 */
+export const AI_MAX_TOKENS_DEFAULT = 1500;
+export const AI_MAX_TOKENS_CEILING = 3000;
+export function capMaxTokens(env: Pick<Env, 'AI_MAX_TOKENS'>, requested: number): number {
+  const configured = Number.parseInt(String(env.AI_MAX_TOKENS ?? ''), 10);
+  const cap = Number.isFinite(configured) && configured > 0 ? Math.min(configured, AI_MAX_TOKENS_CEILING) : AI_MAX_TOKENS_DEFAULT;
+  const want = Number.isFinite(requested) && requested > 0 ? Math.floor(requested) : cap;
+  return Math.max(1, Math.min(want, cap));
+}
+
 export async function callAI(env: Env, options: AICompletionOptions): Promise<string> {
-  const { messages, temperature = 0.7, maxTokens = 2000 } = options;
+  const { messages, temperature = 0.7 } = options;
+  const maxTokens = capMaxTokens(env, options.maxTokens ?? AI_MAX_TOKENS_DEFAULT);
 
   const response = await fetch(env.AI_API_URL || 'https://ai-gateway.happycapy.ai/api/v1/chat/completions', {
     method: 'POST',
@@ -33,11 +44,12 @@ export async function callAI(env: Env, options: AICompletionOptions): Promise<st
       temperature,
       max_tokens: maxTokens,
     }),
+    signal: AbortSignal.timeout(60_000),
   });
 
   if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`AI API error ${response.status}: ${errorText}`);
+    // 唔將上游錯誤內容放入例外訊息，避免經日誌或回應外洩
+    throw new Error(`AI API error ${response.status}`);
   }
 
   const data = await response.json() as any;
