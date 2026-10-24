@@ -44,12 +44,12 @@ export function legacyFallbackEnabled(env: SharedSecretEnv): boolean {
 /** WATCH feed 接受嘅密鑰清單（目前值 + 上一個值 + 過渡期舊共用密鑰）。 */
 export function watchFeedSecrets(env: SharedSecretEnv): string[] {
   const out = [env.WATCH_FEED_SECRET, env.WATCH_FEED_SECRET_PREVIOUS];
-  // 未設定專用密鑰時保持舊行為；設定咗之後，只有 fallback 未關先接受舊值。
-  if (!env.WATCH_FEED_SECRET || legacyFallbackEnabled(env)) out.push(env.WEATHER_CRON_SECRET);
+  // 過渡期（fallback 未關）接受舊共用值；LEGACY_CRON_SECRET_FALLBACK=off 之後一律唔接受。
+  if (legacyFallbackEnabled(env)) out.push(env.WEATHER_CRON_SECRET);
   return out.filter((v): v is string => typeof v === 'string' && v.length > 0);
 }
 
-/** Worker → 網站 telegram-alert 用嘅密鑰：優先專用 ALERT_HOOK_SECRET，未設定先用舊共用值。 */
+/** Worker → 網站 telegram-alert 用嘅密鑰：優先專用 ALERT_HOOK_SECRET；未設定而 fallback 未關先用舊共用值。 */
 export function alertHookSecret(env: SharedSecretEnv): string | undefined {
-  return env.ALERT_HOOK_SECRET || env.WEATHER_CRON_SECRET || undefined;
+  return env.ALERT_HOOK_SECRET || (legacyFallbackEnabled(env) ? env.WEATHER_CRON_SECRET : undefined) || undefined;
 }

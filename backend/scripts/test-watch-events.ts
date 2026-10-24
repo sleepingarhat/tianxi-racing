@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import Database from 'better-sqlite3';
 import { Hono } from 'hono';
-import { alertHookSecret } from '../src/lib/shared-secret';
+import { alertHookSecret, watchFeedSecrets } from '../src/lib/shared-secret';
 import { parseWatchQuery, watchRoutes, MAX_HORSE_IDS } from '../src/routes/watch';
 import type { Env } from '../src/types';
 
@@ -81,6 +81,8 @@ async function main(): Promise<void> {
   assert.equal((await app.request(wq, { headers: { 'x-cron-secret': 'watch-new-x' } }, strict)).status, 401);
   assert.equal(alertHookSecret({ WEATHER_CRON_SECRET: 'legacy' }), 'legacy');
   assert.equal(alertHookSecret({ WEATHER_CRON_SECRET: 'legacy', ALERT_HOOK_SECRET: 'alert' }), 'alert');
+  assert.equal(alertHookSecret({ WEATHER_CRON_SECRET: 'legacy', LEGACY_CRON_SECRET_FALLBACK: 'off' }), undefined);
+  assert.deepEqual(watchFeedSecrets({ WEATHER_CRON_SECRET: 'legacy', LEGACY_CRON_SECRET_FALLBACK: 'off' }), []);
 
   const res = await app.request('/api/watch/events?horse_ids=horse_J062,horse_H117&since=2026-10-20', { headers: { 'x-cron-secret': 'test-secret' } }, env);
   assert.equal(res.status, 200);
