@@ -1,0 +1,65 @@
+name: Capy Racecard Snapshot — append-only gear/rating history (research)
+
+# Research data only. Saves each changed HKJC race card capture as a new
+# immutable CSV + SHA-256 manifest under entries/racecard_snapshots/.
+# Never writes D1, predictions or frozen cards; production freeze stays T-90.
+# Failure here does not affect capy_racecard or the freeze pipeline.
+
+on:
+  workflow_dispatch:
+    inputs:
+      date: { description: 'Race date YYYY-MM-DD (blank = all available)', required: false, default: '' }
+      venue: { description: 'ST or HV (blank = all)', required: false, default: '' }
+  workflow_run:
+    workflows: ['Capy Racecard — enrich entries_upcoming via hkjc-api']
+    types: [completed]
+    branches: [main]
+  schedule:
+    # every 3 hours at :41 — unchanged cards are skipped by content SHA
+    - cron: '41 */3 * * *'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: capy-racecard-snapshot
+  cancel-in-progress: false
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: main, fetch-depth: 1 }
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - name: Install deps
+        working-directory: backend
+        run: npm install --no-audit --no-fund
+      - name: Unit checks
+        working-directory: backend
+        run: npx tsx scripts/test-racecard-snapshot.ts
+      - name: Capture snapshot
+        working-directory: backend
+        run: |
+          set -eu
+          ARGS="--root=.."
+          if [ -n "${{ inputs.date }}" ]; then ARGS="$ARGS --date=${{ inputs.date }}"; fi
+          if [ -n "${{ inputs.venue }}" ]; then ARGS="$ARGS --venue=${{ inputs.venue }}"; fi
+          npx tsx scripts/snapshot-racecard.ts $ARGS
+      - name: Commit new snapshot files only
+        run: |
+          set -eu
+          git config user.name 'tianxi-bot'
+          git config user.email 'tianxi-bot@users.noreply.github.com'
+          git add entries/racecard_snapshots
+          if git diff --cached --quiet; then echo 'no new snapshot'; exit 0; fi
+          # append-only guard: only additions or manifest appends allowed
+          if git diff --cached --name-status | grep -vE '^(A|M)\s+entries/racecard_snapshots/' ; then echo 'unexpected change'; exit 1; fi
+          for f in $(git diff --cached --name-only --diff-filter=M); do
+            case "$f" in */manifest.jsonl) git diff --cached "$f" | grep -qE '^-[^-]' && { echo "manifest rewritten: $f"; exit 1; } ;; *) echo "modified existing snapshot: $f"; exit 1 ;; esac
+          done
+          git commit -m "[data][skip ci] racecard snapshot $(date -u +%Y-%m-%dT%H:%MZ)"
+          for i in 1 2 3; do git pull --rebase origin main && git push origin HEAD:main && exit 0; sleep $((i*5)); done
+          exit 1
