@@ -1,0 +1,11 @@
+{
+  "snapshots": [
+    {
+      "path": "data/racing-cancellations/2026-10-25/cancellation-9edba86e3e3d100175fb7ac1ed15891befbb7a4a3d9159a3a8993aac922c0ea9.html",
+      "sha256": "9edba86e3e3d100175fb7ac1ed15891befbb7a4a3d9159a3a8993aac922c0ea9",
+      "sourceUrl": "https://racing.hkjc.com/racing/information/Chinese/Racing/LocalResults.aspx?RaceDate=2026%2F10%2F25",
+      "date": "2026-10-25",
+      "kind": "racing-cancellations"
+    }
+  ]
+}
