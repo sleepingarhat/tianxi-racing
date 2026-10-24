@@ -36,7 +36,7 @@ jobs:
         with: { node-version: '20' }
       - name: Install deps
         working-directory: backend
-        run: npm install --no-audit --no-fund
+        run: npm ci --no-audit --no-fund || npm install --no-audit --no-fund
       - name: Unit checks
         working-directory: backend
         run: npx tsx scripts/test-racecard-snapshot.ts
@@ -53,6 +53,7 @@ jobs:
           set -eu
           git config user.name 'tianxi-bot'
           git config user.email 'tianxi-bot@users.noreply.github.com'
+          git checkout -- backend/package.json backend/package-lock.json 2>/dev/null || true
           git add entries/racecard_snapshots
           if git diff --cached --quiet; then echo 'no new snapshot'; exit 0; fi
           # append-only guard: only additions or manifest appends allowed
