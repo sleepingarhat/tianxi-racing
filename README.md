@@ -23,6 +23,17 @@
 
 ---
 
+## 現行產品及操作口徑（2026-10-24）
+
+首200名創始會員於開閘日起享52週Pro（HK$4,056）；門檻200不自動開閘，付款驗收及用戶明確批准後才收款。Stripe HK$78／週自動續訂；Crypto US$416／52週一次付，展示HK$3,244.80八折，不自動續期。現時不收款，Crypto及賽日提示未啟用，付款環境維持live；愛駒上限30／3／90，愛駒通知不加開閘檢查。
+
+正式站 https://tianxi.racing 已發布。平台驗證排程：weather-archive-managed每5分鐘、weather-sync-github-managed每日23:50 HKT、race-results-dispatch-managed每日23:31／01:31 HKT；首次均200，兩項天氣安全略過，賽果派送獲接納但不等於收齊。正常首次後已停舊weather-archive-5min、weather-sync-github-nightly及race-results-dispatch。逐場收料保留，全日首次核實官方完場後30分鐘主收料；固定深夜只為後備。
+
+鎖前官方更改只重算受影響場次；鎖後不補位，保留原四揀，退出／未完賽逐匹無效，命中分母固定4；鎖前退出未及重算亦按原四揀／4。實際換騎另記，不重算原凍結。官方彩池替補／退款只用於原注结算，不能改模型四揀。
+
+- tianxi-racing為統一賽馬資料／服務／排程；tianxi-web為網站源碼鏡像，Lovable發布正式站；domain-brain為衍生知識；tianxi-research為私有研究與退役產品保存。tianxi-database保留賽事資料鏡像。
+- 下文早期拆倉／靜態網站／CF Pages／工作流數目／自動切模型描述為歷史，不作現行操作指引；現行模型依已核實MODEL及凍結版本，研究閘只報告，用戶批准才升版，健康PASS不等於發布批准。
+
 ## 👥 生態系統（3 repos）
 
 | Repo | 角色 | 技術棧 |
@@ -141,7 +152,7 @@ Production URLs：
 - **`--date YYYY-MM-DD` mode**：爬特定日子
 - **`--backfill` mode**：多 worker 並行爬歷史年份（初次 bootstrap 用）
 
-**Trigger：** `capy_race_daily.yml` — HK 23:30 每日 cron（賽日夜場完結後），GHA job step 1 先 fixture_guard。
+**Trigger：** 全日首次核實官方完場後30分鐘主收料；23:31／01:31 HKT平台派送及舊GitHub工作為後備，不等於已收齊。
 
 ---
 
@@ -312,11 +323,11 @@ Backfill / developer tooling，**不參與 daily cron**。跑佢會序貫執行�
 
 ## 調度策略 (Calendar-Aware Scheduling)
 
-每條 workflow 開工前必跑 `scripts/fixture_guard.sh --window N --direction past|future|any`。
+需賽日感知的 workflow 按各自設定跑 `scripts/fixture_guard.sh --window N --direction past|future|any`。
 
 | Workflow | Cron (HKT) | Fixture Guard | 目的 |
 |---|---|---|---|
-| Race Day | 23:30 每日 | 今日有賽 | 抓當日 5 artefact |
+| Race Day | 全日首次核實完場後30分鐘；平台後備23:31／01:31 HKT | 今日有賽及官方完場核對 | 抓當日5 artefact，不改凍結 |
 | Pool A | 04:00 每日 | 昨日有賽（force 可 override） | 馬匹 DB delta |
 | Pool B Daily | 02:00 每日 | 冇（輕量，日日跑唔傷） | 試閘 + 騎師 |
 | Trainer | 01:00 每日 | 過去 2 日有賽 | 練馬師 SPA refresh |
