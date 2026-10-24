@@ -1,5 +1,7 @@
 import { Hono } from 'hono';
 import type { Env } from '../types';
+import { clientIp, consumeRateLimits, type RateRule } from '../lib/rate-limit';
+import { supabaseUserFromRequest, type SupabaseUser } from '../lib/supabase-auth';
 
 export const loungeRoutes = new Hono<{ Bindings: Env }>();
 
@@ -19,45 +21,73 @@ const BET_CODE_RE = /\b[WPQTSFDCGHRKL]{1,2}[\s:\-]*\d{1,2}[\s,\-]+\d{1,2}\b/i;
 const URL_RE = /https?:\/\/[^\s]+/gi;
 const STAKE_RE = /(落|下注|買入|投注|買佢|買呢|買 ?\$)/;
 
-function rejectContent(body: string): string | null {
-  if (!body || !body.trim()) return '內容不能為空';
-  if (body.length > 4000) return '內容過長（上限 4000 字）';
+export const LOUNGE_LIMITS = {
+  maxBodyChars: 2000,
+  maxTitleChars: 140,
+  maxHandleChars: 24,
+  maxUrls: 3,
+  threadsPerUserHour: 5,
+  threadsPerIpHour: 10,
+  postsPerUserMinute: 5,
+  postsPerUserHour: 30,
+  postsPerIpHour: 60,
+} as const;
+
+const CONTROL_RE = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F\u202A-\u202E\u2066-\u2069]/;
+const CATEGORIES = new Set(['race_day', 'horse_chat', 'general', 'jockey', 'analysis']);
+
+export function rejectContent(body: unknown): string | null {
+  if (typeof body !== 'string' || !body.trim()) return '內容不能為空';
+  if (body.length > LOUNGE_LIMITS.maxBodyChars) return `內容過長（上限 ${LOUNGE_LIMITS.maxBodyChars} 字）`;
+  if (CONTROL_RE.test(body)) return '內容包含無效字元';
   if (BET_CODE_RE.test(body)) return '請勿分享投注碼（天喜為分析平台，不提供投注服務）';
   const urls = body.match(URL_RE) ?? [];
-  if (urls.length > 3) return '外部連結過多（上限 3 條）';
+  if (urls.length > LOUNGE_LIMITS.maxUrls) return `外部連結過多（上限 ${LOUNGE_LIMITS.maxUrls} 條）`;
   if (STAKE_RE.test(body)) return '請避免下注建議語句（用「睇好／分析／機率」代替）';
   return null;
 }
 
-function rejectHandle(handle: string): string | null {
-  if (!handle || !handle.trim()) return '請提供顯示名稱';
-  if (handle.length > 24) return '顯示名稱過長（上限 24 字）';
+export function rejectHandle(handle: unknown): string | null {
+  if (typeof handle !== 'string' || !handle.trim()) return '請提供顯示名稱';
+  if (handle.trim().length > LOUNGE_LIMITS.maxHandleChars) return `顯示名稱過長（上限 ${LOUNGE_LIMITS.maxHandleChars} 字）`;
+  if (CONTROL_RE.test(handle) || /[\r\n\t]/.test(handle)) return '顯示名稱包含無效字元';
   return null;
 }
 
-// KV-backed per-IP rate limit. Gracefully no-op when KV binding missing.
-async function rateLimit(
-  env: Env,
-  ip: string,
+export function rejectTitle(title: unknown): string | null {
+  if (typeof title !== 'string' || !title.trim()) return '缺少 title';
+  if (title.trim().length > LOUNGE_LIMITS.maxTitleChars) return `標題過長（上限 ${LOUNGE_LIMITS.maxTitleChars} 字）`;
+  if (CONTROL_RE.test(title) || /[\r\n]/.test(title)) return '標題包含無效字元';
+  return null;
+}
+
+/**
+ * 發帖必須登入：Supabase JWT（Authorization: Bearer）。author_id 一律取自 JWT sub，
+ * 唔再信任客戶端傳入嘅 authorId。速率限制用 D1（api_rate_limits），唔再依賴未綁定嘅 KV。
+ */
+async function requireLoungeWriter(
+  c: any,
   kind: 'thread' | 'post',
-): Promise<string | null> {
-  const kv = (env as any).LOUNGE_RL as KVNamespace | undefined;
-  if (!kv) return null;
-  const now = Math.floor(Date.now() / 1000);
-  const hour = Math.floor(now / 3600);
-  const key = `rl:${kind}:${hour}:${ip}`;
-  const limit = kind === 'thread' ? 5 : 30;
-  const raw = await kv.get(key);
-  const n = raw ? parseInt(raw, 10) : 0;
-  if (n >= limit) return `速率限制：每小時最多 ${limit} 個${kind === 'thread' ? '主題' : '回覆'}`;
-  await kv.put(key, String(n + 1), { expirationTtl: 3700 });
-  return null;
-}
-
-function clientIp(c: any): string {
-  return c.req.header('cf-connecting-ip')
-    || c.req.header('x-forwarded-for')?.split(',')[0]?.trim()
-    || 'unknown';
+): Promise<{ ok: true; user: SupabaseUser } | { ok: false; res: Response }> {
+  const user = await supabaseUserFromRequest(c);
+  if (!user) return { ok: false, res: c.json({ error: '請先登入天喜會員再發言' }, 401) };
+  const ip = clientIp(c);
+  const rules: RateRule[] = kind === 'thread'
+    ? [
+        { key: `lounge:thread:user:${user.userId}`, limit: LOUNGE_LIMITS.threadsPerUserHour, windowSeconds: 3600 },
+        { key: `lounge:thread:ip:${ip}`, limit: LOUNGE_LIMITS.threadsPerIpHour, windowSeconds: 3600 },
+      ]
+    : [
+        { key: `lounge:post:user-min:${user.userId}`, limit: LOUNGE_LIMITS.postsPerUserMinute, windowSeconds: 60 },
+        { key: `lounge:post:user:${user.userId}`, limit: LOUNGE_LIMITS.postsPerUserHour, windowSeconds: 3600 },
+        { key: `lounge:post:ip:${ip}`, limit: LOUNGE_LIMITS.postsPerIpHour, windowSeconds: 3600 },
+      ];
+  const rl = await consumeRateLimits(c.env.DB, rules);
+  if (!rl.ok) {
+    if (rl.retryAfterSeconds) c.header('Retry-After', String(rl.retryAfterSeconds));
+    return { ok: false, res: c.json({ error: kind === 'thread' ? '速率限制：發主題過於頻繁，請稍後再試' : '速率限制：發言過於頻繁，請稍後再試' }, 429) };
+  }
+  return { ok: true, user };
 }
 
 // ---------- routes ----------
@@ -154,19 +184,20 @@ loungeRoutes.post('/threads', async (c) => {
   let body: any;
   try { body = await c.req.json(); } catch { return c.json({ error: '無效 JSON' }, 400); }
 
-  const { title, category, body: postBody, authorHandle, authorId, raceDate, horseId } = body ?? {};
-  if (!title || typeof title !== 'string') return c.json({ error: '缺少 title' }, 400);
-  if (title.length > 140) return c.json({ error: '標題過長（上限 140 字）' }, 400);
-  if (!authorId) return c.json({ error: '缺少 authorId' }, 400);
-
+  const { title, category, body: postBody, authorHandle, raceDate, horseId } = body ?? {};
+  const tErr = rejectTitle(title);
+  if (tErr) return c.json({ error: tErr }, 400);
   const hErr = rejectHandle(authorHandle);
   if (hErr) return c.json({ error: hErr }, 400);
   const cErr = rejectContent(postBody);
   if (cErr) return c.json({ error: cErr }, 400);
+  if (category != null && !CATEGORIES.has(category)) return c.json({ error: '無效分類' }, 400);
+  if (raceDate != null && (typeof raceDate !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(raceDate))) return c.json({ error: 'raceDate 格式錯誤' }, 400);
+  if (horseId != null && (typeof horseId !== 'string' || !/^[A-Za-z0-9_-]{1,32}$/.test(horseId))) return c.json({ error: 'horseId 格式錯誤' }, 400);
 
-  const ip = clientIp(c);
-  const rlErr = await rateLimit(c.env, ip, 'thread');
-  if (rlErr) return c.json({ error: rlErr }, 429);
+  const auth = await requireLoungeWriter(c, 'thread');
+  if (!auth.ok) return auth.res;
+  const authorId = auth.user.userId;
 
   const threadId = ulid();
   const postId = ulid();
@@ -175,11 +206,11 @@ loungeRoutes.post('/threads', async (c) => {
     c.env.DB.prepare(
       `INSERT INTO lounge_threads (id, title, category, race_date, horse_id, author_handle, author_id, reply_count, last_post_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, 0, datetime('now'))`,
-    ).bind(threadId, title, category ?? 'general', raceDate ?? null, horseId ?? null, authorHandle, authorId),
+    ).bind(threadId, title.trim(), category ?? 'general', raceDate ?? null, horseId ?? null, authorHandle.trim(), authorId),
     c.env.DB.prepare(
       `INSERT INTO lounge_posts (id, thread_id, body, author_handle, author_id)
        VALUES (?, ?, ?, ?, ?)`,
-    ).bind(postId, threadId, postBody, authorHandle, authorId),
+    ).bind(postId, threadId, postBody, authorHandle.trim(), authorId),
   ]);
 
   return c.json({ threadId, postId });
@@ -236,17 +267,15 @@ loungeRoutes.post('/chat', async (c) => {
   let body: any;
   try { body = await c.req.json(); } catch { return c.json({ error: '無效 JSON' }, 400); }
 
-  const { body: postBody, authorHandle, authorId } = body ?? {};
-  if (!authorId) return c.json({ error: '請先設定暱稱' }, 400);
-
+  const { body: postBody, authorHandle } = body ?? {};
   const hErr = rejectHandle(authorHandle);
   if (hErr) return c.json({ error: hErr }, 400);
   const cErr = rejectContent(postBody);
   if (cErr) return c.json({ error: cErr }, 400);
 
-  const ip = clientIp(c);
-  const rlErr = await rateLimit(c.env, ip, 'post');
-  if (rlErr) return c.json({ error: rlErr }, 429);
+  const auth = await requireLoungeWriter(c, 'post');
+  if (!auth.ok) return auth.res;
+  const authorId = auth.user.userId;
 
   await ensureGlobalRoom(c.env);
   const postId = ulid();
@@ -254,7 +283,7 @@ loungeRoutes.post('/chat', async (c) => {
     c.env.DB.prepare(
       `INSERT INTO lounge_posts (id, thread_id, body, author_handle, author_id)
        VALUES (?, ?, ?, ?, ?)`,
-    ).bind(postId, GLOBAL_ROOM_ID, postBody, authorHandle, authorId),
+    ).bind(postId, GLOBAL_ROOM_ID, postBody, authorHandle.trim(), authorId),
     c.env.DB.prepare(
       `UPDATE lounge_threads SET reply_count = reply_count + 1, last_post_at = datetime('now')
        WHERE id = ?`,
@@ -270,8 +299,7 @@ loungeRoutes.post('/threads/:id/posts', async (c) => {
   let body: any;
   try { body = await c.req.json(); } catch { return c.json({ error: '無效 JSON' }, 400); }
 
-  const { body: postBody, authorHandle, authorId } = body ?? {};
-  if (!authorId) return c.json({ error: '缺少 authorId' }, 400);
+  const { body: postBody, authorHandle } = body ?? {};
 
   const hErr = rejectHandle(authorHandle);
   if (hErr) return c.json({ error: hErr }, 400);
@@ -284,16 +312,16 @@ loungeRoutes.post('/threads/:id/posts', async (c) => {
   if (!thread) return c.json({ error: '主題不存在' }, 404);
   if (thread.is_locked) return c.json({ error: '主題已鎖定' }, 403);
 
-  const ip = clientIp(c);
-  const rlErr = await rateLimit(c.env, ip, 'post');
-  if (rlErr) return c.json({ error: rlErr }, 429);
+  const auth = await requireLoungeWriter(c, 'post');
+  if (!auth.ok) return auth.res;
+  const authorId = auth.user.userId;
 
   const postId = ulid();
   await c.env.DB.batch([
     c.env.DB.prepare(
       `INSERT INTO lounge_posts (id, thread_id, body, author_handle, author_id)
        VALUES (?, ?, ?, ?, ?)`,
-    ).bind(postId, threadId, postBody, authorHandle, authorId),
+    ).bind(postId, threadId, postBody, authorHandle.trim(), authorId),
     c.env.DB.prepare(
       `UPDATE lounge_threads SET reply_count = reply_count + 1, last_post_at = datetime('now')
        WHERE id = ?`,
