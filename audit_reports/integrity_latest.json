@@ -1,5 +1,5 @@
 {
-  "scan_date": "2026-10-23",
+  "scan_date": "2026-10-24",
   "repo_root": "/home/runner/work/tianxi-racing/tianxi-racing",
   "overall_severity": "warn",
   "critical_gap_count": 0,
@@ -28,8 +28,8 @@
     },
     "horse_profiles": {
       "name": "horse_profiles",
-      "expected": 1195,
-      "present": 1195,
+      "expected": 1180,
+      "present": 1180,
       "missing": [],
       "stale": [],
       "notes": [
@@ -39,8 +39,8 @@
     },
     "horse_form_records": {
       "name": "horse_form_records",
-      "expected": 1195,
-      "present": 1195,
+      "expected": 1180,
+      "present": 1180,
       "missing": [],
       "stale": [],
       "notes": [
@@ -50,8 +50,8 @@
     },
     "jockey_profiles": {
       "name": "jockey_profiles",
-      "expected": 32,
-      "present": 32,
+      "expected": 26,
+      "present": 26,
       "missing": [],
       "stale": [],
       "notes": [
@@ -70,8 +70,8 @@
     },
     "trainer_profiles": {
       "name": "trainer_profiles",
-      "expected": 35,
-      "present": 35,
+      "expected": 25,
+      "present": 25,
       "missing": [],
       "stale": [],
       "notes": [
@@ -95,7 +95,7 @@
       "missing": [],
       "stale": [],
       "notes": [
-        "trial rows: 9628"
+        "trial rows: 9735"
       ],
       "severity": "ok"
     },
