@@ -1,0 +1,50 @@
+name: Capy Incident Reports — post-race research versions
+on:
+  workflow_dispatch:
+    inputs:
+      date: { description: 'Race date YYYY-MM-DD; blank refreshes last 30 days', required: false, default: '' }
+  workflow_run:
+    workflows: ['Capy Race Day — RacingData Results', 'Capy Results — scrape HKJC race results to D1']
+    types: [completed]
+    branches: [main]
+  schedule:
+    # HKT 02:23 / 08:23 / 14:23 / 20:23, updates to recent reports remain observable.
+    - cron: '23 0,6,12,18 * * *'
+permissions:
+  contents: write
+concurrency:
+  group: capy-incident-research
+  cancel-in-progress: false
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: main, fetch-depth: 1 }
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: pip install beautifulsoup4==4.14.2
+      - name: Test post-race evidence boundaries
+        run: python3 -m unittest discover -s scripts -p test_incident_reports.py
+      - name: Collect reports and later versions
+        env:
+          RACE_DATE: ${{ inputs.date }}
+        run: python3 scripts/IncidentReport_Scraper.py --root=. --date="$RACE_DATE" --days=30
+      - name: Commit new evidence only
+        run: |
+          set -eu
+          [ -d data/incidents ] || exit 0
+          git config user.name 'tianxi-bot'
+          git config user.email 'tianxi-bot@users.noreply.github.com'
+          git add data/incidents
+          git diff --cached --quiet && exit 0
+          for f in $(git diff --cached --name-only --diff-filter=M); do
+            case "$f" in
+              data/incidents/manifest.jsonl) if git diff --cached "$f" | grep -qE '^-[^-]'; then echo 'manifest rewrite refused'; exit 1; fi ;;
+              *) echo 'original evidence modification refused'; exit 1 ;;
+            esac
+          done
+          [ -z "$(git diff --cached --name-only --diff-filter=D)" ] || exit 1
+          git commit -m '[data][skip ci] post-race incident and veterinary research evidence'
+          git push origin HEAD:main

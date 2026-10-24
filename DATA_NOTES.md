@@ -12,6 +12,9 @@
 
 ## 📚 目錄
 
+### 2026-10-25新增研究原文（非模型特徵）
+`data/incidents/snapshots/`保存日期／馬場／逐場／馬匹已核實競賽事件與獸醫原句；固定欄位 `race_date,venue,race_no,horse_no,horse_id,horse_code,horse_name,placing_raw,jockey_raw,incident_text,penalty,veterinary_note,scraped_at,source_url,source_sha256,research_only`。一般事項／增補另存 `additional_sections.csv`，其中race_date及venue只標來源頁，不代表文字提及賽事；未配對horse_id留空。原HTML及CSV SHA在manifest只追加，資料修改會阻截讀取；同日報告及後來抓取不可當賽前證據。`data/track_conditions`亦為研究原文加每日衍生投影，缺讀數空白不當零；不自動納入模型，詳見docs/data-expansion-gear-rating-track-incidents.md。
+
 1. [資料夾結構總覽](#資料夾結構總覽)
 2. [賽馬日 5 份檔案（per race day artefacts）](#賽馬日-5-份檔案)
    - 2.1 [results](#21-dataresultsresults_yyyy-mm-ddcsv)
