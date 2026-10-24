@@ -1,9 +1,13 @@
 #!/usr/bin/env tsx
   /**
-   * Race card enrichment — hkjc-api.getAllRaces() → enrich entries_upcoming
+   * Race card enrichment — HKJC whitelisted GraphQL → enrich entries_upcoming
    *
    * Replaces sentinel race_number=0 rows (written by ingest/sources/entries.ts)
    * with real race_number, draw, jockey, trainer, weight, rating data.
+   *
+   * Uses the exact query HKJC's own bet site sends (the generic hkjc-api
+   * getAllRaces() query has been rejected with WHITELIST_ERROR since
+   * 2026-10-23). Any HKJC error fails the job; it is never "no meeting".
    *
    * Run AFTER capy_entries (horse stubs seeded) and BEFORE push-delta --include=entries.
    *
@@ -12,8 +16,8 @@
    */
   import Database from 'better-sqlite3';
   import { resolve } from 'node:path';
-  // @ts-ignore
-  import { HorseRacingAPI } from 'hkjc-api';
+  import { fetchLocalRacecards, mapWeights } from './ingest/lib/hkjc-racecard.js';
+  import { fetchRaceMeta, type RaceMeta } from './ingest/lib/racecard-meta.js';
   import { entryId } from './ingest/lib/ids.js';
     import { ensureSchema } from './ingest/lib/db.js';
     import { resolve as resolvePath } from 'node:path';
@@ -30,23 +34,17 @@
     const dryRun = process.argv.includes('--dry-run');
     const sourceCommit = process.env.GITHUB_SHA ?? null;
 
-    const api = new HorseRacingAPI();
-    const allMeetings: any[] = await api.getAllRaces().catch(() => null as any);
-    if (!allMeetings || !Array.isArray(allMeetings) || !allMeetings.length) {
-      console.error('[racecard] getAllRaces returned empty — no active meeting');
-      process.exit(0);
-    }
-
-    // HK-only source guard: HKJC getAllRaces() also returns overseas / simulcast
-    // meetings (venueCode S1/S2/…). This engine covers ONLY Sha Tin (ST) and
-    // Happy Valley (HV). Overseas cards must never be scraped — otherwise the
-    // "next meeting = meetings[0]" auto-detect grabs an overseas card and starves
-    // the real local race day (2026-06-06 S2 crowded out the real 6/7 ST card).
-    const HK_VENUES = new Set(['ST', 'HV']);
-    const meetings = allMeetings.filter((m: any) => HK_VENUES.has((m.venueCode ?? '').toUpperCase()));
+    // Whitelisted HKJC query only. HKJC falls back to a default (often
+    // overseas simulcast) card for dates/venues without a local meeting, so
+    // fetchLocalRacecards keeps only cards whose every runner has a local HK
+    // horse id and drops identical fallback cards. This engine covers ONLY
+    // Sha Tin (ST) and Happy Valley (HV).
+    const hkToday = new Date(Date.now() + 8 * 3600_000).toISOString().slice(0, 10);
+    const dates = dateFilter ? [dateFilter] : [hkToday];
+    const venues = venueFilter ? [venueFilter] : ['ST', 'HV'];
+    const meetings = await fetchLocalRacecards(dates, venues);
     if (!meetings.length) {
-      const avail = allMeetings.map((m: any) => `${m.date}@${m.venueCode}`).join(', ');
-      console.error(`[racecard] no active HK (ST/HV) meeting — skipping. Available (non-HK): ${avail}`);
+      console.error(`[racecard] no active HK (ST/HV) meeting for ${dates.join(',')} — skipping`);
       process.exit(0);
     }
 
@@ -87,9 +85,10 @@
       for (const race of races) {
         const raceNo = Number(race.no ?? 0);
         const runners: any[] = race.runners ?? [];
-        console.error(`  R${raceNo} dist=${race.distance}m going=${race.go_en} class=${race.claCode} · ${runners.length} runners`);
+        console.error(`  R${raceNo} · ${runners.length} runners`);
         runners.slice(0, 3).forEach((r: any) => {
-          console.error(`    #${r.no} ${r.name_ch ?? r.name_en} draw=${r.barrierDrawNumber} jockey=${r.jockey?.name_ch} wt=${r.handicapWeight}`);
+          const w = mapWeights(r);
+          console.error(`    #${r.no} ${r.name_ch ?? r.name_en} draw=${r.barrierDrawNumber} jockey=${r.jockey?.name_ch} 負磅=${w.declaredWeight} 實際負磅=${w.actualWeight} 體重=${w.bodyWeight}`);
         });
       }
       process.exit(0);
@@ -118,10 +117,12 @@
           rating, priority_order, post_time, scraped_at, source_commit)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(race_date, venue, race_number, horse_number) DO UPDATE SET
-         race_class      = excluded.race_class,
-         distance        = excluded.distance,
-         track           = excluded.track,
-         course          = excluded.course,
+         -- Race-level meta comes from RaceCard.aspx; an unparseable page must
+         -- never wipe values already stored.
+         race_class      = COALESCE(excluded.race_class, entries_upcoming.race_class),
+         distance        = COALESCE(excluded.distance, entries_upcoming.distance),
+         track           = COALESCE(excluded.track, entries_upcoming.track),
+         course          = COALESCE(excluded.course, entries_upcoming.course),
          horse_id        = excluded.horse_id,
          horse_code      = excluded.horse_code,
          draw            = excluded.draw,
@@ -134,7 +135,7 @@
          gear            = excluded.gear,
          rating          = excluded.rating,
          priority_order  = excluded.priority_order,
-         post_time       = excluded.post_time,
+         post_time       = COALESCE(excluded.post_time, entries_upcoming.post_time),
          scraped_at      = excluded.scraped_at,
          source_commit   = excluded.source_commit`,
     );
@@ -177,8 +178,17 @@
 
     let deleted = 0;
     let inserted = 0;
+    // Race-level meta (post time, distance, track, course, going, class) is not
+    // in the whitelisted GraphQL query — HKJC rejects added fields. Parse it
+    // from the classic RaceCard.aspx pages instead; unparseable races keep
+    // existing database values via COALESCE in the upsert below.
+    const metaByRace = new Map<number, RaceMeta>();
+    for (const race of races) {
+      const rn = Number(race.no ?? 0);
+      if (rn) metaByRace.set(rn, await fetchRaceMeta(meetingDate, venueCode, rn));
+    }
     // 官方退出（Scratched）：只喺鎖點（首場前90分鐘）前從排位剔走；鎖後唔郁，原凍結保持不變。
-    const postTimes = races.map((r: any) => Date.parse(r.postTime ?? '')).filter(Number.isFinite);
+    const postTimes = [...metaByRace.values()].map(m => m.postTime ? Date.parse(`${meetingDate}T${m.postTime}:00+08:00`) : NaN).filter(Number.isFinite);
     const lockAtMs = postTimes.length ? Math.min(...postTimes) - 90 * 60_000 : NaN;
     const preLock = Number.isFinite(lockAtMs) && Date.now() < lockAtMs;
     const scratched: Array<{ raceNo: number; horseNo: number }> = [];
@@ -199,8 +209,8 @@
     const tx = db.transaction(() => {
       upsertMeeting.run(`${meetingDate}_${venueCode}`, meetingDate, venueCode);
 
-      // Derive track_condition from first race going (e.g. "GOOD", "YIELDING")
-      const firstGoing: string | null = races.find((r: any) => r.go_en)?.go_en ?? null;
+      // Derive track_condition from first race going (e.g. "好地")
+      const firstGoing: string | null = [...metaByRace.values()].find(m => m.going)?.going ?? null;
       if (firstGoing) updateMeetingGoing.run(firstGoing, meetingDate, venueCode);
 
       const del = deleteSentinels.run(meetingDate, venueCode);
@@ -210,11 +220,12 @@
         const raceNo: number = Number(race.no ?? 0);
         if (!raceNo) continue;
 
-        const distance: number | null = race.distance ?? null;
-        const track: string | null = race.raceTrack?.description_en ?? null;
-        const course: string | null = race.raceCourse?.displayCode ?? race.raceCourse?.description_en ?? null;
-        const raceClass: string | null = race.claCode ?? race.raceClass_en ?? null;
-        const postTime: string | null = race.postTime ?? null;
+        const meta = metaByRace.get(raceNo);
+        const distance: number | null = meta?.distance ?? null;
+        const track: string | null = meta?.track ?? null;
+        const course: string | null = meta?.course ?? null;
+        const raceClass: string | null = meta?.raceClass ?? null;
+        const postTime: string | null = meta?.postTime ? `${meetingDate}T${meta.postTime}:00+08:00` : null;
         const runners: any[] = race.runners ?? [];
 
         for (const runner of runners) {
@@ -229,8 +240,11 @@
           const horseCode: string = runner.horse?.code ?? '';
           const horseId: string | null = horseCode ? horseCode : null; // bare code, push-delta prefixes for D1
           const draw: number | null = runner.barrierDrawNumber ?? null;
-          const declaredWeight: number | null = runner.handicapWeight ?? null;
-          const actualWeight: number | null = runner.currentWeight ?? null;
+          // Weight mapping verified 2026-10-24: handicapWeight is 負磅,
+          // currentWeight is 排位體重 (body weight, ~900-1300) and must never
+          // be stored as a carried weight. actual_weight = 負磅 - 見習減磅,
+          // matching race_results.actual_weight semantics.
+          const { declaredWeight, actualWeight } = mapWeights(runner);
           const rating: number | null = runner.currentRating ?? null;
           const gear: string | null = runner.gearInfo ?? null;
           const standbyNo: string = String(runner.standbyNo ?? '');

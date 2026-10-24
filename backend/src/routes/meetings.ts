@@ -281,7 +281,9 @@ meetingsRoutes.get('/:date', async (c) => {
             runningPosition: e.running_position,
             lbw: e.lbw,
             gear: e.gear,
-            weight: e.actual_weight,
+            // 負磅 display: declared_weight (handicap) first; actual_weight is
+            // the carried weight after allowance, never body weight.
+            weight: e.declared_weight ?? e.actual_weight,
             rating: e.current_rating,
             sire: e.sire,
             dam: e.dam,

@@ -21,9 +21,9 @@
 馬會投注網站程式將 `handicapWeight` 顯示為負磅、`currentWeight` 顯示為馬匹體重；2026-10-25 沙田第1場讀回 handicapWeight 132、currentWeight 921／1151，證實無誤。
 快照欄位：`handicap_weight_lbs`（負磅）、`allowance_lbs`（見習減磅）、`carried_weight_lbs`（負磅減減磅）、`body_weight_lbs`（排位體重）。
 
-**現有正式收料疑似調轉（待用戶決定，未改）：** `backend/scripts/scrape-racecard.ts` 將 `currentWeight`（體重）寫入 `entries_upcoming.actual_weight`（schema 註明「實際負磅」，預測特徵亦當負磅用），並將 `handicapWeight`（負磅）寫入 `declared_weight`。2026-10-25 現存 D1 讀回 actual_weight=132，代表現時資料來自其他寫入途徑；但該程式成功運行嘅賽日可能將約1,000磅體重當負磅。須先核對歷史 D1 及凍結紀錄，再由用戶批准修正；舊凍結不改。
+**正式收料調轉（2026-10-24 已修）：** `backend/scripts/scrape-racecard.ts` 原本將 `currentWeight`（體重，約900–1300磅）寫入 `entries_upcoming.actual_weight`（預測特徵當負磅用）、`handicapWeight`（負磅）寫入 `declared_weight`。歷史核對：944 份賽果 CSV 共 111,211 行，`actual_wt_lbs` 介乎 103–135（中位 124）、`declared_wt_lbs` 介乎 856–1503（中位 1117）——賽果收料（RacingData_Scraper）欄位正確，只有排位收料調轉。已修正：`declared_weight = handicapWeight`（負磅）、`actual_weight = handicapWeight − allowance`（實際負磅，同賽果欄位一致）；體重不再寫入任何負磅欄位。舊凍結不改。
 
-**馬會介面改動：** 由 2026-10-23 起，通用 hkjc-api 查詢被馬會以 WHITELIST_ERROR 拒絕；`capy_racecard` 照報成功但實際寫「no active meeting」。快照改用馬會網站同款查詢（`backend/scripts/ingest/lib/hkjc-racecard-query.graphql`），錯誤會令工作失敗，唔會當冇賽事。
+**馬會介面改動（2026-10-24 已修）：** 由 2026-10-23 起，通用 hkjc-api 查詢被馬會以 WHITELIST_ERROR 拒絕；`capy_racecard` 照報成功但實際寫「no active meeting」。正式排位收料（scrape-racecard.ts）及賠率收料（scrape-odds.ts）已改用馬會網站同款查詢（共用 `backend/scripts/ingest/lib/hkjc-racecard.ts`），錯誤會令工作失敗，唔會當冇賽事。該查詢冇場次級資料（距離、開跑時間、班次、場地），加欄位即被拒；場次資料改由公開排位頁 RaceCard.aspx 解析（`backend/scripts/ingest/lib/racecard-meta.ts`），解析失敗時保留資料庫現有值（COALESCE），唔會寫空。顯示修正：`/api/meetings` 後備路徑嘅 `weight` 改用 `declared_weight ?? actual_weight`，唔再將體重當負磅顯示。
 
 ## B. 場地讀數（待做）
 馬會同一排位 API 已有 `penetrometerReadings`／`hammerReadings` 欄位，可沿用同一取數方式，一賽日一行寫入 `data/track_conditions/track_conditions.csv`。

@@ -19,7 +19,8 @@
   import { resolve } from 'node:path';
   import { randomUUID } from 'node:crypto';
   // @ts-ignore - hkjc-api ships d.ts; no package-json `types` guard needed
-  import { HorseRacingAPI, defaultClient, horseOddsQuery, horsePoolQuery } from 'hkjc-api';
+  import { defaultClient, horseOddsQuery, horsePoolQuery } from 'hkjc-api';
+  import { fetchLocalRacecards } from './ingest/lib/hkjc-racecard.js';
 
   // hkjc-api's getRaceOdds/getRacePools helpers do NOT forward date/venueCode,
   // so HKJC always answers with raceMeetings[0] — which is a simulcast (S1/S2…)
@@ -112,23 +113,24 @@
     const venueFilter = arg('venue', '').toUpperCase();
     const sourceCommit = process.env.GITHUB_SHA ?? null;
 
-    const api = new HorseRacingAPI(); // still used for the meeting list
-
-    // getAllRaces() returns RaceMeeting[] (array), not a single object.
-    // Use the first meeting as the current/active meeting.
-    const meetings: any[] = await api.getAllRaces().catch(() => null as any);
-    if (!meetings) {
-      console.error('[odds] getAllRaces threw — network or API error');
-      process.exit(1);
-    }
-    if (!Array.isArray(meetings) || !meetings.length) {
-      console.error('[odds] getAllRaces returned empty array — no active meeting');
+    // Meeting discovery uses the whitelisted HKJC race-card query (the
+    // generic hkjc-api getAllRaces() query has been rejected with
+    // WHITELIST_ERROR since 2026-10-23). fetchLocalRacecards keeps only
+    // verified local HK (ST/HV) cards and throws on any HKJC error, so a
+    // rejected query fails the job instead of looking like "no meeting".
+    const hkToday = new Date(Date.now() + 8 * 3600_000).toISOString().slice(0, 10);
+    const meetings: any[] = await fetchLocalRacecards(
+      dateFilter ? [dateFilter] : [hkToday],
+      venueFilter ? [venueFilter] : ['ST', 'HV'],
+    );
+    if (!meetings.length) {
+      console.error('[odds] no active local HK meeting — nothing to snapshot');
       process.exit(0);
     }
 
     // Prefer a meeting that matches --date/--venue filters; otherwise take the
     // earliest LOCAL HK meeting (ST/HV). Simulcast meetings (S1…S5) carry no
-    // HK pools and used to shadow the real card because they sort first.
+    // HK pools and are already excluded by fetchLocalRacecards.
     const hkMeetings = meetings
       .filter((m: any) => ['ST', 'HV'].includes(String(m.venueCode ?? m.venue ?? '').toUpperCase()))
       .sort((a: any, b: any) => String(a.date ?? '').localeCompare(String(b.date ?? '')));
