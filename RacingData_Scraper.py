@@ -125,6 +125,27 @@ def log_failed(date_str, reason=""):
         f.write(f"{date_str}  # {reason}  [{ts}]\n")
 
 
+MEET_DATE_RE = re.compile(r"賽事日期\s*[:：]\s*(\d{2}/\d{2}/\d{4})")
+
+
+def extract_meet_date_text(text):
+    """Official results page heading date (dd/mm/yyyy), or None.
+
+    HKJC silently falls back to the last completed meeting when the requested
+    date has no results yet. The 賽事日期 heading is the only reliable page-date
+    marker — the navigation strip lists many other dates, so never match the
+    whole page."""
+    m = MEET_DATE_RE.search(text or "")
+    return m.group(1) if m else None
+
+
+def page_meet_date(driver):
+    try:
+        return extract_meet_date_text(driver.find_element(By.TAG_NAME, "body").text)
+    except Exception:
+        return None
+
+
 def load_page(driver, url):
     for attempt in range(1, MAX_RETRIES + 1):
         try:
@@ -409,6 +430,16 @@ def scrape_one_date(driver, single_date):
     if not driver.find_elements(By.CLASS_NAME, "race_tab"):
         return "norace"
 
+    # Date guard (2026-10-25): HKJC falls back to the last completed meeting
+    # when the requested date has no results yet; the 01:30 backup run stamped
+    # 2026-10-21 HV race 1 as 2026-10-25. Pending results are NOT no-race
+    # evidence: log and let later scheduled runs retry, never write files.
+    got_date = page_meet_date(driver)
+    if got_date != meet_date:
+        log_failed(formatted_date, f"page date {got_date or 'unreadable'} != requested {meet_date}; results pending")
+        print(f"[date-guard] {formatted_date}: page shows {got_date or 'unreadable'}, not {meet_date} -> pending, no write", flush=True)
+        return "pending"
+
     # Fix (2026-05-13 v2): venue is read per race below (the index page's
     # js_racecard widget can show the wrong venue when multiple meetings are
     # listed). Initialize as empty here.
@@ -438,6 +469,9 @@ def scrape_one_date(driver, single_date):
             continue
         tabs = driver.find_elements(By.CLASS_NAME, "race_tab")
         if not tabs:
+            continue
+        if page_meet_date(driver) != meet_date:
+            print(f"[date-guard] {formatted_date}: race page date mismatch -> skip race url {race_url}", flush=True)
             continue
         header  = parse_race_header(tabs[0])
         race_no = header["race_no"]
@@ -489,6 +523,7 @@ def scrape_one_date(driver, single_date):
         all_commentary.extend(comm_rows)
 
     if all_results:
+        assert all(r["date"] == formatted_date for r in all_results), "row date must equal requested date"
         cols = ["date","venue","race_no","race_meeting_no","race_name","race_class",
                 "distance_m","rating_range","going","course","prize_hkd",
                 "race_finish_time","sectional_times_header","place","horse_no",
@@ -532,9 +567,7 @@ def worker(worker_id, start_dt, end_dt):
             done = 0
             for single_date in daterange(start_dt, end_dt):
                 result = scrape_one_date(driver, single_date)
-                if result == "skip":
-                    continue
-                elif result == "norace":
+                if result in ("skip", "norace", "pending"):
                     continue
                 elif result == "fail":
                     print(f"{tag} {single_date} 失敗", flush=True)
@@ -571,7 +604,7 @@ def run_single_dates(dates: list) -> int:
         driver = make_driver()
         for d in dates:
             result = scrape_one_date(driver, d)
-            if result in ("skip", "norace"):
+            if result in ("skip", "norace", "pending"):
                 print(f"[single] {d} {result}", flush=True)
             elif result == "fail":
                 print(f"[single] {d} FAIL", flush=True)
