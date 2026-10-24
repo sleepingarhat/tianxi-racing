@@ -25,8 +25,13 @@
 
 **馬會介面改動（2026-10-24 已修）：** 由 2026-10-23 起，通用 hkjc-api 查詢被馬會以 WHITELIST_ERROR 拒絕；`capy_racecard` 照報成功但實際寫「no active meeting」。正式排位收料（scrape-racecard.ts）及賠率收料（scrape-odds.ts）已改用馬會網站同款查詢（共用 `backend/scripts/ingest/lib/hkjc-racecard.ts`），錯誤會令工作失敗，唔會當冇賽事。該查詢冇場次級資料（距離、開跑時間、班次、場地），加欄位即被拒；場次資料改由公開排位頁 RaceCard.aspx 解析（`backend/scripts/ingest/lib/racecard-meta.ts`），解析失敗時保留資料庫現有值（COALESCE），唔會寫空。顯示修正：`/api/meetings` 後備路徑嘅 `weight` 改用 `declared_weight ?? actual_weight`，唔再將體重當負磅顯示。
 
-## B. 場地讀數（待做）
-馬會同一排位 API 已有 `penetrometerReadings`／`hammerReadings` 欄位，可沿用同一取數方式，一賽日一行寫入 `data/track_conditions/track_conditions.csv`。
+## B. 場地讀數（2026-10-25開始收料；研究限定）
+更正舊描述：讀數不在排位 racing 查詢，而在官方 Going Information 同源 `wt_WeatherMeeting/commonMeetings` 白名單查詢；不向排位查詢加欄位。
+- `scripts/TrackCondition_Scraper.py`、共用原字查詢及11項測試；`.github/workflows/capy_track_conditions.yml` 每小時47分、排位工作完成及手動收料，不連D1／模型／凍結。
+- `data/track_conditions/track_conditions.csv` 為可重建最新研究投影，每日期+馬場一行（UTF-8 BOM），不是不可變原文或鎖點特徵。全部官方多筆讀數及時間以 ` | ` 保留，不猜平均或最新；場地只取草地，全天候不套草地讀數。
+- `snapshots/<抓取時間_SHA>/official.json`、`readings.csv` 與只追加 `manifest.jsonl` 保存原文、CSV SHA及抓取時間；每次讀取先驗SHA，舊檔不可改。資料倉 tianxi-database 已重定向 tianxi-racing，因此只寫此倉，不雙寫。
+- 未公布讀數留空不當零；日期／馬場缺失、GraphQL錯誤或指定歷史不在回應時失敗，不用當前值倒填歷史。資料抓取時間及官方讀數時間必須均不晚於研究截點；未有完整有時區官方時間不可認證賽前數值。
+- 首次實讀2026-10-25 ST：好地、A賽道，探針與Clegg讀數尚空；只證明原文存檔及研究投影，未證明數值已發布，更不代表研究閘通過。模型、舊凍結及收費設定不改。
 
 ## C1＋C7. 事件／獸醫報告（待做）
 來源 `racereportfull?Date=`；只入研究，標明賽後資料。

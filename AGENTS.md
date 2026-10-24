@@ -8,3 +8,4 @@
 - Capture guards compare row counts and every typed column with NULL-safe SQLite equality inside the insert transaction, never serialized JSON text. Why: REAL 1.0 and JavaScript 1 are equal predictions and must not block immutable capture.
 
 - Existing five-minute Worker collects race-day WIN/PLA display snapshots only; health checks unstarted races at 20 minutes, notifications dedupe only after delivery. Other pool reads retain per-pool latest snapshots. Why: odds freshness never changes frozen/model records.
+- Track-condition research uses official identity-bearing commonMeetings evidence with append-only raw/CSV SHA manifests and a rebuildable daily projection; pre-race readers require capture and dated official timestamps before cutoff. Why: pending readings, latest views and post-race captures cannot certify original pre-race features.

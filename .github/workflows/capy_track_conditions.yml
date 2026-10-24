@@ -1,0 +1,52 @@
+name: Capy Track Conditions — research evidence only
+on:
+  workflow_dispatch:
+    inputs:
+      date: { description: 'Official available date YYYY-MM-DD; no historical fallback', required: false, default: '' }
+      venue: { description: 'ST or HV; blank for both', required: false, default: '' }
+  workflow_run:
+    workflows: ['Capy Racecard — enrich entries_upcoming via hkjc-api']
+    types: [completed]
+    branches: [main]
+  schedule:
+    - cron: '47 * * * *'
+permissions:
+  contents: write
+concurrency:
+  group: capy-track-conditions
+  cancel-in-progress: false
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: main, fetch-depth: 1 }
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - name: Test research evidence rules
+        run: python3 -m unittest discover -s scripts -p test_track_conditions.py
+      - name: Collect official available meetings
+        env:
+          RACE_DATE: ${{ inputs.date }}
+          VENUE: ${{ inputs.venue }}
+        run: python3 scripts/TrackCondition_Scraper.py --root=. --date="$RACE_DATE" --venue="$VENUE"
+      - name: Commit evidence and derived projection
+        run: |
+          set -eu
+          git config user.name 'tianxi-bot'
+          git config user.email 'tianxi-bot@users.noreply.github.com'
+          [ -d data/track_conditions ] || exit 0
+          git add data/track_conditions
+          git diff --cached --quiet && exit 0
+          for f in $(git diff --cached --name-only --diff-filter=M); do
+            case "$f" in
+              data/track_conditions/track_conditions.csv) ;;
+              data/track_conditions/manifest.jsonl) if git diff --cached "$f" | grep -qE '^-[^-]'; then echo 'manifest rewrite refused'; exit 1; fi ;;
+              *) echo 'immutable evidence modification refused'; exit 1 ;;
+            esac
+          done
+          if [ -n "$(git diff --cached --name-only --diff-filter=D)" ]; then echo 'evidence deletion refused'; exit 1; fi
+          git commit -m '[data][skip ci] official track condition research evidence'
+          # No rebasing/mixing concurrently changed evidence: failed push remains failed.
+          git push origin HEAD:main

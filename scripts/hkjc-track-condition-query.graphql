@@ -1,0 +1,38 @@
+
+query wt_WeatherMeeting( $localSim: LocalSim, $status: [MeetingStatus!])  {
+  commonMeetings(localSim: $localSim, status: $status) {
+    date
+    venueCode
+    meetingTrack_en
+    meetingTrack_ch
+    status
+    totalNumberOfRace
+    currentNumberOfRace
+     meetingType
+     penetrometerReadings {
+      reading
+      readingTime
+      sequenceNumber
+    }
+    hammerReadings {
+      sequenceNumber
+      readingTime
+      reading
+    }
+    course {
+      code
+      chinese
+      english
+      mandarin
+    }
+    races {
+      go_en
+      go_ch
+      status
+      no
+      raceTrack {
+        code
+      }
+    }
+  }
+}
