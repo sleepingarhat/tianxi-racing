@@ -5,18 +5,20 @@
  * plus a manifest line holding its SHA-256. Nothing is ever overwritten; the
  * production freeze still uses the T-90 frozen card, never these snapshots.
  *
- * Weight naming (verified 2026-10-24 against live card 2026-10-25 ST R1):
- *   currentWeight  -> carried_weight_lbs  (實際負磅, e.g. 132)
- *   handicapWeight -> handicap_weight_lbs (宣佈負磅, before allowance; often null)
- * The race card API does NOT carry horse body weight (排位體重); results CSV
- * `declared_wt_lbs` is body weight, a different meaning — never mix the two.
+ * Weight naming (verified 2026-10-24 against HKJC's own bet-site code, which
+ * renders handicapWeight as 負磅 and currentWeight as body weight, and the live
+ * 2026-10-25 ST R1 card: handicapWeight 132, currentWeight 921/1151):
+ *   handicapWeight -> handicap_weight_lbs (負磅, before apprentice allowance)
+ *   allowance      -> allowance_lbs       (見習減磅)
+ *   carried        =  handicap - allowance (實際負磅)
+ *   currentWeight  -> body_weight_lbs     (排位體重, 900-1300)
  */
 import { createHash } from 'node:crypto';
 
 export const SNAPSHOT_COLUMNS = [
   'race_date', 'venue', 'race_no', 'horse_no', 'horse_name_ch', 'horse_name_en',
   'horse_id', 'horse_code', 'draw', 'jockey_code', 'jockey_ch', 'trainer_code', 'trainer_ch',
-  'carried_weight_lbs', 'handicap_weight_lbs', 'allowance', 'rating', 'prev_card_rating',
+  'handicap_weight_lbs', 'allowance_lbs', 'carried_weight_lbs', 'body_weight_lbs', 'rating', 'prev_card_rating',
   'rating_change_vs_prev_card', 'international_rating', 'gear_raw', 'gear_first_time',
   'gear_replaced', 'gear_removed', 'is_standby', 'standby_no', 'runner_status', 'scraped_at',
 ] as const;
@@ -39,7 +41,7 @@ export function parseGear(raw: string | null | undefined): GearFlags {
 }
 
 const num = (v: unknown): number | null => {
-  const n = typeof v === 'number' ? v : typeof v === 'string' && v.trim() !== '' ? Number(v) : NaN;
+  const n = typeof v === 'number' ? v : typeof v === 'string' && v.trim() !== '' ? Number(v.trim()) : NaN;
   return Number.isFinite(n) ? n : null;
 };
 
@@ -55,14 +57,17 @@ export function buildRows(meeting: any, scrapedAt: string, prevRatings: Map<stri
       const prev = horseId ? prevRatings.get(horseId) ?? null : null;
       const gear = parseGear(r?.gearInfo);
       const standby = String(r?.standbyNo ?? '').trim();
+      const handicap = num(r?.handicapWeight);
+      const allowance = num(String(r?.allowance ?? '').trim());
       rows.push({
         race_date: raceDate, venue, race_no: num(race?.no), horse_no: num(r?.no),
         horse_name_ch: r?.name_ch ?? null, horse_name_en: r?.name_en ?? null,
         horse_id: horseId || null, horse_code: r?.horse?.code ?? null, draw: num(r?.barrierDrawNumber),
         jockey_code: r?.jockey?.code ?? null, jockey_ch: r?.jockey?.name_ch ?? null,
         trainer_code: r?.trainer?.code ?? null, trainer_ch: r?.trainer?.name_ch ?? null,
-        carried_weight_lbs: num(r?.currentWeight), handicap_weight_lbs: num(r?.handicapWeight),
-        allowance: r?.allowance ?? null, rating, prev_card_rating: prev,
+        handicap_weight_lbs: handicap, allowance_lbs: allowance,
+        carried_weight_lbs: handicap !== null ? handicap - (allowance ?? 0) : null,
+        body_weight_lbs: num(r?.currentWeight), rating, prev_card_rating: prev,
         rating_change_vs_prev_card: rating !== null && prev !== null ? rating - prev : null,
         international_rating: num(r?.internationalRating), gear_raw: r?.gearInfo ?? '',
         gear_first_time: gear.first.join('/'), gear_replaced: gear.replaced.join('/'), gear_removed: gear.removed.join('/'),
