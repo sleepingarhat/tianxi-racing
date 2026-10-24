@@ -21,6 +21,20 @@ export interface Env {
   TIMESFM_API_KEY: string;
   JWT_SECRET: string;
   ENVIRONMENT: string;
+  /** 每次 AI 呼叫 max_tokens 上限（預設 1500，硬上限 3000）。 */
+  AI_MAX_TOKENS?: string;
+  /** '1' = 暫停 /api/chat（緊急開關）。 */
+  CHAT_DISABLED?: string;
+  /** Supabase 專案網址（公開），用嚟核實 JWT（JWKS）同讀會籍。 */
+  SUPABASE_URL?: string;
+  /** Supabase publishable／anon key（公開 key，唔係 service role）；只喺 PRO_ENTITLEMENT_MODE=on 時需要。 */
+  SUPABASE_PUBLISHABLE_KEY?: string;
+  /** 'live' | 'sandbox'，要同網站付款環境一致。 */
+  PAYMENTS_ENVIRONMENT?: string;
+  /** 'on' = 接受已核實 Pro JWT 直接讀全部場次；預設 off（同現況一樣）。 */
+  PRO_ENTITLEMENT_MODE?: string;
+  /** 額外 CORS origin（逗號分隔）。 */
+  CORS_EXTRA_ORIGINS?: string;
 }
 
 // =============================================
