@@ -1,0 +1,15 @@
+name: TG Chat Check
+on:
+  workflow_dispatch:
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: getChat both channels
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        run: |
+          for CH in @tianxi_racing_pro @tianxi_racing; do
+            R=$(curl -s "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getChat?chat_id=${CH}")
+            echo "${CH} => $(echo "$R" | python3 -c 'import json,sys; d=json.load(sys.stdin); print("OK title="+d["result"].get("title","") if d.get("ok") else "FAIL "+d.get("description",""))')"
+          done
