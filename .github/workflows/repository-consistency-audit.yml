@@ -1,0 +1,41 @@
+name: 四倉庫現行政策一致性
+on:
+  schedule:
+    - cron: '17 * * * *'
+  workflow_dispatch:
+  push:
+    paths:
+      - 'docs/repository-policy.json'
+      - 'docs/reviews/repository-consistency-2026-10-24.md'
+      - 'README.md'
+      - 'backend/README.md'
+      - 'scripts/audit_repository_consistency.py'
+      - 'scripts/test_repository_consistency.py'
+      - '.github/workflows/repository-consistency-audit.yml'
+permissions:
+  contents: read
+concurrency:
+  group: repository-consistency-audit
+  cancel-in-progress: false
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: 政策回歸測試
+        run: python3 -m unittest discover -s scripts -p test_repository_consistency.py
+      - name: 四倉庫只讀核對
+        env:
+          REPOSITORY_AUDIT_TOKEN: ${{ secrets.TIANXI_BACKEND_PAT || github.token }}
+        run: python3 scripts/audit_repository_consistency.py --report /tmp/repository-consistency.json
+      - name: 保存核查報告
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: repository-consistency
+          path: /tmp/repository-consistency.json
+          retention-days: 14
