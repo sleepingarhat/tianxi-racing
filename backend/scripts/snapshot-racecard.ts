@@ -58,6 +58,15 @@ async function main() {
     if (body.errors?.length) throw new Error(`HKJC error for ${date}@${venueCode}: ${JSON.stringify(body.errors).slice(0, 200)}`);
     for (const m of body.data?.raceMeetings ?? []) if ((m.races ?? []).some((r: any) => (r.runners ?? []).length)) meetings.push({ ...m, date, venueCode });
   }
+  // The query response carries no date/venue: HKJC falls back to a default
+  // (often overseas simulcast) meeting for dates/venues without a local card.
+  // Keep only cards whose every runner has a local HK horse id, and drop any
+  // card returned identically for two venues/dates (a fallback, not a match).
+  const localOnly = meetings.filter(m => (m.races ?? []).every((r: any) => (r.runners ?? []).every((x: any) => /^HK_\d{4}_[A-Z]\d{3}$/.test(String(x?.horse?.id ?? '')))));
+  const sig = (m: any) => contentSha(buildRows({ ...m, date: '', venueCode: '' }, '', new Map()));
+  const counts = new Map<string, number>();
+  for (const m of localOnly) counts.set(sig(m), (counts.get(sig(m)) ?? 0) + 1);
+  meetings.splice(0, meetings.length, ...localOnly.filter(m => counts.get(sig(m)) === 1));
   if (!meetings.length) { console.error(`[snapshot] HKJC returned no runners for ${dates.join(',')} — nothing written`); return; }
   const scrapedAt = new Date().toISOString();
   const stamp = scrapedAt.replace(/[-:]/g, '').replace(/\.\d+Z$/, 'Z');
