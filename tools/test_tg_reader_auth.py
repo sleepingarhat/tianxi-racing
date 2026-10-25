@@ -55,9 +55,14 @@ class ReaderHeaderTests(unittest.TestCase):
         self.assertEqual(h["X-TG-Reader-Token"], self.value)
         self.assertEqual(h["A"], "1")
 
+    def test_header_added_for_hit_rate(self):
+        with mock.patch.dict(os.environ, {"TG_READER_TOKEN": self.value}):
+            h = tx_reader_auth.reader_headers("https://w.example", "/api/analyze/hit-rate?date=2026-10-25")
+        self.assertEqual(h["X-TG-Reader-Token"], self.value)
+
     def test_not_sent_to_other_paths(self):
         with mock.patch.dict(os.environ, {"TG_READER_TOKEN": self.value}):
-            for path in ("/api/analyze/hit-rate?date=2026-10-25", "/api/meetings", "/api/analyze/today-picksX"):
+            for path in ("/api/analyze/hit-rate-rollup?days=30", "/api/meetings", "/api/analyze/today-picksX", "/api/analyze/hit-rateX"):
                 self.assertNotIn("X-TG-Reader-Token", tx_reader_auth.reader_headers("https://w.example", path))
 
     def test_not_sent_over_http(self):
@@ -91,8 +96,10 @@ class ReaderHeaderTests(unittest.TestCase):
                         mock.patch("urllib.request.urlopen", fake):
                     mod.api_get("/api/analyze/today-picks")
                     mod.api_get("/api/meetings")
+                    mod.api_get("/api/analyze/hit-rate?date=2026-10-25")
                 self.assertEqual(seen[0].get("x-tg-reader-token"), self.value, name)
                 self.assertNotIn("x-tg-reader-token", seen[1], name)
+                self.assertEqual(seen[2].get("x-tg-reader-token"), self.value, name + " postrace hit-rate")
 
     def test_scripts_work_without_env(self):
         env = {k: v for k, v in os.environ.items() if k != "TG_READER_TOKEN"}
@@ -104,8 +111,11 @@ class ReaderHeaderTests(unittest.TestCase):
                 with mock.patch.object(mod, "API_BASE", "https://w.example"), \
                         mock.patch("urllib.request.urlopen", fake), redirect_stderr(err):
                     data = mod.api_get("/api/analyze/today-picks")
+                    data2 = mod.api_get("/api/analyze/hit-rate?date=2026-10-25")
                 self.assertEqual(data, {"date": None}, name)
+                self.assertEqual(data2, {"date": None}, name)
                 self.assertNotIn("x-tg-reader-token", seen[0], name)
+                self.assertNotIn("x-tg-reader-token", seen[1], name)
                 self.assertIn("TG_READER_TOKEN 未設定", err.getvalue(), name)
 
 

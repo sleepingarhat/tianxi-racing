@@ -15,6 +15,9 @@
 //     - legacy（預設；未設定／打錯字都當 legacy）：同現況一模一樣。
 //     - restricted：已完賽賽日，匿名請求只得第一場（免費投影）；
 //       全部場次只派畀 TG 讀取憑證、已核實 Supabase 登入用戶（registered）或 Pro。
+//   SITE_READER_TOKEN（Worker secret；網站伺服器函數用，header `X-Tianxi-Site-Token`）
+//     - 權限同 TG_READER_TOKEN 完全一樣（唯讀、非管理員），只係分開一條，方便獨立輪換／撤銷。
+//     - 永遠唔可以送去瀏覽器：只喺網站伺服器端（Lovable server function）出示。
 // 密鑰值只喺記憶體比較，永遠唔會寫入回應或日誌。
 
 import { secretMatches } from './shared-secret';
@@ -22,12 +25,18 @@ import { supabaseUserFromRequest } from './supabase-auth';
 import { hasVerifiedProJwt } from './pro-gate';
 
 export const TG_READER_HEADER = 'X-TG-Reader-Token';
+export const SITE_READER_HEADER = 'X-Tianxi-Site-Token';
+/** restricted 模式下，回應會因呢啲 request header 而異。 */
+export const READER_VARY = 'Authorization, X-TG-Reader-Token, X-Tianxi-Site-Token, Origin';
 
 export interface TgReaderEnv {
   TG_READER_TOKEN?: string;
   TG_READER_TOKEN_PREVIOUS?: string;
   TG_READER_TOKEN_NEXT?: string;
   ANON_FULL_CARD_MODE?: string;
+  SITE_READER_TOKEN?: string;
+  SITE_READER_TOKEN_PREVIOUS?: string;
+  SITE_READER_TOKEN_NEXT?: string;
 }
 
 export type AnonFullCardMode = 'legacy' | 'restricted';
@@ -42,6 +51,19 @@ export async function hasTgReaderToken(c: { req: { header(name: string): string 
   if (!given) return false;
   const env = c.env ?? {};
   return secretMatches(given.trim(), [env.TG_READER_TOKEN, env.TG_READER_TOKEN_PREVIOUS, env.TG_READER_TOKEN_NEXT]);
+}
+
+/** true = 請求出示咗有效網站伺服器憑證。Worker 未設定 SITE_READER_TOKEN 時永遠 false。 */
+export async function hasSiteReaderToken(c: { req: { header(name: string): string | undefined }; env: TgReaderEnv }): Promise<boolean> {
+  const given = c.req.header(SITE_READER_HEADER);
+  if (!given) return false;
+  const env = c.env ?? {};
+  return secretMatches(given.trim(), [env.SITE_READER_TOKEN, env.SITE_READER_TOKEN_PREVIOUS, env.SITE_READER_TOKEN_NEXT]);
+}
+
+/** 任何一條唯讀伺服器憑證（TG 或網站）。兩條權限相同，都唔係管理員。 */
+export async function hasReaderCredential(c: { req: { header(name: string): string | undefined }; env: TgReaderEnv }): Promise<boolean> {
+  return (await hasTgReaderToken(c)) || (await hasSiteReaderToken(c));
 }
 
 export type TodayPicksView = 'public' | 'free';
@@ -92,11 +114,11 @@ export async function todayPicksViewForRequest(c: any, settled: boolean): Promis
     settled,
     mode,
     pro: () => hasVerifiedProJwt(c),
-    reader: async () => (reader = await hasTgReaderToken(c)),
+    reader: async () => (reader = await hasReaderCredential(c)),
     registered: () => hasVerifiedUserJwt(c),
   });
   if (mode === 'restricted') {
-    c.header('Vary', 'Authorization, X-TG-Reader-Token, Origin');
+    c.header('Vary', READER_VARY);
     if (reader || view === 'public') c.header('Cache-Control', 'private, no-store');
   }
   return view;

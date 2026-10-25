@@ -13,7 +13,7 @@ Env:
   TELEGRAM_BOT_TOKEN  (required)  bot token; bot must be admin of the channel.
   TG_CHANNEL          (optional)  comma-separated chat ids/@usernames;
                                   default @tianxi_racing_pro,@tianxi_racing
-  TG_READER_TOKEN     (optional)  Worker 唯讀憑證；Worker 轉 ANON_FULL_CARD_MODE=restricted 之後必須設定
+  TG_READER_TOKEN     (optional)  Worker 唯讀憑證；Worker 轉 ANON_FULL_CARD_MODE／ANON_HITRATE_MODE=restricted 之後必須設定
   TX_API_BASE         (optional)  default https://tianxi-backend.tianxi-entertainment.workers.dev
   TX_SITE_BASE        (optional)  default https://tianxi-site.pages.dev
 """
