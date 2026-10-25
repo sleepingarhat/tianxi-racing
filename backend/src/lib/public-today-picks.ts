@@ -56,6 +56,14 @@ function isPublicScalar(value: unknown): value is string | number | boolean {
   );
 }
 
+/** FEATURE_TIERS poolodds.value = pro：PRO_ENTITLEMENT_MODE=on 時非 Pro 唔派。 */
+export const VALUE_PICK_FIELDS = ['marketRank', 'blendProb', 'value', 'valueEdge'] as const;
+
+export interface PublicProjectionOptions {
+  /** 預設 true（旗標 off 時同現況一樣）。 */
+  includeValue?: boolean;
+}
+
 function copyScalars(
   source: JsonRecord,
   keys: readonly string[],
@@ -112,16 +120,19 @@ function projectRaceQuality(value: unknown): JsonRecord | undefined {
   return Object.keys(projected).length ? projected : undefined;
 }
 
-function projectPick(value: unknown): JsonRecord | null {
+function projectPick(value: unknown, options: PublicProjectionOptions = {}): JsonRecord | null {
   if (!isRecord(value)) return null;
-  const projected = copyScalars(value, PICK_SCALARS);
+  const keys = options.includeValue === false
+    ? PICK_SCALARS.filter((key) => !(VALUE_PICK_FIELDS as readonly string[]).includes(key))
+    : PICK_SCALARS;
+  const projected = copyScalars(value, keys);
   const horseId = safeHorseId(value.horseId);
   if (horseId) projected.horseId = horseId;
   projected.scoreSource = safeScoreSource(value);
   return projected;
 }
 
-function projectRace(value: unknown): JsonRecord | null {
+function projectRace(value: unknown, options: PublicProjectionOptions = {}): JsonRecord | null {
   if (!isRecord(value)) return null;
   const projected = copyScalars(value, RACE_SCALARS);
   const raceId = safeRaceId(value.raceId);
@@ -141,7 +152,7 @@ function projectRace(value: unknown): JsonRecord | null {
   if (raceQuality) projected.raceQuality = raceQuality;
 
   projected.picks = Array.isArray(value.picks)
-    ? value.picks.map(projectPick).filter(Boolean)
+    ? value.picks.map((pick: unknown) => projectPick(pick, options)).filter(Boolean)
     : [];
   return projected;
 }
@@ -152,7 +163,7 @@ function projectRace(value: unknown): JsonRecord | null {
  * The compute/cache/log pipeline keeps its full internal payload. Only this
  * projector is allowed to shape the unauthenticated response.
  */
-export function projectTodayPicksForPublic(value: unknown): JsonRecord {
+export function projectTodayPicksForPublic(value: unknown, options: PublicProjectionOptions = {}): JsonRecord {
   if (!isRecord(value)) return { races: [] };
   const projected = copyScalars(value, [
     'date',
@@ -164,20 +175,20 @@ export function projectTodayPicksForPublic(value: unknown): JsonRecord {
     'freezeAppliedRaces',
   ]);
   projected.races = Array.isArray(value.races)
-    ? value.races.map(projectRace).filter(Boolean)
+    ? value.races.map((race: unknown) => projectRace(race, options)).filter(Boolean)
     : [];
   return projected;
 }
 
-export function projectTodayPicksForFree(value: unknown): JsonRecord {
-  const projected = projectTodayPicksForPublic(value);
+export function projectTodayPicksForFree(value: unknown, options: PublicProjectionOptions = {}): JsonRecord {
+  const projected = projectTodayPicksForPublic(value, options);
   projected.races = Array.isArray(projected.races)
     ? projected.races.slice(0, 1)
     : [];
   return projected;
 }
 
-export function projectTopPicksForPublic(value: unknown): JsonRecord {
+export function projectTopPicksForPublic(value: unknown, options: PublicProjectionOptions = {}): JsonRecord {
   if (!isRecord(value)) return { picks: [] };
   const projected = copyScalars(value, [
     'raceNumber',
@@ -190,7 +201,7 @@ export function projectTopPicksForPublic(value: unknown): JsonRecord {
   const raceId = safeRaceId(value.raceId);
   if (raceId) projected.raceId = raceId;
   projected.picks = Array.isArray(value.picks)
-    ? value.picks.map(projectPick).filter(Boolean)
+    ? value.picks.map((pick: unknown) => projectPick(pick, options)).filter(Boolean)
     : [];
   return projected;
 }

@@ -28,7 +28,7 @@ import { buildEngineHealth } from '../lib/engine-health';
 import { manifestFor, ensureModelManifestTable } from '../lib/model-manifest';
 import { computeFreezeLedger } from '../lib/freeze-ledger';
 import { cachedJson, jsonEtag } from '../lib/edge-cache';
-import { hasVerifiedProJwt } from '../lib/pro-gate';
+import { hasVerifiedProJwt, mayReadValueFields } from '../lib/pro-gate';
 import { getDataStats } from '../lib/data-stats';
 import { FreezeBlockedError } from '../lib/freeze-recovery';
 
@@ -2345,7 +2345,7 @@ analyzeRoutes.get('/top-picks', async (c) => {
     allPicks: picks, // full field for race page if needed
     note: eloReady ? null : 'Elo 資料整備中 · 排名暫以勝率+賠率估算',
   };
-  return c.json(admin ? payload : projectTopPicksForPublic(payload));
+  return c.json(admin ? payload : projectTopPicksForPublic(payload, { includeValue: await mayReadValueFields(c) }));
 });
 
 // GET /api/analyze/explain?raceId=X&horseId=Y — breakdown for one horse
@@ -3436,9 +3436,11 @@ analyzeRoutes.get('/factors', (c) => {
           if (admin) return c.json(result);
           const settled = await raceDayReportIsSettled(c.env.DB, result);
           // 已完賽 → 公開投影；未完賽 → 免費投影（只得第一場），除非已核實 Pro JWT（PRO_ENTITLEMENT_MODE=on）。
+          // poolodds.value（pro）：PRO_ENTITLEMENT_MODE=on 時非 Pro 連已完賽都唔派價值欄位。
+          const options = { includeValue: await mayReadValueFields(c) };
           const projected = settled || (await hasVerifiedProJwt(c))
-            ? projectTodayPicksForPublic(result)
-            : projectTodayPicksForFree(result);
+            ? projectTodayPicksForPublic(result, options)
+            : projectTodayPicksForFree(result, options);
           // 版本標示 SSOT：未鎖一律 draft（初版），只有讀到凍結快照先 final（最終版）。
           // Fail-closed：凍結紀錄讀唔到／唔完整時唔可以當 draft 派 live 重算。
           const frozenPayload = await freezeMeetingPayload(c.env.DB, result).catch(() => null);
