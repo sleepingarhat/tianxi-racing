@@ -5,13 +5,15 @@ export interface Env {
   ADMIN_TOKEN?: string;
   WEATHER_CRON_SECRET?: string;
   SESSION_HMAC_SECRET?: string;
-  /** 愛駒追蹤 feed 共享密鑰（未設定時退回 WEATHER_CRON_SECRET）。 */
+  /** 愛駒追蹤 feed 共享密鑰。設定咗之後，WATCH feed 唔再接受 WEATHER_CRON_SECRET。 */
   WATCH_FEED_SECRET?: string;
   /** 輪換期間仍接受嘅上一個 WATCH_FEED_SECRET。 */
   WATCH_FEED_SECRET_PREVIOUS?: string;
-  /** Worker → 網站 /api/public/telegram-alert 專用密鑰（未設定時退回 WEATHER_CRON_SECRET）。 */
+  /** 零停機切換用：預先放入嘅新 WATCH_FEED_SECRET（額外接受，唔會停用舊共用值）。 */
+  WATCH_FEED_SECRET_NEXT?: string;
+  /** Worker → 網站 /api/public/telegram-alert 專用密鑰。設定咗之後唔再發送 WEATHER_CRON_SECRET。 */
   ALERT_HOOK_SECRET?: string;
-  /** 'off' = WATCH feed 唔再接受舊 WEATHER_CRON_SECRET。預設（未設定）= 接受，方便過渡。 */
+  /** 'off' = 所有用途一律唔用舊 WEATHER_CRON_SECRET（總開關）。未設定時，只有未設定專用密鑰嘅用途先會用舊值。 */
   LEGACY_CRON_SECRET_FALLBACK?: string;
   ADMIN_GITHUB_USER?: string;
   AI_API_KEY: string;
@@ -29,8 +31,6 @@ export interface Env {
   SUPABASE_URL?: string;
   /** Supabase publishable／anon key（公開 key，唔係 service role）；只喺 PRO_ENTITLEMENT_MODE=on 時需要。 */
   SUPABASE_PUBLISHABLE_KEY?: string;
-  /** 'live' | 'sandbox'，要同網站付款環境一致。 */
-  PAYMENTS_ENVIRONMENT?: string;
   /** 'on' = 接受已核實 Pro JWT 直接讀全部場次；預設 off（同現況一樣）。 */
   PRO_ENTITLEMENT_MODE?: string;
   /** 額外 CORS origin（逗號分隔）。 */

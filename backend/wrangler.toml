@@ -14,8 +14,6 @@ AI_MODEL = "grok-4.20-reasoning"
 AI_MAX_TOKENS = "1500"
 # Supabase 專案網址（公開）：/api/chat、lounge 發帖同 Pro 權限用嚟核實 JWT（JWKS）
 SUPABASE_URL = "https://mnztxtekjjvktutanblg.supabase.co"
-# 要同網站付款環境一致（網站 VITE_PAYMENTS_CLIENT_TOKEN 係 pk_live_ → live）
-PAYMENTS_ENVIRONMENT = "live"
 # Pro JWT 直接入口權限：預設 off（同現況一樣）。要開請喺呢度改做 "on" 再部署，
 # 並先用 `wrangler secret put SUPABASE_PUBLISHABLE_KEY` 設定公開 publishable key。
 PRO_ENTITLEMENT_MODE = "off"
