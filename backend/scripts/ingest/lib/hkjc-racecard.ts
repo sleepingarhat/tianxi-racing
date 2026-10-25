@@ -9,8 +9,13 @@
  *
  * The response carries no date/venue: HKJC falls back to a default (often
  * overseas simulcast) meeting for dates/venues without a local card. Keep
- * only cards whose every runner has a local HK horse id, and drop any card
- * returned identically for two venues/dates (a fallback, not a match).
+ * only cards whose every runner has a local HK horse id AND whose runner ids
+ * carry the requested date + venue + race number (HKJC runner id format
+ * YYYYMMDD + venue + 2-digit race no + horse code, e.g. 20261025ST01L245;
+ * verified 2026-10-25). HKJC ignores the variables and returns the current
+ * local card for every date/venue, so the earlier "drop any card returned
+ * identically for two venues/dates" rule threw away the real card too and
+ * left odds/racecard/snapshot jobs green-but-empty on race days.
  */
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -46,6 +51,18 @@ export function isLocalCard(meeting: any): boolean {
   return races.every((r: any) => (r?.runners ?? []).length > 0 && (r?.runners ?? []).every((x: any) => LOCAL_HORSE_ID.test(String(x?.horse?.id ?? ''))));
 }
 
+/** True when every runner id carries this exact date + venue + race number. */
+export function matchesMeeting(meeting: any, date: string, venueCode: string): boolean {
+  const races = meeting?.races ?? [];
+  if (!races.length) return false;
+  const prefix = `${date.replace(/-/g, '')}${venueCode}`;
+  return races.every((r: any) => {
+    const raceNo = String(r?.no ?? '').padStart(2, '0');
+    const runners = r?.runners ?? [];
+    return runners.length > 0 && runners.every((x: any) => String(x?.id ?? '').startsWith(`${prefix}${raceNo}`));
+  });
+}
+
 /**
  * Fetch the local HK card for each (date, venue) pair. Returns only verified
  * local meetings. Throws on any HKJC HTTP/GraphQL error.
@@ -69,8 +86,9 @@ export async function fetchLocalRacecards(dates: string[], venues: string[]): Pr
       }
     }
   }
-  const localOnly = meetings.filter(isLocalCard);
+  const localOnly = meetings.filter(m => isLocalCard(m) && matchesMeeting(m, m.date, m.venueCode));
   const counts = new Map<string, number>();
+  // Defence in depth: a verified card can match only one (date, venue) pair.
   for (const m of localOnly) counts.set(cardSignature(m), (counts.get(cardSignature(m)) ?? 0) + 1);
   return localOnly.filter(m => counts.get(cardSignature(m)) === 1);
 }
