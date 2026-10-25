@@ -1,27 +1,19 @@
 {
   "scan_date": "2026-10-25",
   "repo_root": "/home/runner/work/tianxi-racing/tianxi-racing",
-  "overall_severity": "warn",
-  "critical_gap_count": 0,
-  "warn_gap_count": 18,
-  "recommendation": "monitor_no_block",
+  "overall_severity": "critical",
+  "critical_gap_count": 23,
+  "warn_gap_count": 2,
+  "recommendation": "gha_next_delta_will_fix",
   "categories": {
     "race_artefacts": {
       "name": "race_artefacts",
       "expected": 785,
-      "present": 780,
-      "missing": [
-        "results_2026-10-25",
-        "commentary_2026-10-25",
-        "dividends_2026-10-25",
-        "sectional_times_2026-10-25",
-        "video_links_2026-10-25"
-      ],
+      "present": 785,
+      "missing": [],
       "stale": [],
-      "notes": [
-        "days with any missing artefact: 1"
-      ],
-      "severity": "warn"
+      "notes": [],
+      "severity": "ok"
     },
     "fixtures_cache": {
       "name": "fixtures_cache",
@@ -36,9 +28,16 @@
     },
     "horse_profiles": {
       "name": "horse_profiles",
-      "expected": 1180,
+      "expected": 1186,
       "present": 1180,
-      "missing": [],
+      "missing": [
+        "L250",
+        "L351",
+        "L444",
+        "L457",
+        "L509",
+        "M046"
+      ],
       "stale": [
         "L266",
         "K319",
@@ -53,21 +52,29 @@
         "K577"
       ],
       "notes": [
-        "11 profiles are stale (profile_last_scraped < last_race_date)",
+        "6 horses raced in last 180d have NO profile",
         "total profiles in DB: 6111"
       ],
-      "severity": "warn"
+      "severity": "critical"
     },
     "horse_form_records": {
       "name": "horse_form_records",
-      "expected": 1180,
+      "expected": 1186,
       "present": 1180,
-      "missing": [],
+      "missing": [
+        "L250",
+        "L351",
+        "L444",
+        "L457",
+        "L509",
+        "M046"
+      ],
       "stale": [],
       "notes": [
+        "6 recent-cohort horses have NO form_records file",
         "total form_records files: 6111"
       ],
-      "severity": "ok"
+      "severity": "critical"
     },
     "jockey_profiles": {
       "name": "jockey_profiles",
