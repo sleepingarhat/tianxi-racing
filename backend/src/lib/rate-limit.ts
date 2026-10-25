@@ -74,6 +74,36 @@ export async function consumeRateLimits(db: D1Database, rules: RateRule[], nowMs
   }
 }
 
+/**
+ * 只讀檢查：唔加一。用嚟喺「已通過個人／IP 限制」之後先睇全站額度，
+ * 等被個人限制拒絕嘅請求唔會扣全站額度。D1 出錯時 fail closed。
+ */
+export async function peekRateLimit(db: D1Database, rule: RateRule, nowMs = Date.now()): Promise<RateResult> {
+  try {
+    await ensureTable(db);
+    const now = Math.floor(nowMs / 1000);
+    const windowStart = now - (now % rule.windowSeconds);
+    const row = await db.prepare(`SELECT count FROM api_rate_limits WHERE bucket = ? AND window_start = ?`)
+      .bind(rule.key.slice(0, 200), windowStart).first<{ count: number }>();
+    const count = Number(row?.count ?? 0);
+    if (count >= rule.limit) return { ok: false, rule, retryAfterSeconds: Math.max(1, windowStart + rule.windowSeconds - now) };
+    return { ok: true };
+  } catch {
+    console.warn('[rate-limit] storage error, failing closed');
+    return { ok: false, retryAfterSeconds: 60 };
+  }
+}
+
+/** 讀取目前計數（測試／監察用）。 */
+export async function rateLimitCount(db: D1Database, rule: RateRule, nowMs = Date.now()): Promise<number> {
+  await ensureTable(db);
+  const now = Math.floor(nowMs / 1000);
+  const windowStart = now - (now % rule.windowSeconds);
+  const row = await db.prepare(`SELECT count FROM api_rate_limits WHERE bucket = ? AND window_start = ?`)
+    .bind(rule.key.slice(0, 200), windowStart).first<{ count: number }>();
+  return Number(row?.count ?? 0);
+}
+
 export async function cleanupRateLimits(db: D1Database, nowMs = Date.now()): Promise<void> {
   await ensureTable(db).catch(() => {});
   await db.prepare(`DELETE FROM api_rate_limits WHERE expires_at < ?`).bind(Math.floor(nowMs / 1000)).run().catch(() => {});

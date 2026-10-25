@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import type { Env } from '../types';
-import { guardChatRequest } from '../lib/chat-guard';
+import { commitChatGlobalQuota, guardChatRequest } from '../lib/chat-guard';
 import { racingChat, parseUserIntent } from '../services/ai';
 import { getHorseCareerStats } from '../lib/horse-career-stats';
 
@@ -498,6 +498,9 @@ chatRoutes.post('/', async (c) => {
       undefined,  // TimesFM predictions (optional)
       conversationHistory
     );
+
+    // 上游 AI 成功先扣全站每日額度
+    await commitChatGlobalQuota(c.env.DB);
 
     // 判定本場整體係咪 historical
     const anyHistorical = raceData?.races?.some((r: any) => r.isHistorical) ?? false;

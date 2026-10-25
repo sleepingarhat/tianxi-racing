@@ -2,7 +2,7 @@
 // 每次成功請求會觸發 2 次付費 AI 呼叫（意圖解析 + 回答），所以全部檢查都喺呼叫 AI 之前完成。
 
 import type { ChatRequest } from '../types';
-import { clientIp, consumeRateLimits, type RateRule } from './rate-limit';
+import { clientIp, consumeRateLimits, peekRateLimit, type RateRule } from './rate-limit';
 import { supabaseUserFromRequest, type SupabaseUser } from './supabase-auth';
 
 export const CHAT_LIMITS = {
@@ -57,14 +57,27 @@ export function validateChatBody(body: unknown): ChatValidation {
   return { ok: true, value: { message, raceDate, raceNumber, conversationHistory } };
 }
 
-export function chatRateRules(user: SupabaseUser, ip: string, nowMs = Date.now()): RateRule[] {
-  const day = new Date(nowMs).toISOString().slice(0, 10);
+/** 個人／IP 限制：每個請求（包括之後被拒絕嘅）都計入自己嘅 bucket。 */
+export function chatRateRules(user: SupabaseUser, ip: string): RateRule[] {
   return [
     { key: `chat:user:${user.userId}`, limit: CHAT_LIMITS.perUser10Min, windowSeconds: 600 },
     { key: `chat:user-day:${user.userId}`, limit: CHAT_LIMITS.perUserDay, windowSeconds: 86400 },
     { key: `chat:ip:${ip}`, limit: CHAT_LIMITS.perIp10Min, windowSeconds: 600 },
-    { key: `chat:global:${day}`, limit: CHAT_LIMITS.globalDay, windowSeconds: 86400 },
   ];
+}
+
+/**
+ * 全站每日額度：只喺請求通過所有個人／IP 限制之後先「睇」，
+ * 並且只喺上游 AI 成功回答之後先「扣」（commitChatGlobalQuota）。
+ * 所以一個濫用者被個人限制拒絕嘅請求唔會令其他會員用唔到。
+ */
+export function chatGlobalRule(nowMs = Date.now()): RateRule {
+  const day = new Date(nowMs).toISOString().slice(0, 10);
+  return { key: `chat:global:${day}`, limit: CHAT_LIMITS.globalDay, windowSeconds: 86400 };
+}
+
+export async function commitChatGlobalQuota(db: D1Database, nowMs = Date.now()): Promise<void> {
+  await consumeRateLimits(db, [chatGlobalRule(nowMs)], nowMs).catch(() => undefined);
 }
 
 export type ChatGuardResult =
@@ -86,7 +99,11 @@ export async function guardChatRequest(c: any): Promise<ChatGuardResult> {
   const v = validateChatBody(parsed);
   if (!v.ok) return { ok: false, status: 400, error: v.error };
 
+  // 1) 先個人／IP（會加一）；被拒絕就即刻返回，唔掂全站額度。
   const rl = await consumeRateLimits(c.env.DB, chatRateRules(user, clientIp(c)));
   if (!rl.ok) return { ok: false, status: 429, error: '使用過於頻繁，請稍後再試', retryAfter: rl.retryAfterSeconds };
+  // 2) 再只讀檢查全站額度；真正扣減喺上游成功之後（routes/chat.ts）。
+  const global = await peekRateLimit(c.env.DB, chatGlobalRule());
+  if (!global.ok) return { ok: false, status: 429, error: 'AI 對話今日使用量已滿，請明日再試', retryAfter: global.retryAfterSeconds };
   return { ok: true, user, body: v.value };
 }
