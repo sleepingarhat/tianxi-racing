@@ -21,13 +21,13 @@ PRO_ENTITLEMENT_MODE = "off"
 # 改做 "restricted" 之前，必須先 `wrangler secret put TG_READER_TOKEN`，並喺 GitHub Actions 設定同一個值嘅
 # secret TG_READER_TOKEN，確認 TG 賽前／賽後 workflow 正常。restricted：匿名只得第一場；全部場次只派畀
 # TG 讀取憑證（X-TG-Reader-Token）、已登入用戶或 Pro。回滾：改返 "legacy" 再部署。
-ANON_FULL_CARD_MODE = "legacy"
+ANON_FULL_CARD_MODE = "restricted"
 # 已完賽 /api/analyze/hit-rate 對匿名請求嘅範圍：預設 legacy（同現況一樣，每場凍結四揀＋對帳）。
 # 改做 "restricted" 之前：TG_READER_TOKEN 要已經生效（TG 賽後），`wrangler secret put SITE_READER_TOKEN` 同
 # Lovable secret SITE_READER_TOKEN 要設定同一個值，而且網站伺服器函數已經帶 X-Tianxi-Site-Token 上線。
 # restricted：匿名只得第一場四揀，其餘場次只有賽果同彙總；hit-rate-rollup 本身已經只係彙總，唔受影響。
 # 回滾：改返 "legacy" 再部署。
-ANON_HITRATE_MODE = "legacy"
+ANON_HITRATE_MODE = "restricted"
 # LEGACY_CRON_SECRET_FALLBACK 唔放喺呢度：輪換完成後用 `wrangler secret put LEGACY_CRON_SECRET_FALLBACK`（值 off）
 # TIMESFM_API_URL set later when RunPod endpoint ready
 
