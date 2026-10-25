@@ -34,7 +34,7 @@ jobs:
       - name: Post post-race day recap
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          # Worker today-picks 唯讀憑證（X-TG-Reader-Token）；未設定時照舊匿名讀。
+          # Worker today-picks／hit-rate 唯讀憑證（X-TG-Reader-Token）；未設定時照舊匿名讀。
           TG_READER_TOKEN: ${{ secrets.TG_READER_TOKEN }}
           TG_CHANNEL: ${{ vars.TG_CHANNEL || '@tianxi_racing_pro,@tianxi_racing' }}
         run: |
@@ -42,7 +42,7 @@ jobs:
       - name: Post full-day comparison PDF
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          # Worker today-picks 唯讀憑證（X-TG-Reader-Token）；未設定時照舊匿名讀。
+          # Worker today-picks／hit-rate 唯讀憑證（X-TG-Reader-Token）；未設定時照舊匿名讀。
           TG_READER_TOKEN: ${{ secrets.TG_READER_TOKEN }}
           TG_CHANNEL: ${{ vars.TG_CHANNEL || '@tianxi_racing_pro,@tianxi_racing' }}
         run: |

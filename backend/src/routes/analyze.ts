@@ -13,7 +13,6 @@ import {
 } from '../lib/calibration';
 import {
   projectExplainForPublic,
-  projectHitRateForPublic,
   projectHitRateRollupForPublic,
   projectStrategyPnlForPublic,
   projectTodayPicksForFree,
@@ -30,6 +29,7 @@ import { computeFreezeLedger } from '../lib/freeze-ledger';
 import { cachedJson, jsonEtag } from '../lib/edge-cache';
 import { hasVerifiedProJwt, mayReadValueFields } from '../lib/pro-gate';
 import { todayPicksViewForRequest } from '../lib/tg-reader';
+import { hitRateBodyForNonAdmin } from '../lib/hit-rate-access';
 import { getDataStats } from '../lib/data-stats';
 import { FreezeBlockedError } from '../lib/freeze-recovery';
 
@@ -3876,6 +3876,7 @@ analyzeRoutes.get('/factors', (c) => {
 
       // GET /api/analyze/hit-rate?date=YYYY-MM-DD — 過去賽事日預測 vs 實際結果比對
         // Reads from meeting_hit_rate_cache (populated by daily cron). Pass ?refresh=1 to force recompute.
+        // 非管理員回應由 hitRateBodyForNonAdmin 決定（ANON_HITRATE_MODE；預設 legacy = 現況公開投影）。
         analyzeRoutes.get('/hit-rate', async (c) => {
           try {
             const date = c.req.query('date');
@@ -3907,7 +3908,7 @@ analyzeRoutes.get('/factors', (c) => {
                     generatedAt: cachedA.cachedAt,
                     fromCache: true,
                   };
-                  return c.json(admin ? payload : projectHitRateForPublic(payload));
+                  return c.json(admin ? payload : await hitRateBodyForNonAdmin(c, payload));
                 }
               } else {
                 const cached = await readHitRateCache(c.env.DB, date, engine);
@@ -3922,7 +3923,7 @@ analyzeRoutes.get('/factors', (c) => {
                     generatedAt: cached.cachedAt,
                     fromCache: true,
                   };
-                  return c.json(admin ? payload : projectHitRateForPublic(payload));
+                  return c.json(admin ? payload : await hitRateBodyForNonAdmin(c, payload));
                 }
               }
             }
@@ -3947,7 +3948,7 @@ analyzeRoutes.get('/factors', (c) => {
               generatedAt: new Date().toISOString(),
               fromCache: false,
             };
-            return c.json(admin ? payload : projectHitRateForPublic(payload));
+            return c.json(admin ? payload : await hitRateBodyForNonAdmin(c, payload));
           } catch {
             return c.json({ error: 'hit-rate failed' }, 500);
           }
