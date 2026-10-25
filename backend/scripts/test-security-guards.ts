@@ -3,9 +3,9 @@
 import { Database } from 'bun:sqlite';
 import { Hono } from 'hono';
 import { bearerJwt, resetSupabaseAuthCache, verifySupabaseJwt } from '../src/lib/supabase-auth';
-import { loadProStatus, resetProEntitlementCache, resolveEntitlement } from '../src/lib/pro-entitlement';
-import { consumeRateLimits, resetRateLimitTableCache } from '../src/lib/rate-limit';
-import { CHAT_LIMITS, validateChatBody } from '../src/lib/chat-guard';
+import { loadProStatus, parseEntitlement, resetProEntitlementCache } from '../src/lib/pro-entitlement';
+import { consumeRateLimits, peekRateLimit, rateLimitCount, resetRateLimitTableCache } from '../src/lib/rate-limit';
+import { CHAT_LIMITS, chatGlobalRule, chatRateRules, commitChatGlobalQuota, validateChatBody } from '../src/lib/chat-guard';
 import { proEntitlementEnabled, hasVerifiedProJwt } from '../src/lib/pro-gate';
 import { capMaxTokens } from '../src/services/ai';
 import { loungeRoutes, LOUNGE_LIMITS } from '../src/routes/lounge';
@@ -57,15 +57,14 @@ async function sign(payload: Record<string, unknown>, key = kp.privateKey, kid =
 const claims = (o: Record<string, unknown> = {}) => ({ sub: USER, iss: `${BASE}/auth/v1`, aud: 'authenticated', role: 'authenticated', exp: now + 600, email: 'a@b.c', ...o });
 
 let jwksCalls = 0;
-let pro: { admin: boolean; membership: any; subs: any[]; crypto: string | null } = { admin: false, membership: { rank: 5, total: 300, gate_open_at: null }, subs: [], crypto: null };
+// my_entitlement() 回應（模擬 Supabase 唯一真相來源）
+let ent: any = { kind: 'free_stage', has_pro: true, is_admin: false, tier: 'pro' };
+let entCalls = 0;
 const fakeFetch = async (url: string | URL | Request, init?: RequestInit): Promise<Response> => {
   const u = String(url);
   const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { 'content-type': 'application/json' } });
   if (u.endsWith('/auth/v1/.well-known/jwks.json')) { jwksCalls++; return json({ keys: [pubJwk] }); }
-  if (u.includes('/rest/v1/rpc/my_membership')) return json(pro.membership);
-  if (u.includes('/rest/v1/rpc/has_role')) return json(pro.admin);
-  if (u.includes('/rest/v1/rpc/crypto_pass_until')) return json(pro.crypto);
-  if (u.includes('/rest/v1/subscriptions')) return json(pro.subs);
+  if (u.endsWith('/rest/v1/rpc/my_entitlement')) { entCalls++; return json(ent); }
   if (u.endsWith('/auth/v1/user')) return json({ id: USER, email: 'a@b.c' });
   return json({ error: 'unexpected ' + u }, 500);
 };
@@ -96,28 +95,33 @@ const hsTok = `${enc({ alg: 'HS256', typ: 'JWT' })}.${enc(claims())}.sig`;
 check('HS256 token verified via auth server fallback', (await verifySupabaseJwt(hsTok, env))?.userId === USER);
 check('HS256 without publishable key fails closed', (await verifySupabaseJwt(hsTok, { SUPABASE_URL: BASE })) === null);
 
-// ---------- entitlement parity ----------
-const nowD = new Date('2026-10-24T00:00:00Z');
-check('free stage → pro', resolveEntitlement({ rank: 500, total: 500, gateOpenAt: null, subscription: null, now: nowD }).hasPro);
-check('founding within 52w → pro', resolveEntitlement({ rank: 10, total: 300, gateOpenAt: '2026-06-01T00:00:00Z', subscription: null, now: nowD }).kind === 'founding');
-check('non-founding after gate → not pro', !resolveEntitlement({ rank: 250, total: 300, gateOpenAt: '2026-06-01T00:00:00Z', subscription: null, now: nowD }).hasPro);
-check('active sub → pro', resolveEntitlement({ rank: 250, total: 300, gateOpenAt: '2026-06-01T00:00:00Z', subscription: { status: 'active', current_period_end: '2026-12-01T00:00:00Z', cancel_at_period_end: false }, now: nowD }).kind === 'subscribed');
-check('past_due → not pro', !resolveEntitlement({ rank: 10, total: 300, gateOpenAt: null, subscription: { status: 'past_due', current_period_end: null, cancel_at_period_end: false }, now: nowD }).hasPro);
-check('crypto pass → pro', resolveEntitlement({ rank: 250, total: 300, gateOpenAt: '2026-06-01T00:00:00Z', subscription: null, cryptoPassUntil: '2026-11-01T00:00:00Z', now: nowD }).kind === 'crypto_pass');
+// ---------- entitlement（只讀 Supabase rpc my_entitlement，唔再喺 Worker 重複計） ----------
+check('parse: admin → pro', parseEntitlement({ kind: 'none', has_pro: false, is_admin: true, tier: 'pro' }).kind === 'admin');
+check('parse: founding → pro', parseEntitlement({ kind: 'founding', has_pro: true, is_admin: false, tier: 'pro' }).hasPro);
+check('parse: none → not pro', !parseEntitlement({ kind: 'none', has_pro: false, is_admin: false, tier: 'registered' }).hasPro);
+check('parse: unknown kind → unverified', parseEntitlement({ kind: 'weird', has_pro: true, is_admin: false, tier: 'pro' }).kind === 'unverified');
+check('parse: missing fields → unverified', parseEntitlement({ kind: 'founding' }).kind === 'unverified');
+check('parse: array row accepted', parseEntitlement([{ kind: 'subscribed', has_pro: true, is_admin: false, tier: 'pro' }]).kind === 'subscribed');
 
 const user = (await verifySupabaseJwt(good, env))!;
 resetProEntitlementCache();
-pro = { admin: false, membership: { rank: 250, total: 300, gate_open_at: '2026-06-01T00:00:00Z' }, subs: [], crypto: null };
-check('loadProStatus: non-founding, no sub → not pro', !(await loadProStatus(env, user, { now: nowD })).hasPro);
+ent = { kind: 'none', has_pro: false, is_admin: false, tier: 'registered' };
+check('loadProStatus: rpc none → not pro', !(await loadProStatus(env, user)).hasPro);
 resetProEntitlementCache();
-pro.admin = true;
-check('loadProStatus: admin → pro', (await loadProStatus(env, user, { now: nowD })).kind === 'admin');
+ent = { kind: 'none', has_pro: false, is_admin: true, tier: 'pro' };
+check('loadProStatus: admin → pro', (await loadProStatus(env, user)).kind === 'admin');
 resetProEntitlementCache();
-pro.admin = false; pro.subs = [{ status: 'active', current_period_end: '2026-12-01T00:00:00Z', cancel_at_period_end: false }];
-check('loadProStatus: subscriber → pro', (await loadProStatus(env, user, { now: nowD })).kind === 'subscribed');
+ent = { kind: 'subscribed', has_pro: true, is_admin: false, tier: 'pro' };
+check('loadProStatus: subscriber → pro', (await loadProStatus(env, user)).kind === 'subscribed');
+const before = entCalls; await loadProStatus(env, user);
+check('loadProStatus: cached 60s', entCalls === before);
 resetProEntitlementCache();
-check('loadProStatus: PostgREST failure fails closed', (await loadProStatus(env, user, { now: nowD, fetchImpl: async () => new Response('x', { status: 500 }) })).kind === 'unverified');
+check('loadProStatus: rpc missing (404) fails closed', (await loadProStatus(env, user, { fetchImpl: async () => new Response('{"code":"PGRST202"}', { status: 404 }) })).kind === 'unverified');
+resetProEntitlementCache();
+check('loadProStatus: PostgREST failure fails closed', (await loadProStatus(env, user, { fetchImpl: async () => new Response('x', { status: 500 }) })).kind === 'unverified');
 check('loadProStatus: no publishable key → unverified', (await loadProStatus({ SUPABASE_URL: BASE }, user)).kind === 'unverified');
+ent = { kind: 'free_stage', has_pro: true, is_admin: false, tier: 'pro' };
+resetProEntitlementCache();
 
 // ---------- pro gate flag ----------
 check('PRO_ENTITLEMENT_MODE default off', !proEntitlementEnabled({}) && !proEntitlementEnabled({ PRO_ENTITLEMENT_MODE: 'off' }));
@@ -173,6 +177,35 @@ check('chat: valid body accepted, history trimmed to 10', okBody.ok && okBody.va
   db.sqlite.query('INSERT INTO api_rate_limits VALUES (?, ?, ?, ?)').run(`chat:user:${USER}`, minute - (minute % 600), 999, minute + 600);
   const limited = await post({ message: 'hi' }, `Bearer ${good}`);
   check('chat: over per-user limit → 429 with Retry-After', limited.status === 429 && !!limited.headers.get('retry-after'));
+  // 被個人限制拒絕嘅請求唔可以扣全站額度
+  const g = chatGlobalRule();
+  check('chat: per-user 429 does not touch global quota', (await rateLimitCount(db, g)) === 0);
+  for (let i = 0; i < 3; i++) await post({ message: 'hi' }, `Bearer ${good}`);
+  check('chat: repeated rejected requests leave global quota at 0', (await rateLimitCount(db, g)) === 0);
+  // 全站額度用完 → 429（個人未超）
+  db.sqlite.query('DELETE FROM api_rate_limits').run();
+  const day = Math.floor(Date.now() / 1000); 
+  db.sqlite.query('INSERT INTO api_rate_limits VALUES (?, ?, ?, ?)').run(g.key, day - (day % 86400), CHAT_LIMITS.globalDay, day + 86400);
+  const gl = await post({ message: 'hi' }, `Bearer ${good}`);
+  check('chat: exhausted global quota → 429', gl.status === 429);
+  check('chat: global-exhausted rejection does not increment global', (await rateLimitCount(db, g)) === CHAT_LIMITS.globalDay);
+  resetRateLimitTableCache();
+}
+
+// ---------- global quota 只喺上游成功後先扣 ----------
+{
+  const db = makeDb(); resetRateLimitTableCache();
+  const t = 1_700_000_000_000;
+  const g = chatGlobalRule(t);
+  const u = { userId: USER, token: 'x', exp: 0 } as any;
+  check('chat rules: per-user/ip rules exclude global', chatRateRules(u, '1.1.1.1').every((r) => !r.key.startsWith('chat:global:')));
+  check('global peek is read-only', (await peekRateLimit(db, g, t)).ok && (await rateLimitCount(db, g, t)) === 0);
+  await commitChatGlobalQuota(db, t);
+  check('global commit increments by 1', (await rateLimitCount(db, g, t)) === 1);
+  const broken = { prepare: () => { throw new Error('x'); }, batch: async () => { throw new Error('x'); } } as any;
+  resetRateLimitTableCache();
+  check('global peek fails closed on storage error', !(await peekRateLimit(broken, g, t)).ok);
+  resetRateLimitTableCache();
   resetRateLimitTableCache();
 }
 
