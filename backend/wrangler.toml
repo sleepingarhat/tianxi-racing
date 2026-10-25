@@ -27,7 +27,7 @@ ANON_FULL_CARD_MODE = "legacy"
 # Lovable secret SITE_READER_TOKEN 要設定同一個值，而且網站伺服器函數已經帶 X-Tianxi-Site-Token 上線。
 # restricted：匿名只得第一場四揀，其餘場次只有賽果同彙總；hit-rate-rollup 本身已經只係彙總，唔受影響。
 # 回滾：改返 "legacy" 再部署。
-ANON_HITRATE_MODE = "legacy"
+ANON_HITRATE_MODE = "restricted"
 # LEGACY_CRON_SECRET_FALLBACK 唔放喺呢度：輪換完成後用 `wrangler secret put LEGACY_CRON_SECRET_FALLBACK`（值 off）
 # TIMESFM_API_URL set later when RunPod endpoint ready
 
