@@ -29,6 +29,7 @@ import { manifestFor, ensureModelManifestTable } from '../lib/model-manifest';
 import { computeFreezeLedger } from '../lib/freeze-ledger';
 import { cachedJson, jsonEtag } from '../lib/edge-cache';
 import { hasVerifiedProJwt, mayReadValueFields } from '../lib/pro-gate';
+import { todayPicksViewForRequest } from '../lib/tg-reader';
 import { getDataStats } from '../lib/data-stats';
 import { FreezeBlockedError } from '../lib/freeze-recovery';
 
@@ -3435,10 +3436,13 @@ analyzeRoutes.get('/factors', (c) => {
           }
           if (admin) return c.json(result);
           const settled = await raceDayReportIsSettled(c.env.DB, result);
-          // 已完賽 → 公開投影；未完賽 → 免費投影（只得第一場），除非已核實 Pro JWT（PRO_ENTITLEMENT_MODE=on）。
+          // legacy：已完賽 → 公開投影；未完賽 → 免費投影（只得第一場），除非已核實 Pro JWT（PRO_ENTITLEMENT_MODE=on）。
           // poolodds.value（pro）：PRO_ENTITLEMENT_MODE=on 時非 Pro 連已完賽都唔派價值欄位。
+          // ANON_FULL_CARD_MODE=restricted：已完賽全日卡只派畀 TG 讀取憑證／registered／Pro；匿名只得第一場。
+          // legacy（預設）同現況一樣。TG 憑證唔係管理員（上面 admin 分支唔受影響）。
+          const view = await todayPicksViewForRequest(c, settled);
           const options = { includeValue: await mayReadValueFields(c) };
-          const projected = settled || (await hasVerifiedProJwt(c))
+          const projected = view === 'public'
             ? projectTodayPicksForPublic(result, options)
             : projectTodayPicksForFree(result, options);
           // 版本標示 SSOT：未鎖一律 draft（初版），只有讀到凍結快照先 final（最終版）。

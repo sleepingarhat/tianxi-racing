@@ -17,6 +17,11 @@ SUPABASE_URL = "https://mnztxtekjjvktutanblg.supabase.co"
 # Pro JWT 直接入口權限：預設 off（同現況一樣）。要開請喺呢度改做 "on" 再部署，
 # 並先用 `wrangler secret put SUPABASE_PUBLISHABLE_KEY` 設定公開 publishable key。
 PRO_ENTITLEMENT_MODE = "off"
+# 已完賽 today-picks 對匿名請求嘅範圍：預設 legacy（同現況一樣，全部場次）。
+# 改做 "restricted" 之前，必須先 `wrangler secret put TG_READER_TOKEN`，並喺 GitHub Actions 設定同一個值嘅
+# secret TG_READER_TOKEN，確認 TG 賽前／賽後 workflow 正常。restricted：匿名只得第一場；全部場次只派畀
+# TG 讀取憑證（X-TG-Reader-Token）、已登入用戶或 Pro。回滾：改返 "legacy" 再部署。
+ANON_FULL_CARD_MODE = "legacy"
 # LEGACY_CRON_SECRET_FALLBACK 唔放喺呢度：輪換完成後用 `wrangler secret put LEGACY_CRON_SECRET_FALLBACK`（值 off）
 # TIMESFM_API_URL set later when RunPod endpoint ready
 

@@ -75,6 +75,9 @@ jobs:
       - name: Regression test — security guards (JWT, Pro gate, rate limits, chat, lounge)
         run: bun scripts/test-security-guards.ts
 
+      - name: Regression test — TG reader credential + ANON_FULL_CARD_MODE
+        run: npx tsx scripts/test-tg-reader.ts
+
       - name: Deploy to Cloudflare Workers
         run: npx wrangler deploy
         env:
