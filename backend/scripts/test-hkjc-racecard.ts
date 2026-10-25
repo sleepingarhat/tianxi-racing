@@ -1,7 +1,7 @@
 #!/usr/bin/env tsx
 /** Tests for the shared whitelisted HKJC race-card fetch + weight mapping. */
 import assert from 'node:assert';
-import { isLocalCard, mapWeights } from './ingest/lib/hkjc-racecard.js';
+import { isLocalCard, mapWeights, matchesMeeting } from './ingest/lib/hkjc-racecard.js';
 
 // Weight mapping verified 2026-10-24 against HKJC's own bet-site rendering
 // (handicapWeight = 負磅, currentWeight = 排位體重) and the live 2026-10-25
@@ -33,5 +33,19 @@ const overseas = { races: [{ runners: [{ horse: { id: 'HK_2023_J001' } }, { hors
 assert.ok(!isLocalCard(overseas), 'card with any non-local horse id rejected');
 assert.ok(!isLocalCard({ races: [] }), 'empty card rejected');
 assert.ok(!isLocalCard({ races: [{ runners: [] }] }), 'race with no runners rejected');
+
+// Date/venue guard by runner id (HKJC ignores the query variables and returns
+// the current local card for every date/venue; seen live 2026-10-25).
+const st1025 = { races: [
+  { no: 1, runners: [{ id: '20261025ST01L245', horse: { id: 'HK_2024_L245' } }] },
+  { no: 11, runners: [{ id: '20261025ST11K400', horse: { id: 'HK_2022_K400' } }] },
+] };
+assert.ok(matchesMeeting(st1025, '2026-10-25', 'ST'), 'real card matches its own date/venue');
+assert.ok(!matchesMeeting(st1025, '2026-10-25', 'HV'), 'same card returned for HV is a fallback');
+assert.ok(!matchesMeeting(st1025, '2026-10-28', 'HV'), 'same card returned for another date is a fallback');
+const overseasSim = { races: [{ no: 1, runners: [{ id: '20261025S20101', horse: { id: 'GB_2020_X12' } }] }] };
+assert.ok(!matchesMeeting(overseasSim, '2026-10-25', 'ST'), 'overseas simulcast card rejected');
+assert.ok(!matchesMeeting({ races: [{ no: 2, runners: [{ id: '20261025ST01L245' }] }] }, '2026-10-25', 'ST'), 'race number must match');
+assert.ok(!matchesMeeting({ races: [] }, '2026-10-25', 'ST'), 'empty card rejected');
 
 console.log('test-hkjc-racecard: all assertions passed');

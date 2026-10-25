@@ -16,6 +16,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, appendFileSync, write
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildRows, contentSha, fileSha, toCsv } from './ingest/lib/racecard-snapshot.js';
+import { isLocalCard, matchesMeeting } from './ingest/lib/hkjc-racecard.js';
 
 const arg = (n: string, d = '') => process.argv.find(a => a.startsWith(`--${n}=`))?.slice(n.length + 3) ?? d;
 
@@ -60,10 +61,12 @@ async function main() {
   }
   // The query response carries no date/venue: HKJC falls back to a default
   // (often overseas simulcast) meeting for dates/venues without a local card.
-  // Keep only cards whose every runner has a local HK horse id, and drop any
-  // card returned identically for two venues/dates (a fallback, not a match).
-  const localOnly = meetings.filter(m => (m.races ?? []).every((r: any) => (r.runners ?? []).every((x: any) => /^HK_\d{4}_[A-Z]\d{3}$/.test(String(x?.horse?.id ?? '')))));
+  // HKJC ignores the variables and returns the current local card for every
+  // date/venue. Keep only cards whose every runner has a local HK horse id AND
+  // whose runner ids carry the requested date+venue+race (20261025ST01L245).
+  const localOnly = meetings.filter(m => isLocalCard(m) && matchesMeeting(m, m.date, m.venueCode));
   const sig = (m: any) => contentSha(buildRows({ ...m, date: '', venueCode: '' }, '', new Map()));
+  // Defence in depth: a verified card can match only one (date, venue) pair.
   const counts = new Map<string, number>();
   for (const m of localOnly) counts.set(sig(m), (counts.get(sig(m)) ?? 0) + 1);
   meetings.splice(0, meetings.length, ...localOnly.filter(m => counts.get(sig(m)) === 1));
