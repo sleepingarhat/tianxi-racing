@@ -1,0 +1,46 @@
+name: TG reader token check (read-only)
+
+# 只讀檢查：比較匿名同帶 TG_READER_TOKEN 讀 Worker 嘅結果。唔發 TG、唔寫任何嘢、唔印憑證值。
+on:
+  workflow_dispatch:
+    inputs:
+      date:
+        description: 'hit-rate 日期 YYYY-MM-DD（留空＝今日香港時間）'
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Compare anonymous vs TG reader
+        env:
+          TG_READER_TOKEN: ${{ secrets.TG_READER_TOKEN }}
+          API: https://tianxi-backend.tianxi-entertainment.workers.dev
+          DATE_IN: ${{ github.event.inputs.date }}
+        run: |
+          set -eu
+          D="${DATE_IN:-$(TZ=Asia/Hong_Kong date +%F)}"
+          if [ -z "${TG_READER_TOKEN}" ]; then echo "::error::TG_READER_TOKEN secret 未設定"; exit 1; fi
+          summarize() {
+            python3 -c 'import json,sys
+          kind=sys.argv[1]
+          try: j=json.load(sys.stdin)
+          except Exception: print("非 JSON"); sys.exit(0)
+          races=j.get("races") if isinstance(j,dict) else None
+          races=races if isinstance(races,list) else []
+          if kind=="tp": print("races=%d error=%s" % (len(races), j.get("error") if isinstance(j,dict) else None))
+          else:
+            full=sum(1 for r in races if isinstance(r,dict) and not r.get("redacted") and r.get("predictedTop4"))
+            print("races=%d full=%d access=%s" % (len(races), full, j.get("access","full")))' "$1"
+          }
+          for ep in "tp:/api/analyze/today-picks" "hr:/api/analyze/hit-rate?date=${D}"; do
+            k="${ep%%:*}"; p="${ep#*:}"
+            a=$(curl -s "${API}${p}" | summarize "$k")
+            t=$(curl -s -H "X-TG-Reader-Token: ${TG_READER_TOKEN}" "${API}${p}" | summarize "$k")
+            echo "${p}"; echo "  匿名:      ${a}"; echo "  TG 憑證:   ${t}"
+            echo "### ${p}" >> "$GITHUB_STEP_SUMMARY"; echo "- 匿名: ${a}" >> "$GITHUB_STEP_SUMMARY"; echo "- TG 憑證: ${t}" >> "$GITHUB_STEP_SUMMARY"
+          done
