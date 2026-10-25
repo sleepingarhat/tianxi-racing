@@ -14,6 +14,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from tx_poster import render_meeting, render_post, render_pre, tg_channels, tg_send_document
+from tx_reader_auth import reader_headers
 
 HK_TZ = timezone(timedelta(hours=8))
 API_BASE = os.environ.get("TX_API_BASE", "https://tianxi-backend.tianxi-entertainment.workers.dev").rstrip("/")
@@ -37,7 +38,7 @@ def fmt_date(iso):
 def api_get(path):
     req = urllib.request.Request(
         API_BASE + path,
-        headers={"User-Agent": "tx-tg-cards", "Accept": "application/json"},
+        headers=reader_headers(API_BASE, path, {"User-Agent": "tx-tg-cards", "Accept": "application/json"}),
     )
     with urllib.request.urlopen(req, timeout=40) as r:
         return json.loads(r.read().decode("utf-8"))
