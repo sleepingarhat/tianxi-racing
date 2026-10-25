@@ -1,7 +1,7 @@
 // 愛駒追蹤（horse watchlist）事件 feed — 唯讀。
 //
 // GET /api/watch/events?horse_ids=horse_J062,horse_H117&since=2026-10-20[&types=entry,trackwork,trial,injury][&trackwork=gallop|all]
-//   header: x-cron-secret: <WATCH_FEED_SECRET（或 WATCH_FEED_SECRET_PREVIOUS；過渡期可用 WEATHER_CRON_SECRET）>
+//   header: x-cron-secret: <WATCH_FEED_SECRET（或 _PREVIOUS／_NEXT；只有 WATCH_FEED_SECRET 未設定時先接受 WEATHER_CRON_SECRET）>
 //
 // 用途：Lovable 嘅 cron job（/api/public/jobs/horse-watch）每隔一段時間讀取所有會員
 // 追蹤緊嘅馬匹，叫呢個 endpoint 攞新事件，再喺 Supabase 去重（watch_notifications）
