@@ -13,7 +13,6 @@ import {
 } from '../lib/calibration';
 import {
   projectExplainForPublic,
-  projectHitRateForPublic,
   projectHitRateRollupForPublic,
   projectStrategyPnlForPublic,
   projectTodayPicksForFree,
@@ -29,6 +28,8 @@ import { manifestFor, ensureModelManifestTable } from '../lib/model-manifest';
 import { computeFreezeLedger } from '../lib/freeze-ledger';
 import { cachedJson, jsonEtag } from '../lib/edge-cache';
 import { hasVerifiedProJwt, mayReadValueFields } from '../lib/pro-gate';
+import { todayPicksViewForRequest } from '../lib/tg-reader';
+import { hitRateBodyForNonAdmin } from '../lib/hit-rate-access';
 import { getDataStats } from '../lib/data-stats';
 import { FreezeBlockedError } from '../lib/freeze-recovery';
 
@@ -3435,10 +3436,13 @@ analyzeRoutes.get('/factors', (c) => {
           }
           if (admin) return c.json(result);
           const settled = await raceDayReportIsSettled(c.env.DB, result);
-          // 已完賽 → 公開投影；未完賽 → 免費投影（只得第一場），除非已核實 Pro JWT（PRO_ENTITLEMENT_MODE=on）。
+          // legacy：已完賽 → 公開投影；未完賽 → 免費投影（只得第一場），除非已核實 Pro JWT（PRO_ENTITLEMENT_MODE=on）。
           // poolodds.value（pro）：PRO_ENTITLEMENT_MODE=on 時非 Pro 連已完賽都唔派價值欄位。
+          // ANON_FULL_CARD_MODE=restricted：已完賽全日卡只派畀 TG 讀取憑證／registered／Pro；匿名只得第一場。
+          // legacy（預設）同現況一樣。TG 憑證唔係管理員（上面 admin 分支唔受影響）。
+          const view = await todayPicksViewForRequest(c, settled);
           const options = { includeValue: await mayReadValueFields(c) };
-          const projected = settled || (await hasVerifiedProJwt(c))
+          const projected = view === 'public'
             ? projectTodayPicksForPublic(result, options)
             : projectTodayPicksForFree(result, options);
           // 版本標示 SSOT：未鎖一律 draft（初版），只有讀到凍結快照先 final（最終版）。
@@ -3872,6 +3876,7 @@ analyzeRoutes.get('/factors', (c) => {
 
       // GET /api/analyze/hit-rate?date=YYYY-MM-DD — 過去賽事日預測 vs 實際結果比對
         // Reads from meeting_hit_rate_cache (populated by daily cron). Pass ?refresh=1 to force recompute.
+        // 非管理員回應由 hitRateBodyForNonAdmin 決定（ANON_HITRATE_MODE；預設 legacy = 現況公開投影）。
         analyzeRoutes.get('/hit-rate', async (c) => {
           try {
             const date = c.req.query('date');
@@ -3903,7 +3908,7 @@ analyzeRoutes.get('/factors', (c) => {
                     generatedAt: cachedA.cachedAt,
                     fromCache: true,
                   };
-                  return c.json(admin ? payload : projectHitRateForPublic(payload));
+                  return c.json(admin ? payload : await hitRateBodyForNonAdmin(c, payload));
                 }
               } else {
                 const cached = await readHitRateCache(c.env.DB, date, engine);
@@ -3918,7 +3923,7 @@ analyzeRoutes.get('/factors', (c) => {
                     generatedAt: cached.cachedAt,
                     fromCache: true,
                   };
-                  return c.json(admin ? payload : projectHitRateForPublic(payload));
+                  return c.json(admin ? payload : await hitRateBodyForNonAdmin(c, payload));
                 }
               }
             }
@@ -3943,7 +3948,7 @@ analyzeRoutes.get('/factors', (c) => {
               generatedAt: new Date().toISOString(),
               fromCache: false,
             };
-            return c.json(admin ? payload : projectHitRateForPublic(payload));
+            return c.json(admin ? payload : await hitRateBodyForNonAdmin(c, payload));
           } catch {
             return c.json({ error: 'hit-rate failed' }, 500);
           }

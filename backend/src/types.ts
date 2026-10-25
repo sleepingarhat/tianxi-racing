@@ -33,6 +33,22 @@ export interface Env {
   SUPABASE_PUBLISHABLE_KEY?: string;
   /** 'on' = 接受已核實 Pro JWT 直接讀全部場次；預設 off（同現況一樣）。 */
   PRO_ENTITLEMENT_MODE?: string;
+  /** TG 通知腳本專用唯讀憑證（header X-TG-Reader-Token）；只影響 today-picks／hit-rate，永遠唔係管理員。 */
+  TG_READER_TOKEN?: string;
+  /** 輪換期間仍接受嘅上一個 TG_READER_TOKEN。 */
+  TG_READER_TOKEN_PREVIOUS?: string;
+  /** 零停機切換用：預先放入嘅新 TG_READER_TOKEN。 */
+  TG_READER_TOKEN_NEXT?: string;
+  /** 'restricted' = 已完賽 today-picks 對匿名只派第一場；預設 legacy（同現況一樣）。 */
+  ANON_FULL_CARD_MODE?: string;
+  /** 網站伺服器函數專用唯讀憑證（header X-Tianxi-Site-Token）；權限同 TG_READER_TOKEN 一樣，永遠唔係管理員。 */
+  SITE_READER_TOKEN?: string;
+  /** 輪換期間仍接受嘅上一個 SITE_READER_TOKEN。 */
+  SITE_READER_TOKEN_PREVIOUS?: string;
+  /** 零停機切換用：預先放入嘅新 SITE_READER_TOKEN。 */
+  SITE_READER_TOKEN_NEXT?: string;
+  /** 'restricted' = hit-rate 對匿名只派第一場四揀，其餘場次只得彙總；預設 legacy（同現況一樣）。 */
+  ANON_HITRATE_MODE?: string;
   /** 額外 CORS origin（逗號分隔）。 */
   CORS_EXTRA_ORIGINS?: string;
 }

@@ -13,6 +13,7 @@ Env:
   TELEGRAM_BOT_TOKEN  (required)  bot token; bot must be admin of the channel.
   TG_CHANNEL          (optional)  comma-separated chat ids/@usernames;
                                   default @tianxi_racing_pro,@tianxi_racing
+  TG_READER_TOKEN     (optional)  Worker 唯讀憑證；Worker 轉 ANON_FULL_CARD_MODE／ANON_HITRATE_MODE=restricted 之後必須設定
   TX_API_BASE         (optional)  default https://tianxi-backend.tianxi-entertainment.workers.dev
   TX_SITE_BASE        (optional)  default https://tianxi-site.pages.dev
 """
@@ -26,6 +27,10 @@ import urllib.request
 import urllib.error
 import re
 from datetime import datetime, timezone, timedelta
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from tx_reader_auth import reader_headers  # noqa: E402
 
 HK_TZ = timezone(timedelta(hours=8))
 API_BASE = os.environ.get("TX_API_BASE", "https://tianxi-backend.tianxi-entertainment.workers.dev").rstrip("/")
@@ -72,7 +77,10 @@ def fmt_date(iso):
 
 def api_get(path):
     url = API_BASE + path
-    req = urllib.request.Request(url, headers={"User-Agent": "tx-tg-notify", "Accept": "application/json"})
+    req = urllib.request.Request(
+        url,
+        headers=reader_headers(API_BASE, path, {"User-Agent": "tx-tg-notify", "Accept": "application/json"}),
+    )
     last = None
     for attempt in range(4):
         try:
