@@ -1,10 +1,10 @@
 {
   "scan_date": "2026-10-25",
   "repo_root": "/home/runner/work/tianxi-racing/tianxi-racing",
-  "overall_severity": "critical",
-  "critical_gap_count": 23,
-  "warn_gap_count": 2,
-  "recommendation": "gha_next_delta_will_fix",
+  "overall_severity": "warn",
+  "critical_gap_count": 0,
+  "warn_gap_count": 49,
+  "recommendation": "monitor_no_block",
   "categories": {
     "race_artefacts": {
       "name": "race_artefacts",
@@ -12,6 +12,7 @@
       "present": 785,
       "missing": [],
       "stale": [],
+      "pending": [],
       "notes": [],
       "severity": "ok"
     },
@@ -21,6 +22,7 @@
       "present": 230,
       "missing": [],
       "stale": [],
+      "pending": [],
       "notes": [
         "total cached race days: 230"
       ],
@@ -28,53 +30,79 @@
     },
     "horse_profiles": {
       "name": "horse_profiles",
-      "expected": 1186,
-      "present": 1180,
-      "missing": [
+      "expected": 1199,
+      "present": 1181,
+      "missing": [],
+      "stale": [],
+      "pending": [
+        "J079",
+        "J137",
+        "K162",
+        "K307",
+        "K319",
+        "K362",
+        "K577",
+        "L029",
+        "L061",
+        "L217",
         "L250",
+        "L266",
+        "L269",
         "L351",
+        "L405",
+        "L430",
+        "L435",
         "L444",
         "L457",
+        "L459",
+        "L470",
         "L509",
-        "M046"
-      ],
-      "stale": [
-        "L266",
-        "K319",
-        "K307",
-        "J137",
-        "J079",
-        "K162",
-        "L061",
-        "L269",
-        "K362",
-        "L029",
-        "K577"
+        "L518",
+        "L520",
+        "L544",
+        "M034",
+        "M036",
+        "M046",
+        "M068"
       ],
       "notes": [
-        "6 horses raced in last 180d have NO profile",
+        "18 debutants first ran on 2026-10-25 — profile pending tonight's Pool A (critical if still missing next scan)",
+        "11 profiles ran on 2026-10-25 — refresh pending tonight's Pool A",
         "total profiles in DB: 6111"
       ],
-      "severity": "critical"
+      "severity": "warn"
     },
     "horse_form_records": {
       "name": "horse_form_records",
-      "expected": 1186,
-      "present": 1180,
-      "missing": [
+      "expected": 1199,
+      "present": 1181,
+      "missing": [],
+      "stale": [],
+      "pending": [
+        "L217",
         "L250",
         "L351",
+        "L405",
+        "L430",
+        "L435",
         "L444",
         "L457",
+        "L459",
+        "L470",
         "L509",
-        "M046"
+        "L518",
+        "L520",
+        "L544",
+        "M034",
+        "M036",
+        "M046",
+        "M068"
       ],
-      "stale": [],
       "notes": [
-        "6 recent-cohort horses have NO form_records file",
+        "18 same-day debutants — form_records pending tonight's Pool A",
         "total form_records files: 6111"
       ],
-      "severity": "critical"
+      "severity": "warn"
     },
     "jockey_profiles": {
       "name": "jockey_profiles",
@@ -82,6 +110,7 @@
       "present": 26,
       "missing": [],
       "stale": [],
+      "pending": [],
       "notes": [
         "total jockey profiles: 64"
       ],
@@ -93,6 +122,7 @@
       "present": 64,
       "missing": [],
       "stale": [],
+      "pending": [],
       "notes": [],
       "severity": "ok"
     },
@@ -102,6 +132,7 @@
       "present": 25,
       "missing": [],
       "stale": [],
+      "pending": [],
       "notes": [
         "total trainer profiles: 68"
       ],
@@ -113,6 +144,7 @@
       "present": 68,
       "missing": [],
       "stale": [],
+      "pending": [],
       "notes": [],
       "severity": "ok"
     },
@@ -122,6 +154,7 @@
       "present": 1,
       "missing": [],
       "stale": [],
+      "pending": [],
       "notes": [
         "trial rows: 9735"
       ],
@@ -136,6 +169,7 @@
         "2026-11-01"
       ],
       "stale": [],
+      "pending": [],
       "notes": [
         "2 upcoming race days lack entries file"
       ],
