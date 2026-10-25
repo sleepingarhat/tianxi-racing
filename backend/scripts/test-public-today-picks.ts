@@ -6,7 +6,9 @@ import {
   projectHitRateForPublic,
   projectHitRateRollupForPublic,
   projectStrategyPnlForPublic,
+  projectTodayPicksForFree,
   projectTodayPicksForPublic,
+  VALUE_PICK_FIELDS,
   projectTopPicksForPublic,
 } from '../src/lib/public-today-picks';
 
@@ -310,6 +312,19 @@ for (const forbidden of [
   'private DB error',
 ]) {
   assert.equal(allPublic.includes(forbidden), false, `all public DTOs must omit ${forbidden}`);
+}
+
+// poolodds.value = pro：PRO_ENTITLEMENT_MODE=on 時非 Pro 唔派價值欄位（預設照舊）。
+assert.equal(pick.value, 'overlay');
+assert.equal(pick.valueEdge, 0.03);
+for (const noValue of [
+  projectTodayPicksForPublic(internal, { includeValue: false }),
+  projectTodayPicksForFree(internal, { includeValue: false }),
+  projectTopPicksForPublic({ raceId: 'race_2026-07-15_HV_1', picks: internal.races[0].picks }, { includeValue: false }),
+]) {
+  const json = JSON.stringify(noValue);
+  for (const key of VALUE_PICK_FIELDS) assert.equal(json.includes(`"${key}"`), false, `non-Pro must omit ${key}`);
+  assert.equal(json.includes('"pWin"'), true);
 }
 
 console.log('Public analyze contract tests passed');

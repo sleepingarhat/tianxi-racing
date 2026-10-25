@@ -2,7 +2,7 @@ import { collectDisplayOdds } from './lib/odds-collection';
 import { recoverOriginalFreeze, recentlyVerifiedOriginal } from './lib/freeze-recovery';
 import { computeFreezeLedger } from './lib/freeze-ledger';
 import { Hono } from 'hono';
-import { cors } from 'hono/cors';
+import { corsPolicy } from './lib/cors-policy';
 import { logger } from 'hono/logger';
 import type { Env } from './types';
 import { meetingsRoutes } from './routes/meetings';
@@ -27,12 +27,13 @@ import { countPredictionLogRows, findMeetingForLockTick, getMeetingLockState, LO
 import { buildEngineHealth, engineHealthHtml } from './lib/engine-health';
 
 import { ADMIN_AUTH_POLICY, buildAdminBearerHeaders, hasAdminAccess } from './lib/admin-auth';
+import { alertHookSecret } from './lib/shared-secret';
 import { auditPredictionLock, freezeExplainPayload, freezeMeetingPayload, freezeTopPicksPayload } from './lib/prediction-lock-db';
   import { computeHitRateStats, ensureHitRateCacheTable, writeHitRateCache, readHitRateCache, hitRateCacheBehindResults, ensureRaceDayReportCacheTable, joinPredictionResults, ensurePredictionLogTable, hitRateEngineKey } from './routes/analyze';
 
 const app = new Hono<{ Bindings: Env }>();
 
-app.use('*', cors());
+app.use('*', corsPolicy());
 app.use('*', logger((message, ...rest) => {
   const match = message.match(/^((?:<--|-->)\s+\S+\s+)(\S+)(.*)$/);
   const safeMessage = match
@@ -296,8 +297,9 @@ app.onError((err, c) => {
           await env.DB.prepare(`CREATE TABLE IF NOT EXISTS prediction_recovery_notifications (date TEXT NOT NULL, event_key TEXT NOT NULL, sent_at TEXT NOT NULL, PRIMARY KEY(date,event_key))`).run();
           const eventKey = `${recovery.action}:${recovery.error ?? ''}:${recovery.restored}`;
           const sent = await env.DB.prepare(`SELECT sent_at FROM prediction_recovery_notifications WHERE date=? AND event_key=?`).bind(meeting.date,eventKey).first();
-          if (!sent && env.WEATHER_CRON_SECRET) {
-            const response = await fetch('https://tianxi.racing/api/public/telegram-alert', { method:'POST', headers:{'content-type':'application/json','x-cron-secret':env.WEATHER_CRON_SECRET}, body:JSON.stringify({kind:'freeze-recovery',date:meeting.date,action:recovery.action,restored:recovery.restored,error:recovery.error??null}), signal:AbortSignal.timeout(8000) });
+          const hookSecret = alertHookSecret(env);
+          if (!sent && hookSecret) {
+            const response = await fetch('https://tianxi.racing/api/public/telegram-alert', { method:'POST', headers:{'content-type':'application/json','x-cron-secret':hookSecret}, body:JSON.stringify({kind:'freeze-recovery',date:meeting.date,action:recovery.action,restored:recovery.restored,error:recovery.error??null}), signal:AbortSignal.timeout(8000) });
             const receipt = await response.json() as {sent?:boolean};
             if (response.ok && receipt.sent === true) await env.DB.prepare(`INSERT OR IGNORE INTO prediction_recovery_notifications(date,event_key,sent_at) VALUES (?,?,?)`).bind(meeting.date,eventKey,new Date().toISOString()).run();
           }

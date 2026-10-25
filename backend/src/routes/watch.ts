@@ -1,7 +1,7 @@
 // 愛駒追蹤（horse watchlist）事件 feed — 唯讀。
 //
 // GET /api/watch/events?horse_ids=horse_J062,horse_H117&since=2026-10-20[&types=entry,trackwork,trial,injury][&trackwork=gallop|all]
-//   header: x-cron-secret: <WATCH_FEED_SECRET 或 WEATHER_CRON_SECRET>
+//   header: x-cron-secret: <WATCH_FEED_SECRET（或 _PREVIOUS／_NEXT；只有 WATCH_FEED_SECRET 未設定時先接受 WEATHER_CRON_SECRET）>
 //
 // 用途：Lovable 嘅 cron job（/api/public/jobs/horse-watch）每隔一段時間讀取所有會員
 // 追蹤緊嘅馬匹，叫呢個 endpoint 攞新事件，再喺 Supabase 去重（watch_notifications）
@@ -18,6 +18,7 @@
 
 import { Hono } from 'hono';
 import type { Env } from '../types';
+import { secretMatches, watchFeedSecrets } from '../lib/shared-secret';
 
 export type WatchEventType = 'entry' | 'trackwork' | 'trial' | 'injury';
 export const WATCH_EVENT_TYPES: readonly WatchEventType[] = ['entry', 'trackwork', 'trial', 'injury'];
@@ -81,13 +82,6 @@ export function parseWatchQuery(params: URLSearchParams, now: Date = new Date())
 
   const trackworkMode = params.get('trackwork') === 'all' ? 'all' : 'gallop';
   return { ok: true, query: { horseIds, since, today, types, trackworkMode } };
-}
-
-function timingSafeEqual(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
-  let diff = 0;
-  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  return diff === 0;
 }
 
 const placeholders = (n: number) => Array.from({ length: n }, () => '?').join(',');
@@ -231,10 +225,10 @@ export const watchRoutes = new Hono<{ Bindings: Env }>();
 
 watchRoutes.get('/events', async (c) => {
   c.header('Cache-Control', 'no-store');
-  const secret = c.env.WATCH_FEED_SECRET || c.env.WEATHER_CRON_SECRET;
-  if (!secret) return c.json({ error: 'watch feed disabled' }, 503);
+  const secrets = watchFeedSecrets(c.env);
+  if (!secrets.length) return c.json({ error: 'watch feed disabled' }, 503);
   const given = c.req.header('x-cron-secret') || '';
-  if (!timingSafeEqual(given, secret)) return c.json({ error: 'unauthorized' }, 401);
+  if (!(await secretMatches(given, secrets))) return c.json({ error: 'unauthorized' }, 401);
 
   const parsed = parseWatchQuery(new URL(c.req.url).searchParams);
   if (!parsed.ok) return c.json({ error: parsed.error }, 400);

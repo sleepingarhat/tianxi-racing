@@ -1,4 +1,5 @@
 import type { Env } from '../types';
+import { alertHookSecret } from './shared-secret';
 import { oddsStale, parseOdds } from './odds-freshness';
 const ODDS_QUERY = `
 query racing($date: String, $venueCode: String, $oddsTypes: [OddsType], $raceNo: Int) {
@@ -78,9 +79,10 @@ export async function collectDisplayOdds(env: Env) {
     console.error('[odds-freshness] >20m or missing',after.date,after.stale.map(r => r.race_number));
     await env.DB.prepare(`CREATE TABLE IF NOT EXISTS odds_alert_delivery (race_date TEXT PRIMARY KEY, sent_at TEXT NOT NULL)`).run();
     const receipt = await env.DB.prepare(`SELECT sent_at FROM odds_alert_delivery WHERE race_date=?`).bind(after.date).first<{sent_at:string}>();
-    if (env.WEATHER_CRON_SECRET && (!receipt || Date.now()-Date.parse(receipt.sent_at)>20*60_000)) {
+    const hookSecret = alertHookSecret(env);
+    if (hookSecret && (!receipt || Date.now()-Date.parse(receipt.sent_at)>20*60_000)) {
       try {
-        const response = await fetch('https://tianxi.racing/api/public/telegram-alert',{method:'POST',headers:{'content-type':'application/json','x-cron-secret':env.WEATHER_CRON_SECRET},
+        const response = await fetch('https://tianxi.racing/api/public/telegram-alert',{method:'POST',headers:{'content-type':'application/json','x-cron-secret':hookSecret},
           body:JSON.stringify({kind:'odds-stale',date:after.date,races:after.stale.map(r => r.race_number)}),signal:AbortSignal.timeout(8_000)});
         const result = await response.json() as {sent?:boolean};
         if (response.ok && result.sent) await env.DB.prepare(`INSERT INTO odds_alert_delivery(race_date,sent_at) VALUES (?,?) ON CONFLICT(race_date) DO UPDATE SET sent_at=excluded.sent_at`).bind(after.date,new Date().toISOString()).run();

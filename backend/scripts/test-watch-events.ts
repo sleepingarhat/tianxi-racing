@@ -2,6 +2,7 @@
 import assert from 'node:assert/strict';
 import Database from 'better-sqlite3';
 import { Hono } from 'hono';
+import { alertHookSecret, watchFeedSecrets } from '../src/lib/shared-secret';
 import { parseWatchQuery, watchRoutes, MAX_HORSE_IDS } from '../src/routes/watch';
 import type { Env } from '../src/types';
 
@@ -67,6 +68,28 @@ async function main(): Promise<void> {
   assert.equal((await app.request('/api/watch/events?horse_ids=horse_J062', {}, env)).status, 401);
   assert.equal((await app.request('/api/watch/events?horse_ids=horse_J062', { headers: { 'x-cron-secret': 'nope' } }, env)).status, 401);
   assert.equal((await app.request('/api/watch/events?horse_ids=horse_J062', { headers: { 'x-cron-secret': 'x' } }, { ...env, WEATHER_CRON_SECRET: undefined })).status, 503);
+
+  // 密鑰拆分：專用 WATCH_FEED_SECRET + PREVIOUS；LEGACY_CRON_SECRET_FALLBACK=off 後舊共用值失效
+  const wq = '/api/watch/events?horse_ids=horse_J062';
+  const split = { ...env, WATCH_FEED_SECRET: 'watch-new', WATCH_FEED_SECRET_PREVIOUS: 'watch-old' } as Env;
+  assert.equal((await app.request(wq, { headers: { 'x-cron-secret': 'watch-new' } }, split)).status, 200);
+  assert.equal((await app.request(wq, { headers: { 'x-cron-secret': 'watch-old' } }, split)).status, 200);
+  assert.equal((await app.request(wq, { headers: { 'x-cron-secret': 'test-secret' } }, split)).status, 401, 'legacy rejected once dedicated secret is configured');
+  // 零停機：只放 _NEXT 時，舊共用值同新值都接受
+  const staged = { ...env, WATCH_FEED_SECRET_NEXT: 'watch-next' } as Env;
+  assert.equal((await app.request(wq, { headers: { 'x-cron-secret': 'test-secret' } }, staged)).status, 200, 'legacy accepted while only NEXT staged');
+  assert.equal((await app.request(wq, { headers: { 'x-cron-secret': 'watch-next' } }, staged)).status, 200, 'staged next accepted');
+  const strict = { ...split, LEGACY_CRON_SECRET_FALLBACK: 'off' } as Env;
+  assert.equal((await app.request(wq, { headers: { 'x-cron-secret': 'test-secret' } }, strict)).status, 401, 'legacy rejected after cut-over');
+  assert.equal((await app.request(wq, { headers: { 'x-cron-secret': 'watch-new' } }, strict)).status, 200);
+  assert.equal((await app.request(wq, { headers: { 'x-cron-secret': 'watch-new-x' } }, strict)).status, 401);
+  assert.equal(alertHookSecret({ WEATHER_CRON_SECRET: 'legacy' }), 'legacy');
+  assert.equal(alertHookSecret({ WEATHER_CRON_SECRET: 'legacy', ALERT_HOOK_SECRET: 'alert' }), 'alert');
+  assert.equal(alertHookSecret({ WEATHER_CRON_SECRET: 'legacy', LEGACY_CRON_SECRET_FALLBACK: 'off' }), undefined);
+  assert.equal(alertHookSecret({ WEATHER_CRON_SECRET: 'legacy', ALERT_HOOK_SECRET: 'alert', LEGACY_CRON_SECRET_FALLBACK: 'off' }), 'alert');
+  assert.deepEqual(watchFeedSecrets({ WEATHER_CRON_SECRET: 'legacy', WATCH_FEED_SECRET: 'w' }), ['w']);
+  assert.deepEqual(watchFeedSecrets({ WEATHER_CRON_SECRET: 'legacy' }), ['legacy']);
+  assert.deepEqual(watchFeedSecrets({ WEATHER_CRON_SECRET: 'legacy', LEGACY_CRON_SECRET_FALLBACK: 'off' }), []);
 
   const res = await app.request('/api/watch/events?horse_ids=horse_J062,horse_H117&since=2026-10-20', { headers: { 'x-cron-secret': 'test-secret' } }, env);
   assert.equal(res.status, 200);

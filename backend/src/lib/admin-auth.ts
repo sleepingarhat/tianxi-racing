@@ -195,6 +195,18 @@ export async function hasAdminAccess(
   return expected.includes(bearer);
 }
 
+/**
+ * 唯一讀取入站 Authorization 嘅位置（credential-policy 規定）。
+ * 只回傳「似 Supabase JWT」嘅 bearer（三段、eyJ 開頭），所以 ADMIN_TOKEN 永遠唔會被當成用戶 session；
+ * 真正嘅簽名／claims 核實喺 supabase-auth.ts。
+ */
+export function presentedUserJwt(c: { req: { header(name: string): string | undefined } }): string | null {
+  const m = /^Bearer\s+(\S+)$/i.exec(c.req.header('authorization') ?? '');
+  if (!m) return null;
+  const t = m[1];
+  return /^eyJ[\w-]*\.[\w-]+\.[\w-]+$/.test(t) && t.length < 8192 ? t : null;
+}
+
 export function buildAdminBearerHeaders(env: AdminAuthEnv): { authorization: string } | undefined {
   return env.ADMIN_TOKEN
     ? { authorization: `Bearer ${env.ADMIN_TOKEN}` }
