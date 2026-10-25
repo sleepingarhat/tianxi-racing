@@ -4,16 +4,23 @@
 
 > **香港賽馬 AI 數據平台** — 2016–2026 全量歷史賽果 + 每日自動爬取 + Elo rating pipeline + Data Integrity Audit。以 GitHub 為 backend，CSV 為介面，下游即開即用。
 
-[![Pool A](https://github.com/sleepingarhat/tianxi-database/actions/workflows/capy_pool_a.yml/badge.svg)](https://github.com/sleepingarhat/tianxi-database/actions/workflows/capy_pool_a.yml)
-[![Pool B](https://github.com/sleepingarhat/tianxi-database/actions/workflows/capy_pool_b_daily.yml/badge.svg)](https://github.com/sleepingarhat/tianxi-database/actions/workflows/capy_pool_b_daily.yml)
-[![Race Day](https://github.com/sleepingarhat/tianxi-database/actions/workflows/capy_race_daily.yml/badge.svg)](https://github.com/sleepingarhat/tianxi-database/actions/workflows/capy_race_daily.yml)
-[![Trainer](https://github.com/sleepingarhat/tianxi-database/actions/workflows/capy_trainer_fix.yml/badge.svg)](https://github.com/sleepingarhat/tianxi-database/actions/workflows/capy_trainer_fix.yml)
-[![Entries](https://github.com/sleepingarhat/tianxi-database/actions/workflows/capy_entries.yml/badge.svg)](https://github.com/sleepingarhat/tianxi-database/actions/workflows/capy_entries.yml)
-[![Fixture](https://github.com/sleepingarhat/tianxi-database/actions/workflows/capy_fixture_weekly.yml/badge.svg)](https://github.com/sleepingarhat/tianxi-database/actions/workflows/capy_fixture_weekly.yml)
-[![Sanity](https://github.com/sleepingarhat/tianxi-database/actions/workflows/capy_sanity_daily.yml/badge.svg)](https://github.com/sleepingarhat/tianxi-database/actions/workflows/capy_sanity_daily.yml)
-[![Integrity](https://github.com/sleepingarhat/tianxi-database/actions/workflows/capy_integrity_audit.yml/badge.svg)](https://github.com/sleepingarhat/tianxi-database/actions/workflows/capy_integrity_audit.yml)
-[![D1 Sync](https://github.com/sleepingarhat/tianxi-database/actions/workflows/capy_d1_sync.yml/badge.svg)](https://github.com/sleepingarhat/tianxi-database/actions/workflows/capy_d1_sync.yml)
-[![Pedigree](https://github.com/sleepingarhat/tianxi-database/actions/workflows/capy_pedigree.yml/badge.svg)](https://github.com/sleepingarhat/tianxi-database/actions/workflows/capy_pedigree.yml)
+[![Pool A](https://github.com/sleepingarhat/tianxi-racing/actions/workflows/capy_pool_a.yml/badge.svg)](https://github.com/sleepingarhat/tianxi-racing/actions/workflows/capy_pool_a.yml)
+[![Pool B](https://github.com/sleepingarhat/tianxi-racing/actions/workflows/capy_pool_b_daily.yml/badge.svg)](https://github.com/sleepingarhat/tianxi-racing/actions/workflows/capy_pool_b_daily.yml)
+[![Race Day](https://github.com/sleepingarhat/tianxi-racing/actions/workflows/capy_race_daily.yml/badge.svg)](https://github.com/sleepingarhat/tianxi-racing/actions/workflows/capy_race_daily.yml)
+[![Trainer](https://github.com/sleepingarhat/tianxi-racing/actions/workflows/capy_trainer_fix.yml/badge.svg)](https://github.com/sleepingarhat/tianxi-racing/actions/workflows/capy_trainer_fix.yml)
+[![Entries](https://github.com/sleepingarhat/tianxi-racing/actions/workflows/capy_entries.yml/badge.svg)](https://github.com/sleepingarhat/tianxi-racing/actions/workflows/capy_entries.yml)
+[![Fixture](https://github.com/sleepingarhat/tianxi-racing/actions/workflows/capy_fixture_weekly.yml/badge.svg)](https://github.com/sleepingarhat/tianxi-racing/actions/workflows/capy_fixture_weekly.yml)
+[![Sanity](https://github.com/sleepingarhat/tianxi-racing/actions/workflows/capy_sanity_daily.yml/badge.svg)](https://github.com/sleepingarhat/tianxi-racing/actions/workflows/capy_sanity_daily.yml)
+[![Integrity](https://github.com/sleepingarhat/tianxi-racing/actions/workflows/capy_integrity_audit.yml/badge.svg)](https://github.com/sleepingarhat/tianxi-racing/actions/workflows/capy_integrity_audit.yml)
+[![D1 Sync](https://github.com/sleepingarhat/tianxi-racing/actions/workflows/capy_d1_sync.yml/badge.svg)](https://github.com/sleepingarhat/tianxi-racing/actions/workflows/capy_d1_sync.yml)
+[![Pedigree](https://github.com/sleepingarhat/tianxi-racing/actions/workflows/capy_pedigree.yml/badge.svg)](https://github.com/sleepingarhat/tianxi-racing/actions/workflows/capy_pedigree.yml)
+[![Racecard 排位補料](https://github.com/sleepingarhat/tianxi-racing/actions/workflows/capy_racecard.yml/badge.svg)](https://github.com/sleepingarhat/tianxi-racing/actions/workflows/capy_racecard.yml)
+[![Gear/Rating 裝備評分](https://github.com/sleepingarhat/tianxi-racing/actions/workflows/capy_racecard_snapshot.yml/badge.svg)](https://github.com/sleepingarhat/tianxi-racing/actions/workflows/capy_racecard_snapshot.yml)
+[![Track 場地](https://github.com/sleepingarhat/tianxi-racing/actions/workflows/capy_track_conditions.yml/badge.svg)](https://github.com/sleepingarhat/tianxi-racing/actions/workflows/capy_track_conditions.yml)
+[![Incidents 事件／獸醫](https://github.com/sleepingarhat/tianxi-racing/actions/workflows/capy_incident_reports.yml/badge.svg)](https://github.com/sleepingarhat/tianxi-racing/actions/workflows/capy_incident_reports.yml)
+[![Odds 賠率](https://github.com/sleepingarhat/tianxi-racing/actions/workflows/capy_odds.yml/badge.svg)](https://github.com/sleepingarhat/tianxi-racing/actions/workflows/capy_odds.yml)
+[![D1 Entries](https://github.com/sleepingarhat/tianxi-racing/actions/workflows/capy_d1_sync_entries.yml/badge.svg)](https://github.com/sleepingarhat/tianxi-racing/actions/workflows/capy_d1_sync_entries.yml)
+[![SpeedPro](https://github.com/sleepingarhat/tianxi-racing/actions/workflows/speedpro_scrape.yml/badge.svg)](https://github.com/sleepingarhat/tianxi-racing/actions/workflows/speedpro_scrape.yml)
 
 <!-- stats:start -->
 **即時數據量（唯一來源：生產 D1 實數，每日 06:00 HKT 自動重計）** · [JSON](https://tianxi.racing/api/public/data-stats)
@@ -419,7 +426,7 @@ Exit codes: `0`=ok · `1`=warn · `2`=critical
 
 **Critical** 會自動開 GitHub Issue（有 dedupe）+ 紅 badge。
 
-[![Integrity](https://github.com/sleepingarhat/tianxi-database/actions/workflows/capy_integrity_audit.yml/badge.svg)](https://github.com/sleepingarhat/tianxi-database/actions/workflows/capy_integrity_audit.yml)
+[![Integrity](https://github.com/sleepingarhat/tianxi-racing/actions/workflows/capy_integrity_audit.yml/badge.svg)](https://github.com/sleepingarhat/tianxi-racing/actions/workflows/capy_integrity_audit.yml)
 
 ---
 
@@ -511,7 +518,7 @@ HKJC 原始賽果為公開資訊，本 repo 只做 **結構化重組** 同 **sch
 
 ## 技術支援
 
-- GHA 狀態：<https://github.com/sleepingarhat/tianxi-database/actions>
+- GHA 狀態：<https://github.com/sleepingarhat/tianxi-racing/actions>
 - 每日 sanity：[reports/SANITY.md](./reports/SANITY.md)
 - Integrity audit：[audit_reports/SUMMARY.md](./audit_reports/SUMMARY.md)
 - 系統規劃：[plan.md](./plan.md)

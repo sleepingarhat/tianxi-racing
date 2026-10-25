@@ -61,6 +61,19 @@ class IncidentTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             module.parse_report(fixture(), '2026-10-21', 'HV', 'x', {1,2})
 
+    def test_partial_publication_is_pending_not_archived(self):
+        with self.assertRaises(module.ReportUnavailable):
+            module.parse_report(fixture(), '2026-10-21', 'HV', 'x', {1, 2})
+        with tempfile.TemporaryDirectory() as tmp:
+            with self.assertRaises(module.ReportUnavailable):
+                module.archive(Path(tmp), fixture(), '2026-10-21', 'HV', '2026-10-24T22:00:00+00:00', {1, 2})
+            self.assertFalse((Path(tmp) / 'manifest.jsonl').exists())
+
+    def test_race_not_in_results_still_fails(self):
+        with self.assertRaises(ValueError) as caught:
+            module.parse_report(fixture(), '2026-10-21', 'HV', 'x', {2})
+        self.assertNotIsInstance(caught.exception, module.ReportUnavailable)
+
     def test_append_versions_not_rewrite(self):
         with tempfile.TemporaryDirectory() as d:
             base = Path(d)

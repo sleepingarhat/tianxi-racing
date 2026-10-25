@@ -38,6 +38,11 @@ from typing import Dict, List, Set
 RECENT_WINDOW_DAYS = 180          # "recent" = last N days for cohort sizing
 ACTIVE_WINDOW_DAYS = 90           # "active" horse/jockey/trainer definition
 STALE_THRESHOLD_DAYS = 14         # profile_last_scraped stale after N days
+# Pool A (capy_pool_a.yml, 20:00 UTC) discovers horses ONLY from results CSVs,
+# so a debutant who first ran on scan_date cannot have a profile/form file until
+# that night's Pool A run. Such horses are reported as pending (warn), never
+# hidden; from the next scan_date on, the same gap is critical again.
+SAME_DAY_GRACE_DAYS = 0           # 0 = only horses whose FIRST recent run is scan_date
 ARTEFACT_TYPES = [
     "results", "commentary", "dividends", "sectional_times", "video_links",
 ]
@@ -51,6 +56,7 @@ class CategoryResult:
     present: int = 0
     missing: List[str] = field(default_factory=list)
     stale: List[str] = field(default_factory=list)
+    pending: List[str] = field(default_factory=list)   # visible, not yet overdue
     notes: List[str] = field(default_factory=list)
     severity: str = "ok"   # ok | warn | critical
 
@@ -62,7 +68,7 @@ class CategoryResult:
         return (
             f"{self.name}: expected={self.expected} present={self.present} "
             f"missing={len(self.missing)} stale={len(self.stale)} "
-            f"severity={self.severity}"
+            f"pending={len(self.pending)} severity={self.severity}"
         )
 
 
@@ -184,6 +190,7 @@ def audit_horse_profiles(repo: Path, today: date) -> tuple[CategoryResult, Set[s
     since = today - timedelta(days=RECENT_WINDOW_DAYS)
     # horses in recent races
     recent_horses: Set[str] = set()
+    first_seen: Dict[str, date] = {}
     for fdate, f in _iter_result_rows(repo / "data", since):
         for row in _read_csv_rows(f):
             hn = (row.get("horse_no") or "").strip()
@@ -194,6 +201,8 @@ def audit_horse_profiles(repo: Path, today: date) -> tuple[CategoryResult, Set[s
                 code = name[name.rfind("(") + 1 : name.rfind(")")]
                 if code:
                     recent_horses.add(code)
+                    if code not in first_seen or fdate < first_seen[code]:
+                        first_seen[code] = fdate
     # current profile set
     prof_rows = _read_csv_rows(repo / "horses" / "profiles" / "horse_profiles.csv")
     profile_codes: Set[str] = set()
@@ -210,24 +219,36 @@ def audit_horse_profiles(repo: Path, today: date) -> tuple[CategoryResult, Set[s
     r.expected = len(recent_horses)
     r.present = len(recent_horses & profile_codes)
     missing = recent_horses - profile_codes
-    r.missing = sorted(missing)
-    # stale check
+    pending_cutoff = today - timedelta(days=SAME_DAY_GRACE_DAYS)
+    pending = {c for c in missing if first_seen.get(c) and pending_cutoff <= first_seen[c] <= today}
+    r.missing = sorted(missing - pending)
+    # stale check (a horse that ran on scan_date is refreshed by tonight's Pool A)
+    stale_pending = []
     for code, row in profile_meta.items():
         lrd = _parse_date(row.get("last_race_date", ""))
         pls = _parse_date(row.get("profile_last_scraped", ""))
         if lrd and pls and pls < lrd:
-            r.stale.append(code)
+            if pending_cutoff <= lrd <= today:
+                stale_pending.append(code)
+            else:
+                r.stale.append(code)
     if r.missing:
         r.severity = "critical"
-        r.notes.append(f"{len(missing)} horses raced in last {RECENT_WINDOW_DAYS}d have NO profile")
-    elif r.stale:
+        r.notes.append(f"{len(r.missing)} horses raced in last {RECENT_WINDOW_DAYS}d have NO profile")
+    if not r.missing and (r.stale or pending or stale_pending):
         r.severity = "warn"
+    if r.stale:
         r.notes.append(f"{len(r.stale)} profiles are stale (profile_last_scraped < last_race_date)")
+    r.pending = sorted(pending | set(stale_pending))
+    if pending:
+        r.notes.append(f"{len(pending)} debutants first ran on {today.isoformat()} — profile pending tonight's Pool A (critical if still missing next scan)")
+    if stale_pending:
+        r.notes.append(f"{len(stale_pending)} profiles ran on {today.isoformat()} — refresh pending tonight's Pool A")
     r.notes.append(f"total profiles in DB: {len(profile_codes)}")
     return r, recent_horses
 
 
-def audit_horse_form_records(repo: Path, cohort: Set[str]) -> CategoryResult:
+def audit_horse_form_records(repo: Path, cohort: Set[str], pending_codes: Set[str] = frozenset()) -> CategoryResult:
     """Every horse in recent cohort MUST have a form_records/form_XXXX.csv."""
     r = CategoryResult(name="horse_form_records")
     form_dir = repo / "horses" / "form_records"
@@ -238,11 +259,18 @@ def audit_horse_form_records(repo: Path, cohort: Set[str]) -> CategoryResult:
             existing.add(code)
     r.expected = len(cohort)
     r.present = len(cohort & existing)
-    missing = sorted(cohort - existing)
+    absent = cohort - existing
+    # same-day debutants (see SAME_DAY_GRACE_DAYS): pending, not critical yet
+    r.pending = sorted(absent & set(pending_codes))
+    missing = sorted(absent - set(pending_codes))
     r.missing = missing
     if missing:
         r.severity = "critical"
         r.notes.append(f"{len(missing)} recent-cohort horses have NO form_records file")
+    elif r.pending:
+        r.severity = "warn"
+    if r.pending:
+        r.notes.append(f"{len(r.pending)} same-day debutants — form_records pending tonight's Pool A")
     r.notes.append(f"total form_records files: {len(existing)}")
     return r
 
@@ -414,6 +442,7 @@ def classify(r: AuditReport) -> None:
     for c in r.categories.values():
         if sev_rank[c.severity] > sev_rank[worst]:
             worst = c.severity
+        warn_gap += len(c.pending)  # pending is never critical
         if c.severity == "warn":
             warn_gap += c.gap
         elif c.severity == "critical":
@@ -447,14 +476,14 @@ def write_summary_md(repo: Path, r: AuditReport) -> None:
     lines.append("")
     lines.append("## Per-category")
     lines.append("")
-    lines.append("| Category | Severity | Expected | Present | Missing | Stale | Notes |")
-    lines.append("|---|---|---|---|---|---|---|")
+    lines.append("| Category | Severity | Expected | Present | Missing | Stale | Pending | Notes |")
+    lines.append("|---|---|---|---|---|---|---|---|")
     for name, c in r.categories.items():
         sev_badge = {"ok": "🟢", "warn": "🟡", "critical": "🔴"}[c.severity]
         notes = "; ".join(c.notes[:2]) if c.notes else ""
         lines.append(
             f"| {name} | {sev_badge} {c.severity} | {c.expected} | {c.present} | "
-            f"{len(c.missing)} | {len(c.stale)} | {notes} |"
+            f"{len(c.missing)} | {len(c.stale)} | {len(c.pending)} | {notes} |"
         )
     lines.append("")
     # detail for critical
@@ -489,7 +518,7 @@ def main() -> int:
     cat_race = audit_race_artefacts(repo, fixtures, today)
     cat_fix = audit_fixtures(repo, today)
     cat_hp, cohort = audit_horse_profiles(repo, today)
-    cat_hf = audit_horse_form_records(repo, cohort)
+    cat_hf = audit_horse_form_records(repo, cohort, set(cat_hp.pending))
     cat_jp = audit_jockey_profiles(repo, today)
     cat_jr = audit_jockey_records(repo)
     cat_tp = audit_trainer_profiles(repo, today)

@@ -119,6 +119,11 @@ def parse_report(raw, date, venue, captured, expected_races=None):
                          captured, url, digest, 'true']))
             rows.append(row)
     if expected_races is not None and race_numbers != set(expected_races):
+        if race_numbers < set(expected_races):
+            # HKJC publishes the race-day report race by race during the evening
+            # (seen 2026-10-25 11:07/11:46 UTC). A strict subset is an unfinished
+            # publication: pending and retried, never archived as evidence.
+            raise ReportUnavailable('official report still partially published; pending, not archived')
         raise ValueError('report race coverage differs from stored official results')
     if race_numbers != set(range(1, max(race_numbers) + 1)):
         raise ValueError('incomplete report race sequence')
