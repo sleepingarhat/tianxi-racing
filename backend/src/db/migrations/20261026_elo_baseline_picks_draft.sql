@@ -1,22 +1,3 @@
--- DRAFT ONLY — 唔好喺呢個 PR apply 去 production。
--- 可選 backfill：預先物化純 Elo 頭四（同 backtest on-demand 邏輯）。
--- MVP 比較器唔依賴呢張表；runCompare／runBacktest 直接由特徵矩陣 Elo 排頭四。
-
--- CREATE TABLE IF NOT EXISTS elo_baseline_picks (
---   race_id TEXT NOT NULL,
---   matrix_version TEXT NOT NULL,
---   pick1 INTEGER NOT NULL,
---   pick2 INTEGER NOT NULL,
---   pick3 INTEGER NOT NULL,
---   pick4 INTEGER NOT NULL,
---   computed_at TEXT NOT NULL,
---   PRIMARY KEY (race_id, matrix_version)
--- );
---
--- CREATE INDEX IF NOT EXISTS idx_elo_baseline_picks_matrix
---   ON elo_baseline_picks (matrix_version);
---
--- 可選 backfill 流程（未實作）：
--- 1) dump-features → 讀 matrix
--- 2) 每場 pickTop4(runners, [{id:'elo',weight:1}])
--- 3) INSERT OR REPLACE INTO elo_baseline_picks ...
+-- RETIRED — 正式 migration 見 20261027_elo_baseline_picks.sql
+-- 保留檔名以免舊 PR／文件連結 404；內容唔再含 CREATE（避免誤 apply 空操作以外嘅 schema）。
+SELECT 1;

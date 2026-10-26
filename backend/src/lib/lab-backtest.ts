@@ -288,6 +288,64 @@ export function pickTop4(
     .map((x) => x.no);
 }
 
+/** race_id → 物化 Elo 頭四（嚟自 elo_baseline_picks） */
+export type EloBaselinePicksMap = ReadonlyMap<string, readonly [number, number, number, number]>;
+
+export type EloBaselineUsage = {
+  /** 請求窗內有幾多場用到表列 */
+  tableHits: number;
+  /** 請求窗內總場數 */
+  raceCount: number;
+  /** 傳入 map 大細（可能闊過窗） */
+  mapSize: number;
+};
+
+/** 若 map 有該 race 且四個馬號都喺場內 → 用表列；否則 on-demand pickTop4(elo)。 */
+export function resolveEloPicks(
+  runners: MatrixRunner[],
+  raceId: string,
+  stored?: EloBaselinePicksMap | null,
+): number[] {
+  const row = stored?.get(raceId);
+  if (row && row.length === 4) {
+    const nos = new Set(runners.map((r) => r.horseNumber));
+    if (row.every((n) => Number.isInteger(n) && nos.has(n))) {
+      return [row[0], row[1], row[2], row[3]];
+    }
+  }
+  return pickTop4(runners, [{ id: 'elo', weight: 1 }]);
+}
+
+export function eloBaselineLimitation(usage: EloBaselineUsage): string {
+  if (usage.mapSize <= 0 || usage.tableHits <= 0) {
+    return 'elo_baseline_picks：無可用表列（表未 apply／未 backfill／或缺列）→ 純 Elo 由矩陣 on-demand 排頭四。';
+  }
+  if (usage.tableHits < usage.raceCount) {
+    return `elo_baseline_picks：${usage.tableHits}/${usage.raceCount} 場用表列，其餘 on-demand fallback。`;
+  }
+  return `elo_baseline_picks：${usage.tableHits} 場用物化表列（matrix_version 對齊）。`;
+}
+
+export function measureEloBaselineUsage(
+  races: MatrixRace[],
+  stored?: EloBaselinePicksMap | null,
+): EloBaselineUsage {
+  let tableHits = 0;
+  for (const race of races) {
+    const row = stored?.get(race.raceId);
+    if (row && row.length === 4) {
+      const nos = new Set(race.runners.map((r) => r.horseNumber));
+      if (row.every((n) => Number.isInteger(n) && nos.has(n))) tableHits++;
+    }
+  }
+  return { tableHits, raceCount: races.length, mapSize: stored?.size ?? 0 };
+}
+
+function makeEloPicker(stored?: EloBaselinePicksMap | null) {
+  return (runners: MatrixRunner[], raceId: string): number[] =>
+    resolveEloPicks(runners, raceId, stored);
+}
+
 function top4Hits(predicted: number[], actualPositions: Map<number, number>): number {
   let hits = 0;
   for (const no of predicted) {
@@ -375,7 +433,7 @@ function evaluateRaces(
   races: MatrixRace[],
   weights: FeatureWeight[],
   pools: PoolCode[],
-  pickFn: (runners: MatrixRunner[]) => number[],
+  pickFn: (runners: MatrixRunner[], race: MatrixRace) => number[],
 ): { summary: StrategySummary; series: StrategySeriesPoint[]; evals: RaceEval[] } {
   const evals: RaceEval[] = [];
   for (const race of races) {
@@ -389,7 +447,7 @@ function evaluateRaces(
     const actualTop = [...actualPositions.entries()]
       .sort((a, b) => a[1] - b[1])
       .map(([no]) => no);
-    const predicted = pickFn(race.runners);
+    const predicted = pickFn(race.runners, race);
     if (new Set(predicted).size < 4) continue;
 
     const hits = top4Hits(predicted, actualPositions);
@@ -495,7 +553,11 @@ function defaultValFrom(dates: string[]): string | undefined {
   return dates[idx];
 }
 
-export function runBacktest(matrix: FeatureMatrix, params: BacktestParams): Omit<BacktestResult, 'hash' | 'computedAt'> {
+export function runBacktest(
+  matrix: FeatureMatrix,
+  params: BacktestParams,
+  opts?: { eloBaselinePicks?: EloBaselinePicksMap | null },
+): Omit<BacktestResult, 'hash' | 'computedAt'> {
   const weights = normalizeWeights(params.features);
   const pools = params.pools.length ? params.pools : ALL_POOLS;
   const races = matrix.races.filter((r) => r.date >= params.from && r.date <= params.to);
@@ -507,14 +569,14 @@ export function runBacktest(matrix: FeatureMatrix, params: BacktestParams): Omit
   const trainRaces = races.filter((r) => r.date < valFrom);
   const valRaces = races.filter((r) => r.date >= valFrom);
 
-  const pickCustom = (runners: MatrixRunner[]) => pickTop4(runners, weights);
-  const pickElo = (runners: MatrixRunner[]) =>
-    pickTop4(runners, [{ id: 'elo', weight: 1 }]);
-  const pickOfficial = (runners: MatrixRunner[]) => {
+  const eloPicker = makeEloPicker(opts?.eloBaselinePicks);
+  const pickCustom = (runners: MatrixRunner[], _race: MatrixRace) => pickTop4(runners, weights);
+  const pickElo = (runners: MatrixRunner[], race: MatrixRace) => eloPicker(runners, race.raceId);
+  const pickOfficial = (runners: MatrixRunner[], race: MatrixRace) => {
     const flagged = runners.filter((r) => r.officialPick).map((r) => r.horseNumber);
     if (flagged.length >= 4) return flagged.slice(0, 4);
     // 冇標記時用 elo 代替並喺 summary 標明
-    return pickElo(runners);
+    return pickElo(runners, race);
   };
 
   const overall = evaluateRaces(races, weights, pools, pickCustom);
@@ -560,6 +622,7 @@ export function runBacktest(matrix: FeatureMatrix, params: BacktestParams): Omit
   if (overall.summary.raceCount < MIN_ROI_SAMPLE) {
     limitations.push(`樣本 ${overall.summary.raceCount} 場 < ${MIN_ROI_SAMPLE}：唔顯示 ROI。`);
   }
+  limitations.push(eloBaselineLimitation(measureEloBaselineUsage(races, opts?.eloBaselinePicks)));
 
   return {
     status: 'ready',
@@ -720,7 +783,7 @@ function clamp01to100(v: number): number {
 /** 官方 vs Elo 最小對照（功能 2 stub／連帶） */
 export function compareOfficialVsElo(
   matrix: FeatureMatrix,
-  opts: { from: string; to: string; pools?: PoolCode[] },
+  opts: { from: string; to: string; pools?: PoolCode[]; eloBaselinePicks?: EloBaselinePicksMap | null },
 ): {
   official: StrategySummary;
   elo: StrategySummary;
@@ -736,7 +799,9 @@ export function compareOfficialVsElo(
     to: opts.to,
     pools,
   };
-  const result = runBacktest({ ...matrix, races }, params);
+  const result = runBacktest({ ...matrix, races }, params, {
+    eloBaselinePicks: opts.eloBaselinePicks,
+  });
   return {
     official: result.officialBaseline ?? emptySummary('official', pools),
     elo: result.eloBaseline ?? emptySummary('elo', pools),
@@ -870,19 +935,27 @@ export function validateCompareParams(
 
 /**
  * 功能 2 比較器：官方／Elo／自訂（FeatureWeight）並列 summary＋series＋dayDiff。
- * Elo／官方 on-demand 由矩陣計（唔使 elo_baseline_picks 表）。
+ * Elo：若 opts.eloBaselinePicks 有 (race_id) 就用表列，否則 on-demand 由矩陣排。
  */
 export function runCompare(
   matrix: FeatureMatrix,
-  opts: { from: string; to: string; pools: PoolCode[]; strategies: CompareStrategyInput[] },
+  opts: {
+    from: string;
+    to: string;
+    pools: PoolCode[];
+    strategies: CompareStrategyInput[];
+    eloBaselinePicks?: EloBaselinePicksMap | null;
+  },
 ): CompareResult {
   const pools = opts.pools.length ? opts.pools : ALL_POOLS;
   const races = matrix.races.filter((r) => r.date >= opts.from && r.date <= opts.to);
-  const pickElo = (runners: MatrixRunner[]) => pickTop4(runners, [{ id: 'elo', weight: 1 }]);
-  const pickOfficial = (runners: MatrixRunner[]) => {
+  const eloPicker = makeEloPicker(opts.eloBaselinePicks);
+  const pickElo = (runners: MatrixRunner[], race: MatrixRace) =>
+    eloPicker(runners, race.raceId);
+  const pickOfficial = (runners: MatrixRunner[], race: MatrixRace) => {
     const flagged = runners.filter((r) => r.officialPick).map((r) => r.horseNumber);
     if (flagged.length >= 4) return flagged.slice(0, 4);
-    return pickElo(runners);
+    return pickElo(runners, race);
   };
 
   const results: CompareStrategyResult[] = [];
@@ -901,7 +974,9 @@ export function runCompare(
       evaluated.summary.label = slot.label;
     } else {
       const weights = normalizeWeights(slot.features ?? []);
-      evaluated = evaluateRaces(races, weights, pools, (runners) => pickTop4(runners, weights));
+      evaluated = evaluateRaces(races, weights, pools, (runners, _race) =>
+        pickTop4(runners, weights),
+      );
       evaluated.summary.label = slot.label;
     }
     results.push({
@@ -926,9 +1001,7 @@ export function runCompare(
   if (minRaces < MIN_ROI_SAMPLE) {
     limitations.push(`樣本最少 ${minRaces} 場 < ${MIN_ROI_SAMPLE}：唔顯示 ROI（同回測規則）。`);
   }
-  limitations.push(
-    'elo_baseline_picks 表未建：純 Elo 由矩陣 on-demand 排頭四（可選 backfill migration 見草稿）。',
-  );
+  limitations.push(eloBaselineLimitation(measureEloBaselineUsage(races, opts.eloBaselinePicks)));
   limitations.push('自訂策略權重由客戶端帶上；唔依賴雲端 me/strategies。');
 
   return {

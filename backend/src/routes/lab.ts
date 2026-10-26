@@ -55,6 +55,7 @@ import {
   validateCompareParams,
   validateParams,
   type BacktestResult,
+  type EloBaselinePicksMap,
 } from '../lib/lab-backtest';
 
 import {
@@ -63,6 +64,42 @@ import {
   putCachedBacktest,
   resolveMatrixVersion,
 } from '../lib/lab-backtest-matrix';
+
+/**
+ * 讀 elo_baseline_picks（可選）。表未 apply／查詢失敗 → 空 map，呼叫端 fallback on-demand。
+ * 唔拋錯、唔阻 API。
+ */
+async function loadEloBaselinePicks(
+  db: D1Database | null | undefined,
+  matrixVersion: string,
+): Promise<EloBaselinePicksMap> {
+  const empty = new Map<string, readonly [number, number, number, number]>();
+  if (!db || !matrixVersion) return empty;
+  try {
+    const { results } = await db
+      .prepare(
+        `SELECT race_id, pick1, pick2, pick3, pick4
+         FROM elo_baseline_picks
+         WHERE matrix_version = ?`,
+      )
+      .bind(matrixVersion)
+      .all<{
+        race_id: string;
+        pick1: number;
+        pick2: number;
+        pick3: number;
+        pick4: number;
+      }>();
+    const map = new Map<string, readonly [number, number, number, number]>();
+    for (const row of results ?? []) {
+      if (!row?.race_id) continue;
+      map.set(row.race_id, [row.pick1, row.pick2, row.pick3, row.pick4]);
+    }
+    return map;
+  } catch {
+    return empty;
+  }
+}
 
 import {
   GOING_DISCLAIMER,
@@ -993,7 +1030,8 @@ labRoutes.post('/backtest', async (c) => {
     }
   }
 
-  const partial = runBacktest(matrix, { ...parsed.params, matrixVersion });
+  const eloBaselinePicks = await loadEloBaselinePicks(c.env?.DB ?? null, matrixVersion);
+  const partial = runBacktest(matrix, { ...parsed.params, matrixVersion }, { eloBaselinePicks });
   const result: BacktestResult = {
     ...partial,
     hash,
@@ -1066,11 +1104,16 @@ labRoutes.get('/compare', async (c) => {
     return c.json({ error: matrixLoad.code, message: matrixLoad.error }, 503);
   }
 
+  const eloBaselinePicks = await loadEloBaselinePicks(
+    c.env?.DB ?? null,
+    matrixLoad.matrix.version,
+  );
   const result = runCompare(matrixLoad.matrix, {
     from: parsed.from,
     to: parsed.to,
     pools: parsed.pools,
     strategies: parsed.strategies,
+    eloBaselinePicks,
   });
   return c.json(result);
 });
@@ -1102,11 +1145,16 @@ labRoutes.post('/compare', async (c) => {
     return c.json({ error: matrixLoad.code, message: matrixLoad.error }, 503);
   }
 
+  const eloBaselinePicks = await loadEloBaselinePicks(
+    c.env?.DB ?? null,
+    matrixLoad.matrix.version,
+  );
   const result = runCompare(matrixLoad.matrix, {
     from: parsed.from,
     to: parsed.to,
     pools: parsed.pools,
     strategies: parsed.strategies,
+    eloBaselinePicks,
   });
   return c.json(result);
 });
@@ -1132,7 +1180,11 @@ labRoutes.get('/compare/baselines', async (c) => {
     return c.json({ error: matrixLoad.code, message: matrixLoad.error }, 503);
   }
 
-  const cmp = compareOfficialVsElo(matrixLoad.matrix, { from, to });
+  const eloBaselinePicks = await loadEloBaselinePicks(
+    c.env?.DB ?? null,
+    matrixLoad.matrix.version,
+  );
+  const cmp = compareOfficialVsElo(matrixLoad.matrix, { from, to, eloBaselinePicks });
   return c.json({
     status: 'ready',
     from,

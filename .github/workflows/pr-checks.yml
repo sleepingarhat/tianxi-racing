@@ -115,3 +115,4 @@ jobs:
           npx tsx scripts/test-api-v1-keys.ts
           npx tsx scripts/test-lab-compare.ts
           npx tsx scripts/test-lab-compare-auth.ts
+          npx tsx scripts/test-lab-elo-baseline.ts
