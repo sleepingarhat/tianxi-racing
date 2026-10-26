@@ -109,3 +109,5 @@ jobs:
           npx tsx scripts/test-lab-backtest-auth.ts
           npx tsx scripts/test-lab-going.ts
           npx tsx scripts/test-lab-going-auth.ts
+          npx tsx scripts/test-lab-pools.ts
+          npx tsx scripts/test-lab-pools-auth.ts
