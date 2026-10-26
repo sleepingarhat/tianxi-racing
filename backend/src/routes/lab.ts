@@ -2,7 +2,7 @@
  * Pro 研究室 API（/api/lab/*）。
  * 必須帶網站／服務唯讀 secret（X-Tianxi-Site-Token 或 X-TG-Reader-Token）；冇 → 401。
  * 會籍閘喺網站 serverFn（requireTier('pro')）；Worker 只驗 machine secret。
- * 含 h2h / search / pace / pace-forecast / backtest / compare/baselines / going / weather。
+ * 含 h2h / search / pace / pace-forecast / backtest / compare / compare/baselines / going / weather。
  */
 import { Hono } from 'hono';
 import type { Env } from '../types';
@@ -51,6 +51,8 @@ import {
   compareOfficialVsElo,
   hashParams,
   runBacktest,
+  runCompare,
+  validateCompareParams,
   validateParams,
   type BacktestResult,
 } from '../lib/lab-backtest';
@@ -1037,6 +1039,76 @@ labRoutes.get('/backtest/:hash', async (c) => {
     return c.json({ error: 'not_found', message: '搵唔到呢個回測結果', hash, status: 'missing' }, 404);
   }
   return c.json({ hash, status: 'ready', result: cached, cached: true });
+});
+
+/**
+ * GET /api/lab/compare — 功能 2 比較器（官方／Elo；query strategies=official,elo）。
+ * Query: from, to, pools, strategies|s
+ */
+labRoutes.get('/compare', async (c) => {
+  const denied = await requireLabSecret(c);
+  if (denied) return denied;
+  c.header('Vary', READER_VARY);
+  c.header('Cache-Control', 'private, max-age=60');
+
+  const parsed = validateCompareParams({
+    from: c.req.query('from') ?? '2025-09-07',
+    to: c.req.query('to') ?? '2026-10-04',
+    pools: c.req.query('pools') ?? undefined,
+    strategies: c.req.query('strategies') ?? c.req.query('s') ?? 'official,elo',
+  });
+  if (!parsed.ok) {
+    return c.json({ error: 'bad_request', message: parsed.error }, 400);
+  }
+
+  const matrixLoad = await loadFeatureMatrix(c.env, { preferDemo: true });
+  if (!matrixLoad.ok) {
+    return c.json({ error: matrixLoad.code, message: matrixLoad.error }, 503);
+  }
+
+  const result = runCompare(matrixLoad.matrix, {
+    from: parsed.from,
+    to: parsed.to,
+    pools: parsed.pools,
+    strategies: parsed.strategies,
+  });
+  return c.json(result);
+});
+
+/**
+ * POST /api/lab/compare — 完整比較（可帶 custom 槽 FeatureWeight）。
+ * Body: { from, to, pools?, strategies:[{key,label,kind,features?}] }
+ */
+labRoutes.post('/compare', async (c) => {
+  const denied = await requireLabSecret(c);
+  if (denied) return denied;
+  c.header('Vary', READER_VARY);
+  c.header('Cache-Control', 'private, no-store');
+
+  let body: unknown;
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json({ error: 'invalid_json', message: '請求 body 唔係合法 JSON' }, 400);
+  }
+
+  const parsed = validateCompareParams(body);
+  if (!parsed.ok) {
+    return c.json({ error: 'bad_request', message: parsed.error }, 400);
+  }
+
+  const matrixLoad = await loadFeatureMatrix(c.env, { preferDemo: true });
+  if (!matrixLoad.ok) {
+    return c.json({ error: matrixLoad.code, message: matrixLoad.error }, 503);
+  }
+
+  const result = runCompare(matrixLoad.matrix, {
+    from: parsed.from,
+    to: parsed.to,
+    pools: parsed.pools,
+    strategies: parsed.strategies,
+  });
+  return c.json(result);
 });
 
 /**
