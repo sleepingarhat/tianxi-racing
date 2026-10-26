@@ -67,7 +67,7 @@ import {
   HISTORY_SINCE,
   MIN_SAMPLE_RACES,
   PENDING_GOING,
-  RESEARCH_LAYER_NOTE,
+  RESEARCH_LAYER_NOTE as RESEARCH_LAYER_NOTE_GOING,
   buildDrawHeatmap,
   buildStyleBias,
   buildSuitedHorses,
@@ -1323,7 +1323,7 @@ labRoutes.get('/going', async (c) => {
         suitedNote,
         notes: {
           disclaimer: GOING_DISCLAIMER,
-          research: RESEARCH_LAYER_NOTE,
+          research: RESEARCH_LAYER_NOTE_GOING,
           pendingGoing: goingStatus !== 'ok' ? PENDING_GOING : null,
           sparseRule: `樣本少於 ${MIN_SAMPLE_RACES} 場嘅格呈灰色`,
         },
@@ -1441,7 +1441,7 @@ labRoutes.get('/weather/:meetingId', async (c) => {
     weatherError,
     notes: {
       disclaimer: GOING_DISCLAIMER,
-      research: RESEARCH_LAYER_NOTE,
+      research: RESEARCH_LAYER_NOTE_GOING,
       liveHint:
         '即時天氣可經網站公開 /api/public/hkjc-weather；失敗時只顯示歷史',
     },
