@@ -1,7 +1,7 @@
 {
   "name": "tianxi-backend",
   "version": "1.0.0",
-  "description": "天喜娛樂 Tianxi Entertainment - 賽馬AI分析平台後端",
+  "description": "\u5929\u559c\u5a1b\u6a02 Tianxi Entertainment - \u8cfd\u99acAI\u5206\u6790\u5e73\u53f0\u5f8c\u7aef",
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
@@ -31,7 +31,9 @@
     "test:lab-pace": "tsx scripts/test-lab-pace.ts",
     "test:lab-pace-auth": "tsx scripts/test-lab-pace-auth.ts",
     "test:lab-going": "tsx scripts/test-lab-going.ts",
-    "test:lab-going-auth": "tsx scripts/test-lab-going-auth.ts"
+    "test:lab-going-auth": "tsx scripts/test-lab-going-auth.ts",
+    "test:lab-pools": "tsx scripts/test-lab-pools.ts",
+    "test:lab-pools-auth": "tsx scripts/test-lab-pools-auth.ts"
   },
   "dependencies": {
     "hkjc-api": "^1.0.5",
