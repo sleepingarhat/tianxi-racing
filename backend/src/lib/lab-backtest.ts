@@ -105,7 +105,58 @@ export type StrategySummary = {
   net: number | null;
   roiPct: number | null;
   maxDrawdown: number | null;
+  /** 最長連輸賽日（日淨盈虧 < 0 嘅連續日數）；冇 series 時 null */
+  maxLosingStreakDays: number | null;
   showRoi: boolean;
+};
+
+/** 實盤凍結標籤起計日（公開戰績／實盤標記；唔同研究層回測窗） */
+export const LIVE_FROM_DATE = '2026-10-04' as const;
+
+export type CompareStrategyKind = 'official' | 'elo' | 'custom';
+
+export type CompareStrategyInput = {
+  key: string;
+  label: string;
+  kind: CompareStrategyKind;
+  /** custom 槽必填；official／elo 可省略 */
+  features?: FeatureWeight[];
+};
+
+export type CompareSeriesPoint = StrategySeriesPoint & {
+  phase: 'live' | 'backtest';
+};
+
+export type CompareStrategyResult = {
+  key: string;
+  label: string;
+  kind: CompareStrategyKind;
+  summary: StrategySummary;
+  series: CompareSeriesPoint[];
+  liveFrom: typeof LIVE_FROM_DATE;
+};
+
+export type CompareDayDiff = {
+  date: string;
+  phase: 'live' | 'backtest';
+  nets: Record<string, number>;
+  cums: Record<string, number>;
+  maxGap: number | null;
+  maxGapKeys: [string, string] | null;
+};
+
+export type CompareResult = {
+  status: 'ready';
+  from: string;
+  to: string;
+  pools: PoolCode[];
+  strategies: CompareStrategyResult[];
+  dayDiff: CompareDayDiff[];
+  researchNote: string;
+  matrixVersion: string;
+  matrixSource: FeatureMatrix['source'];
+  limitations: string[];
+  liveFrom: typeof LIVE_FROM_DATE;
 };
 
 export type BacktestResult = {
@@ -288,8 +339,27 @@ function emptySummary(label: string, pools: PoolCode[]): StrategySummary {
     net: null,
     roiPct: null,
     maxDrawdown: null,
+    maxLosingStreakDays: null,
     showRoi: false,
   };
+}
+
+export function maxLosingStreakDays(series: StrategySeriesPoint[]): number {
+  let best = 0;
+  let cur = 0;
+  for (const p of series) {
+    if (p.net < 0) {
+      cur += 1;
+      if (cur > best) best = cur;
+    } else {
+      cur = 0;
+    }
+  }
+  return best;
+}
+
+export function seriesPhase(date: string): 'live' | 'backtest' {
+  return date >= LIVE_FROM_DATE ? 'live' : 'backtest';
 }
 
 type RaceEval = {
@@ -393,6 +463,7 @@ function evaluateRaces(
 
   const hasAnyDiv = races.some((r) => r.boxDividends && Object.keys(r.boxDividends).length > 0);
 
+  const losingStreak = maxLosingStreakDays(series);
   const summary: StrategySummary = {
     label: 'custom',
     raceCount,
@@ -403,6 +474,7 @@ function evaluateRaces(
     net: hasAnyDiv ? totalNet : null,
     roiPct: hasAnyDiv && showRoi && totalCost ? Math.round((totalNet / totalCost) * 1000) / 10 : null,
     maxDrawdown: hasAnyDiv && showRoi ? Math.round(maxDd * 10) / 10 : null,
+    maxLosingStreakDays: series.length ? losingStreak : null,
     showRoi: hasAnyDiv && showRoi,
   };
   return { summary, series, evals };
@@ -671,5 +743,205 @@ export function compareOfficialVsElo(
     researchNote: RESEARCH_LAYER_NOTE,
     matrixVersion: matrix.version,
     matrixSource: matrix.source,
+  };
+}
+
+function buildDayDiff(strategies: CompareStrategyResult[]): CompareDayDiff[] {
+  const dates = new Set<string>();
+  for (const s of strategies) {
+    for (const p of s.series) dates.add(p.date);
+  }
+  const out: CompareDayDiff[] = [];
+  for (const date of [...dates].sort()) {
+    const nets: Record<string, number> = {};
+    const cums: Record<string, number> = {};
+    for (const s of strategies) {
+      const pt = s.series.find((x) => x.date === date);
+      nets[s.key] = pt?.net ?? 0;
+      cums[s.key] = pt?.cum ?? 0;
+    }
+    const keys = strategies.map((s) => s.key);
+    let maxGap: number | null = null;
+    let maxGapKeys: [string, string] | null = null;
+    for (let i = 0; i < keys.length; i++) {
+      for (let j = i + 1; j < keys.length; j++) {
+        const ka = keys[i]!;
+        const kb = keys[j]!;
+        const gap = Math.abs((cums[ka] ?? 0) - (cums[kb] ?? 0));
+        if (maxGap == null || gap > maxGap) {
+          maxGap = Math.round(gap * 10) / 10;
+          maxGapKeys = [ka, kb];
+        }
+      }
+    }
+    out.push({
+      date,
+      phase: seriesPhase(date),
+      nets,
+      cums,
+      maxGap,
+      maxGapKeys,
+    });
+  }
+  return out;
+}
+
+export function validateCompareParams(
+  raw: unknown,
+): { ok: true; from: string; to: string; pools: PoolCode[]; strategies: CompareStrategyInput[] } | { ok: false; error: string } {
+  if (!raw || typeof raw !== 'object') return { ok: false, error: 'body／query 必須係 object' };
+  const b = raw as Record<string, unknown>;
+  const from = String(b.from ?? '');
+  const to = String(b.to ?? '');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(from) || !/^\d{4}-\d{2}-\d{2}$/.test(to)) {
+    return { ok: false, error: 'from／to 必須係 YYYY-MM-DD' };
+  }
+  if (from > to) return { ok: false, error: 'from 唔可以遲過 to' };
+
+  let pools: PoolCode[] = ALL_POOLS;
+  if (b.pools != null) {
+    const poolsRaw = Array.isArray(b.pools)
+      ? b.pools.map(String)
+      : String(b.pools)
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean);
+    pools = poolsRaw.filter((p): p is PoolCode => (ALL_POOLS as string[]).includes(p));
+    if (!pools.length) return { ok: false, error: 'pools 無效' };
+  }
+
+  let strategies: CompareStrategyInput[] = [];
+  if (Array.isArray(b.strategies) && b.strategies.length) {
+    for (const item of b.strategies) {
+      if (!item || typeof item !== 'object') continue;
+      const s = item as Record<string, unknown>;
+      const kindRaw = String(s.kind ?? s.key ?? '').toLowerCase();
+      const kind: CompareStrategyKind =
+        kindRaw === 'official' || kindRaw === 'elo' || kindRaw === 'custom'
+          ? kindRaw
+          : String(s.key ?? '') === 'official'
+            ? 'official'
+            : String(s.key ?? '') === 'elo'
+              ? 'elo'
+              : 'custom';
+      const key = String(s.key ?? kind).trim() || kind;
+      const label = String(s.label ?? (kind === 'official' ? '官方四揀' : kind === 'elo' ? '純 Elo' : key));
+      if (kind === 'custom') {
+        const featuresRaw = Array.isArray(s.features) ? s.features : [];
+        const features = normalizeWeights(
+          featuresRaw.map((x: any) => ({
+            id: String(x?.id ?? x?.feature ?? '') as LabFeatureId,
+            weight: Number(x?.weight ?? 1),
+            invert: !!(x?.invert ?? x?.reverse),
+          })),
+        );
+        if (!features.length) return { ok: false, error: `自訂策略「${label}」至少要有一項權重 > 0` };
+        strategies.push({ key, label, kind, features });
+      } else {
+        strategies.push({ key, label, kind });
+      }
+    }
+  } else if (typeof b.strategies === 'string' || b.s != null) {
+    const rawKeys = String(b.strategies ?? b.s ?? 'official,elo')
+      .split(',')
+      .map((x) => x.trim())
+      .filter(Boolean);
+    for (const k of rawKeys) {
+      if (k === 'official') strategies.push({ key: 'official', label: '官方四揀', kind: 'official' });
+      else if (k === 'elo') strategies.push({ key: 'elo', label: '純 Elo', kind: 'elo' });
+      else return { ok: false, error: `GET 只支援 official／elo；自訂請用 POST body（唔識「${k}」）` };
+    }
+  } else {
+    strategies = [
+      { key: 'official', label: '官方四揀', kind: 'official' },
+      { key: 'elo', label: '純 Elo', kind: 'elo' },
+    ];
+  }
+
+  if (strategies.length < 2) return { ok: false, error: '至少要兩個策略先比較' };
+  if (strategies.length > 4) return { ok: false, error: '最多四個策略槽（A–D）' };
+  const seen = new Set<string>();
+  for (const s of strategies) {
+    if (seen.has(s.key)) return { ok: false, error: `策略 key 重複：${s.key}` };
+    seen.add(s.key);
+  }
+  return { ok: true, from, to, pools, strategies };
+}
+
+/**
+ * 功能 2 比較器：官方／Elo／自訂（FeatureWeight）並列 summary＋series＋dayDiff。
+ * Elo／官方 on-demand 由矩陣計（唔使 elo_baseline_picks 表）。
+ */
+export function runCompare(
+  matrix: FeatureMatrix,
+  opts: { from: string; to: string; pools: PoolCode[]; strategies: CompareStrategyInput[] },
+): CompareResult {
+  const pools = opts.pools.length ? opts.pools : ALL_POOLS;
+  const races = matrix.races.filter((r) => r.date >= opts.from && r.date <= opts.to);
+  const pickElo = (runners: MatrixRunner[]) => pickTop4(runners, [{ id: 'elo', weight: 1 }]);
+  const pickOfficial = (runners: MatrixRunner[]) => {
+    const flagged = runners.filter((r) => r.officialPick).map((r) => r.horseNumber);
+    if (flagged.length >= 4) return flagged.slice(0, 4);
+    return pickElo(runners);
+  };
+
+  const results: CompareStrategyResult[] = [];
+  const limitations: string[] = [
+    RESEARCH_LAYER_NOTE,
+    `實盤標記由 ${LIVE_FROM_DATE} 起；之前系列標「回測」。研究層結果永遠唔入公開戰績。`,
+  ];
+
+  for (const slot of opts.strategies) {
+    let evaluated: { summary: StrategySummary; series: StrategySeriesPoint[] };
+    if (slot.kind === 'official') {
+      evaluated = evaluateRaces(races, [{ id: 'elo', weight: 1 }], pools, pickOfficial);
+      evaluated.summary.label = slot.label;
+    } else if (slot.kind === 'elo') {
+      evaluated = evaluateRaces(races, [{ id: 'elo', weight: 1 }], pools, pickElo);
+      evaluated.summary.label = slot.label;
+    } else {
+      const weights = normalizeWeights(slot.features ?? []);
+      evaluated = evaluateRaces(races, weights, pools, (runners) => pickTop4(runners, weights));
+      evaluated.summary.label = slot.label;
+    }
+    results.push({
+      key: slot.key,
+      label: slot.label,
+      kind: slot.kind,
+      summary: evaluated.summary,
+      series: evaluated.series.map((p) => ({ ...p, phase: seriesPhase(p.date) })),
+      liveFrom: LIVE_FROM_DATE,
+    });
+  }
+
+  if (matrix.source !== 'r2') {
+    limitations.push(
+      `特徵矩陣來源＝${matrix.source}（production R2 binding 尚未開通；夜間 dump-features→R2 待接）。`,
+    );
+  }
+  if (!races.some((r) => r.boxDividends && Object.keys(r.boxDividends).length)) {
+    limitations.push('呢批矩陣冇箱形派彩：只出命中，唔出 ROI／盈虧。');
+  }
+  const minRaces = Math.min(...results.map((r) => r.summary.raceCount));
+  if (minRaces < MIN_ROI_SAMPLE) {
+    limitations.push(`樣本最少 ${minRaces} 場 < ${MIN_ROI_SAMPLE}：唔顯示 ROI（同回測規則）。`);
+  }
+  limitations.push(
+    'elo_baseline_picks 表未建：純 Elo 由矩陣 on-demand 排頭四（可選 backfill migration 見草稿）。',
+  );
+  limitations.push('自訂策略權重由客戶端帶上；唔依賴雲端 me/strategies。');
+
+  return {
+    status: 'ready',
+    from: opts.from,
+    to: opts.to,
+    pools,
+    strategies: results,
+    dayDiff: buildDayDiff(results),
+    researchNote: RESEARCH_LAYER_NOTE,
+    matrixVersion: matrix.version,
+    matrixSource: matrix.source,
+    limitations,
+    liveFrom: LIVE_FROM_DATE,
   };
 }
