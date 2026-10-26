@@ -92,6 +92,22 @@ async function main(): Promise<void> {
     assert.ok(Array.isArray(j.endpoints));
   }
 
+  // Acceptance：/picks/history 必須經 dateIsLocked 過濾；未鎖日唔回完整歷史
+  {
+    const { readFileSync } = await import('node:fs');
+    const src = readFileSync('src/routes/api-v1.ts', 'utf8');
+    assert.ok(src.includes("apiV1Routes.get('/picks/history'"), 'history route present');
+    assert.ok(src.includes('dateIsLocked'), 'history uses dateIsLocked');
+    assert.ok(src.includes('lockedOnly: true'), 'history marks lockedOnly');
+    // 未鎖日 continue 跳過
+    assert.ok(/if \(!\(await locked\(r\.date\)\)\) continue/.test(src), 'skips unlocked dates');
+  }
+
+  {
+    const res = await hit('/api/v1/picks/history?from=2026-10-01&to=2026-10-26');
+    assert.equal(res.status, 401, 'history no key → 401');
+  }
+
   console.log('test-api-v1-auth: all passed');
 }
 

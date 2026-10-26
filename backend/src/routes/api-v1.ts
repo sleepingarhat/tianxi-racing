@@ -8,6 +8,7 @@
  */
 import { Hono } from 'hono';
 import type { Env } from '../types';
+import { presentedAuthorizationBearer } from '../lib/admin-auth';
 import { dateIsLocked, loadFrozenPicksForDate } from '../lib/prediction-lock-db';
 import {
   API_V1_DEFAULT_SCOPES,
@@ -17,7 +18,6 @@ import {
   API_V1_KEY_PREFIX,
   authenticateApiKey,
   ensureApiV1Tables,
-  extractBearer,
   hasApiKeyAdminCredential,
   mintApiKey,
   requireScope,
@@ -36,14 +36,14 @@ function bad(c: any, status: number, error: string, message: string, extra: Reco
 
 async function requireApiAuth(c: any, scope?: string) {
   // Fail closed on missing Bearer before DB probe so clients get 401 not 503.
-  const header = c.req.header('Authorization');
-  const token = extractBearer(header);
+  // Authorization 只經 shared admin-auth helper 讀取（credential-policy）。
+  const token = presentedAuthorizationBearer(c);
   if (!token || !token.startsWith(API_V1_KEY_PREFIX)) {
     return { res: bad(c, 401, 'unauthorized', '需要 Authorization: Bearer tx_live_… API key') };
   }
   const db = c.env.DB;
   if (!db) return { res: bad(c, 503, 'unavailable', '資料庫未就緒') };
-  const auth = await authenticateApiKey(db, header);
+  const auth = await authenticateApiKey(db, `Bearer ${token}`);
   if (!auth.ok) {
     if (auth.retryAfter) c.header('Retry-After', String(auth.retryAfter));
     return { res: bad(c, auth.status, auth.error, auth.message) };
@@ -326,7 +326,17 @@ apiV1Routes.get('/picks/history', async (c) => {
   let racesHitAtLeast1 = 0;
   let totalTop4Hits = 0;
 
+  // Acceptance：只回已鎖／已凍結（dateIsLocked）日；未鎖日唔入完整歷史。
+  const lockedCache = new Map<string, boolean>();
+  async function locked(date: string): Promise<boolean> {
+    if (lockedCache.has(date)) return lockedCache.get(date)!;
+    const ok = await dateIsLocked(db, date);
+    lockedCache.set(date, ok);
+    return ok;
+  }
+
   for (const r of results ?? []) {
+    if (!(await locked(r.date))) continue;
     let day = byDate.get(r.date);
     if (!day) {
       day = { date: r.date, races: new Map() };
@@ -373,6 +383,7 @@ apiV1Routes.get('/picks/history', async (c) => {
     from,
     to,
     engine: ENGINE,
+    lockedOnly: true,
     summary: {
       raceDays: days.length,
       racesWithResult,

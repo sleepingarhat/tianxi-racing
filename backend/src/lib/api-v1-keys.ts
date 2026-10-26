@@ -4,8 +4,8 @@
  * Rate limits: 60/min + 5000/day (suggested defaults; document on /developers).
  */
 
-import { secretMatches } from './shared-secret';
-import { hasReaderCredential, SITE_READER_HEADER } from './tg-reader';
+import { ADMIN_AUTH_POLICY, hasAdminAccess, type AdminAuthEnv } from './admin-auth';
+import { hasReaderCredential, SITE_READER_HEADER, type TgReaderEnv } from './tg-reader';
 import { consumeRateLimits } from './rate-limit';
 
 export const API_V1_KEY_PREFIX = 'tx_live_';
@@ -234,25 +234,13 @@ export function requireScope(
   };
 }
 
-/** Admin／網站 server：SITE_READER 或 ADMIN Bearer 可建立／撤銷 key。 */
+/** Admin／網站 server：SITE_READER／TG reader 或 shared admin Bearer（唔另讀 Authorization／ADMIN_TOKEN）。 */
 export async function hasApiKeyAdminCredential(c: {
   req: { header: (n: string) => string | undefined };
-  env: {
-    SITE_READER_TOKEN?: string;
-    SITE_READER_TOKEN_PREVIOUS?: string;
-    SITE_READER_TOKEN_NEXT?: string;
-    TG_READER_TOKEN?: string;
-    TG_READER_TOKEN_PREVIOUS?: string;
-    TG_READER_TOKEN_NEXT?: string;
-    ADMIN_TOKEN?: string;
-    ADMIN_TOKEN_2?: string;
-  };
+  env: TgReaderEnv & AdminAuthEnv;
 }): Promise<boolean> {
-  if (await hasReaderCredential(c as any)) return true;
-  const auth = c.req.header('Authorization');
-  const bearer = extractBearer(auth);
-  if (!bearer) return false;
-  return secretMatches(bearer, [c.env.ADMIN_TOKEN, c.env.ADMIN_TOKEN_2]);
+  if (await hasReaderCredential(c)) return true;
+  return hasAdminAccess(c, ADMIN_AUTH_POLICY.BEARER_ONLY);
 }
 
 export { SITE_READER_HEADER, hktDate };

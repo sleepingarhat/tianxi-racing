@@ -196,15 +196,24 @@ export async function hasAdminAccess(
 }
 
 /**
- * 唯一讀取入站 Authorization 嘅位置（credential-policy 規定）。
- * 只回傳「似 Supabase JWT」嘅 bearer（三段、eyJ 開頭），所以 ADMIN_TOKEN 永遠唔會被當成用戶 session；
- * 真正嘅簽名／claims 核實喺 supabase-auth.ts。
+ * 唯一讀取入站 Authorization Bearer 嘅位置（credential-policy 規定）。
+ * 回傳 raw bearer（未驗證）；ADMIN／API key／JWT 都必須經呢度入，其他模組唔可以自己 header('Authorization')。
  */
-export function presentedUserJwt(c: { req: { header(name: string): string | undefined } }): string | null {
+export function presentedAuthorizationBearer(c: { req: { header(name: string): string | undefined } }): string | null {
   const m = /^Bearer\s+(\S+)$/i.exec(c.req.header('authorization') ?? '');
   if (!m) return null;
   const t = m[1];
-  return /^eyJ[\w-]*\.[\w-]+\.[\w-]+$/.test(t) && t.length < 8192 ? t : null;
+  return t.length > 0 && t.length < 8192 ? t : null;
+}
+
+/**
+ * 只回傳「似 Supabase JWT」嘅 bearer（三段、eyJ 開頭），所以 ADMIN_TOKEN／API key 永遠唔會被當成用戶 session；
+ * 真正嘅簽名／claims 核實喺 supabase-auth.ts。
+ */
+export function presentedUserJwt(c: { req: { header(name: string): string | undefined } }): string | null {
+  const t = presentedAuthorizationBearer(c);
+  if (!t) return null;
+  return /^eyJ[\w-]*\.[\w-]+\.[\w-]+$/.test(t) ? t : null;
 }
 
 export function buildAdminBearerHeaders(env: AdminAuthEnv): { authorization: string } | undefined {
