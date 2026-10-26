@@ -125,7 +125,8 @@
     );
     if (!meetings.length) {
       console.error('[odds] no active local HK meeting — nothing to snapshot');
-      process.exit(0);
+      // Explicit --date is a backfill/re-run intent: fail so GHA is red, not silent-green.
+      process.exit(dateFilter ? 1 : 0);
     }
 
     // Prefer a meeting that matches --date/--venue filters; otherwise take the
@@ -144,7 +145,7 @@
       if (!matched) {
         const available = meetings.map((m: any) => `${m.date}@${m.venueCode}`).join(', ');
         console.error(`[odds] no meeting matches date=${dateFilter} venue=${venueFilter}. Available: ${available}`);
-        process.exit(0);
+        process.exit(dateFilter ? 1 : 0);
       }
       meeting = matched;
     }

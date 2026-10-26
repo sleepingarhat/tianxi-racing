@@ -45,7 +45,8 @@
     const meetings = await fetchLocalRacecards(dates, venues);
     if (!meetings.length) {
       console.error(`[racecard] no active HK (ST/HV) meeting for ${dates.join(',')} — skipping`);
-      process.exit(0);
+      // Explicit --date is a backfill/re-run intent: fail closed.
+      process.exit(dateFilter ? 1 : 0);
     }
 
     let meeting: any = meetings[0];
@@ -58,7 +59,7 @@
       if (!matched) {
         const avail = meetings.map((m: any) => `${m.date}@${m.venueCode}`).join(', ');
         console.error(`[racecard] no meeting for date=${dateFilter} venue=${venueFilter}. Available: ${avail}`);
-        process.exit(0);
+        process.exit(dateFilter ? 1 : 0);
       }
       meeting = matched;
     }

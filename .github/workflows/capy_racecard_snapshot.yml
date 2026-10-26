@@ -41,13 +41,43 @@ jobs:
         working-directory: backend
         run: npx tsx scripts/test-racecard-snapshot.ts
       - name: Capture snapshot
+        id: capture
         working-directory: backend
         run: |
           set -eu
           ARGS="--root=.."
           if [ -n "${{ inputs.date }}" ]; then ARGS="$ARGS --date=${{ inputs.date }}"; fi
           if [ -n "${{ inputs.venue }}" ]; then ARGS="$ARGS --venue=${{ inputs.venue }}"; fi
-          npx tsx scripts/snapshot-racecard.ts $ARGS
+          npx tsx scripts/snapshot-racecard.ts $ARGS 2>&1 | tee /tmp/snapshot.log
+          # Count how many snapshot CSVs were written this run (log line "wrote ... (N rows)")
+          WROTE=$(grep -c '\[snapshot\] wrote ' /tmp/snapshot.log || true)
+          ROWS=$(grep -oE '\[snapshot\] wrote .* \(([0-9]+) rows\)' /tmp/snapshot.log | grep -oE '[0-9]+ rows' | grep -oE '[0-9]+' | awk '{s+=$1} END {print s+0}')
+          SKIPPED=$(grep -c 'unchanged — skipped' /tmp/snapshot.log || true)
+          NOTHING=$(grep -c 'nothing written' /tmp/snapshot.log || true)
+          echo "wrote=$WROTE" >> $GITHUB_OUTPUT
+          echo "rows=$ROWS" >> $GITHUB_OUTPUT
+          echo "skipped=$SKIPPED" >> $GITHUB_OUTPUT
+          echo "nothing=$NOTHING" >> $GITHUB_OUTPUT
+          echo "::notice::snapshot wrote=$WROTE rows=$ROWS skipped_unchanged=$SKIPPED"
+
+      # 2026-10-26: silent-green guard — expected race day with neither a new
+      # snapshot nor an unchanged skip (i.e. HKJC returned empty) fails closed.
+      - name: Fail closed if race day wrote 0 snapshot rows
+        working-directory: ${{ github.workspace }}
+        env:
+          ROWS: ${{ steps.capture.outputs.rows || '0' }}
+          SKIPPED: ${{ steps.capture.outputs.skipped || '0' }}
+          NOTHING: ${{ steps.capture.outputs.nothing || '0' }}
+        run: |
+          set -eu
+          DATE="${{ inputs.date }}"
+          if [ -z "$DATE" ]; then DATE=$(TZ=Asia/Hong_Kong date +%Y-%m-%d); fi
+          # Unchanged card (content SHA match) counts as a successful collection.
+          if [ "${SKIPPED:-0}" -gt 0 ]; then
+            echo "::notice::Unchanged snapshot skip counts as collected for $DATE"
+            exit 0
+          fi
+          bash scripts/ci/assert_collected_rows.sh "${ROWS:-0}" "$DATE"
       - name: Commit new snapshot files only
         run: |
           set -eu

@@ -243,6 +243,7 @@ jobs:
           key: ${{ steps.featsig.outputs.key }}
 
       - name: Fetch upcoming entries from prod
+        id: entries
         env:
           ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN_2 }}
           DAYS_AHEAD: ${{ inputs.days_ahead || '7' }}
@@ -254,10 +255,21 @@ jobs:
           curl -fsSL -H "Authorization: Bearer $ADMIN_TOKEN" \
             "https://tianxi-backend.tianxi-entertainment.workers.dev/admin/api/entries-upcoming-export?from=$FROM&to=$TO" \
             -o upcoming-entries.json
-          echo "Entry count: $(jq '.count' upcoming-entries.json)"
+          COUNT=$(jq -r '.count // 0' upcoming-entries.json)
+          echo "Entry count: $COUNT"
+          echo "count=$COUNT" >> $GITHUB_OUTPUT
           jq '.entries[0]' upcoming-entries.json || true
 
+      # 2026-10-26: between race days upcoming count is often 0. predict_upcoming.py
+      # exits cleanly, but lock-point verify required model-bundle → false red.
+      # Skip scoring + verify when nothing to score; keep DB/features warm.
+      - name: No upcoming — skip scoring
+        if: steps.entries.outputs.count == '0'
+        run: |
+          echo "::notice::No upcoming entries in window — nothing to score (OK until next declaration). Skipping train/verify."
+
       - name: Dump features for upcoming entries
+        if: steps.entries.outputs.count != '0'
         working-directory: tianxi-backend
         run: |
           npx tsx scripts/backtest/dump-features.ts \
@@ -268,6 +280,7 @@ jobs:
           head -2 upcoming-features.csv | cut -c1-200
 
       - name: Train LGB + predict + upload to prod
+        if: steps.entries.outputs.count != '0'
         env:
           ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN_2 }}
         working-directory: tianxi-backend
@@ -289,6 +302,7 @@ jobs:
       # 2026-09-24 鎖點 bundle 驗證：model.txt／meta.json／特徵檔／run_id 必須互相對應，
       # 缺檔或指紋不符即 fail。只讀驗證，唔改訓練、POST、α、四揀。
       - name: Verify lock-point bundle (fail-closed)
+        if: steps.entries.outputs.count != '0'
         working-directory: tianxi-backend
         env:
           RUN_ID: ${{ github.run_id }}
@@ -349,7 +363,7 @@ jobs:
           PY
 
       - name: Save model bundle cache (carry-over fallback)
-        if: success() && hashFiles('tianxi-backend/model-bundle/model.txt') != ''
+        if: success() && steps.entries.outputs.count != '0' && hashFiles('tianxi-backend/model-bundle/model.txt') != ''
         uses: actions/cache/save@v4
         with:
           path: tianxi-backend/model-bundle
@@ -357,7 +371,7 @@ jobs:
 
       # 2026-10-16: publish the verified manifest (window/gate/fingerprint) to D1. Storage only.
       - name: Publish model manifest
-        if: success()
+        if: success() && steps.entries.outputs.count != '0'
         working-directory: tianxi-backend
         env:
           ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN_2 }}
