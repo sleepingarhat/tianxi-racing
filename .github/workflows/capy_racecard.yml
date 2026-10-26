@@ -14,7 +14,7 @@ on:
   workflow_dispatch:
     inputs:
       date:
-        description: 'Race date YYYY-MM-DD (blank = today if race day, else next fixture ≤4d)'
+        description: 'Race date YYYY-MM-DD (blank = today if race day, else next fixture ≤7d)'
         required: false
         default: ''
       venue:
@@ -85,7 +85,7 @@ jobs:
 
       # 2026-10-26: scheduled runs used to only scrape "today", so a Wed card
       # published on Mon stayed at D1=0 until race day. Resolve next fixture
-      # within 4 days when today is not a meet (entries cron still helps).
+      # within 7 days when today is not a meet (entries cron still helps).
       - name: Resolve target race date
         id: target
         working-directory: ${{ github.workspace }}
@@ -109,12 +109,12 @@ jobs:
           if [ -n "$NEXT" ]; then
             # GNU date: days until next meet
             DIFF=$(( ( $(date -d "$NEXT" +%s) - $(date -d "$TODAY" +%s) ) / 86400 ))
-            if [ "$DIFF" -ge 0 ] && [ "$DIFF" -le 4 ]; then
+            if [ "$DIFF" -ge 0 ] && [ "$DIFF" -le 7 ]; then
               echo "date=$NEXT" >> "$GITHUB_OUTPUT"
-              echo "Resolved next fixture within 4d: $NEXT (diff=${DIFF}d)"
+              echo "Resolved next fixture within 7d: $NEXT (diff=${DIFF}d)"
               exit 0
             fi
-            echo "::notice::Next fixture $NEXT is ${DIFF}d away (>4) — sticking to today=$TODAY"
+            echo "::notice::Next fixture $NEXT is ${DIFF}d away (>7) — sticking to today=$TODAY"
           fi
           echo "date=$TODAY" >> "$GITHUB_OUTPUT"
           echo "Resolved fallback date=$TODAY"
