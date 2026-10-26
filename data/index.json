@@ -1,8 +1,8 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-10-25T15:50:45+00:00",
+  "generated_at": "2026-10-26T01:15:54+00:00",
   "generator": "tools/build_manifest.py",
-  "git_head": "dc467af249b428f3fafa68803f1d3631e6d37f24",
+  "git_head": "92f28987b2e31631a240c4e3566c7fd6d3bbaa19",
   "repo": "sleepingarhat/tianxi-database",
   "branch": "main",
   "base_url": {
@@ -17,9 +17,9 @@
   "summary": {
     "race_days": 951,
     "race_artefact_files": 4749,
-    "fixtures_rows": 230,
-    "horse_form_files": 6111,
-    "horse_profile_rows": 6111,
+    "fixtures_rows": 231,
+    "horse_form_files": 6129,
+    "horse_profile_rows": 6129,
     "jockey_record_files": 64,
     "jockey_profile_rows": 66,
     "trainer_profile_rows": 68,
@@ -84,18 +84,18 @@
         "2026": "data/fixtures/2026_fixtures.csv",
         "2027": "data/fixtures/2027_fixtures.csv"
       },
-      "row_count": 230,
+      "row_count": 231,
       "docs": "DATA_NOTES.md#fixtures"
     },
     "horses": {
       "profiles": {
         "path": "horses/profiles/horse_profiles.csv",
-        "row_count": 6111
+        "row_count": 6129
       },
       "form_records": {
         "dir": "horses/form_records/",
         "path_template": "horses/form_records/form_{horse_id}.csv",
-        "count": 6111,
+        "count": 6129,
         "sample": [
           "form_A001.csv",
           "form_A002.csv",
@@ -176,10 +176,10 @@
     "latest_report": "audit_reports/integrity_latest.json",
     "raw_url": "https://raw.githubusercontent.com/sleepingarhat/tianxi-database/main/audit_reports/integrity_latest.json",
     "scan_date": "2026-10-25",
-    "overall_severity": "critical",
-    "critical_gap_count": 23,
-    "warn_gap_count": 2,
-    "recommendation": "gha_next_delta_will_fix"
+    "overall_severity": "warn",
+    "critical_gap_count": 0,
+    "warn_gap_count": 49,
+    "recommendation": "monitor_no_block"
   },
   "policy": {
     "odds_weighting": "disabled (beta=0 hardcoded in win-probability model)",
