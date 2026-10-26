@@ -330,6 +330,17 @@ export function applySectionPositions(
   };
 }
 
+/** 凍結四揀 predicted_rank（1–4）；冇就 null。 */
+export function resolvePickRank(
+  horseId: string,
+  pickByHorseId: ReadonlyMap<string, number>,
+): number | null {
+  const r = pickByHorseId.get(horseId);
+  if (r == null || !Number.isFinite(r)) return null;
+  const n = Math.trunc(Number(r));
+  return n >= 1 && n <= 4 ? n : null;
+}
+
 export function pickHighlightIds(
   runners: readonly PaceRunner[],
   max = 4,

@@ -16,6 +16,7 @@ import {
   median,
   parseRunningPositions,
   pickHighlightIds,
+  resolvePickRank,
   sectionDelta,
 } from '../src/lib/lab-pace';
 import type { RunningStyleEntry } from '../src/lib/running-style';
@@ -117,6 +118,31 @@ const highlights = pickHighlightIds([
 assert.ok(highlights.has('horse_Y'));
 assert.ok(highlights.has('horse_X'));
 assert.equal(highlights.has('horse_Z'), false);
+
+const frozen = new Map([
+  ['horse_A', 1],
+  ['horse_B', 2],
+  ['horse_C', 3],
+  ['horse_D', 4],
+  ['horse_E', 5],
+]);
+assert.equal(resolvePickRank('horse_A', frozen), 1);
+assert.equal(resolvePickRank('horse_D', frozen), 4);
+assert.equal(resolvePickRank('horse_E', frozen), null);
+assert.equal(resolvePickRank('horse_missing', frozen), null);
+const fromFrozen = pickHighlightIds([
+  { ...runner, horseId: 'horse_A', pickRank: resolvePickRank('horse_A', frozen), finishingPosition: 8 },
+  { ...runner, horseId: 'horse_B', pickRank: resolvePickRank('horse_B', frozen), finishingPosition: 7 },
+  { ...runner, horseId: 'horse_C', pickRank: resolvePickRank('horse_C', frozen), finishingPosition: 6 },
+  { ...runner, horseId: 'horse_D', pickRank: resolvePickRank('horse_D', frozen), finishingPosition: 5 },
+  { ...runner, horseId: 'horse_Z', pickRank: resolvePickRank('horse_Z', frozen), finishingPosition: 1 },
+]);
+assert.ok(fromFrozen.has('horse_A'));
+assert.ok(fromFrozen.has('horse_B'));
+assert.ok(fromFrozen.has('horse_C'));
+assert.ok(fromFrozen.has('horse_D'));
+assert.equal(fromFrozen.has('horse_Z'), false);
+
 
 const byFinish = pickHighlightIds([
   { ...runner, horseId: 'horse_1', pickRank: null, finishingPosition: 1 },

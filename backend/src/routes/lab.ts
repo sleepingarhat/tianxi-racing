@@ -33,6 +33,7 @@ import {
   forecastFromLeaders,
   median,
   pickHighlightIds,
+  resolvePickRank,
   sectionDelta,
   type PaceRunner,
   type PaceSection,
@@ -73,6 +74,37 @@ async function loadRaceMeta(db: D1Database, raceId: string) {
     )
     .bind(raceId)
     .first<any>();
+}
+
+async function loadFrozenPickRanks(
+  db: D1Database,
+  date: string,
+  raceNumber: number,
+  engine = 'v12',
+): Promise<Map<string, number>> {
+  const { results } = await db
+    .prepare(
+      `SELECT horse_id, predicted_rank
+       FROM prediction_log
+       WHERE date = ?
+         AND engine = ?
+         AND variant = 'baseline'
+         AND race_number = ?
+         AND predicted_rank IS NOT NULL
+         AND predicted_rank BETWEEN 1 AND 4
+       ORDER BY predicted_rank ASC`,
+    )
+    .bind(date, engine, raceNumber)
+    .all<{ horse_id: string; predicted_rank: number }>()
+    .catch(() => ({ results: [] as { horse_id: string; predicted_rank: number }[] }));
+  const map = new Map<string, number>();
+  for (const row of results ?? []) {
+    const id = String(row.horse_id ?? '');
+    const rank = Number(row.predicted_rank);
+    if (!id || !Number.isFinite(rank)) continue;
+    map.set(id, Math.trunc(rank));
+  }
+  return map;
 }
 
 async function loadField(db: D1Database, raceId: string) {
@@ -244,6 +276,7 @@ function buildPacePayload(input: {
   horseSectionals: any[];
   classMedians: Map<number, number>;
   profile: any;
+  pickRanks: Map<string, number>;
 }) {
   const {
     raceId,
@@ -253,6 +286,7 @@ function buildPacePayload(input: {
     horseSectionals,
     classMedians,
     profile,
+    pickRanks,
   } = input;
 
   const sectionNumbers = [
@@ -341,7 +375,7 @@ function buildPacePayload(input: {
       totalRunners,
       sectionTimesByNumber: timesByHorse.get(horseId) ?? new Map(),
       sectionNumbers: effectiveSections,
-      pickRank: null,
+      pickRank: resolvePickRank(horseId, pickRanks),
     });
     return applySectionPositions(
       base,
@@ -720,7 +754,9 @@ labRoutes.get('/pace/:raceId', async (c) => {
     key: `lab-pace|${raceId}`,
     waitUntil: (p) => c.executionCtx.waitUntil(p),
     compute: async () => {
-      const [field, raceSectionals, horseSectionals, classMedians, profile] =
+      const raceNumber =
+        meta.race_number != null ? Number(meta.race_number) : NaN;
+      const [field, raceSectionals, horseSectionals, classMedians, profile, pickRanks] =
         await Promise.all([
           loadField(db, raceId),
           loadRaceSectionals(db, raceId),
@@ -732,6 +768,9 @@ labRoutes.get('/pace/:raceId', async (c) => {
             String(meta.meeting_date),
           ),
           loadPaceProfile(db, raceId),
+          Number.isFinite(raceNumber)
+            ? loadFrozenPickRanks(db, String(meta.meeting_date), raceNumber)
+            : Promise.resolve(new Map<string, number>()),
         ]);
 
       const payload = buildPacePayload({
@@ -742,6 +781,7 @@ labRoutes.get('/pace/:raceId', async (c) => {
         horseSectionals,
         classMedians,
         profile,
+        pickRanks,
       });
       const body = JSON.stringify(payload);
       return {
