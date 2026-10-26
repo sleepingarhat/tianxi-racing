@@ -26,7 +26,8 @@
     "test:cors-policy": "tsx scripts/test-cors-policy.ts",
     "test:security-guards": "bun scripts/test-security-guards.ts",
     "test:lab-h2h": "tsx scripts/test-lab-h2h.ts",
-    "test:lab-h2h-auth": "tsx scripts/test-lab-h2h-auth.ts"
+    "test:lab-h2h-auth": "tsx scripts/test-lab-h2h-auth.ts",
+    "test:notify-events": "tsx scripts/test-notify-events.ts"
   },
   "dependencies": {
     "hkjc-api": "^1.0.5",

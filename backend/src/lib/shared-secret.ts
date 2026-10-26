@@ -1,6 +1,6 @@
 // 共享密鑰（machine-to-machine）工具 —— 一個用途一個密鑰。
 //
-//   WATCH_FEED_SECRET  : Lovable（tianxi-web）→ Worker  GET /api/watch/events（Worker 係接收方）
+//   WATCH_FEED_SECRET  : Lovable（tianxi-web）→ Worker  GET /api/watch/events 同 /api/notify/events（Worker 係接收方；通知事件 feed 沿用，唔另開 secret）
 //   ALERT_HOOK_SECRET  : Worker → tianxi-web  POST /api/public/telegram-alert（Worker 係發送方）
 //   WEATHER_CRON_SECRET: 舊共用密鑰，只喺「該用途未設定專用密鑰」時先作後備。
 //

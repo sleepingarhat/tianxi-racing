@@ -22,6 +22,8 @@ import { opsRoutes } from './routes/ops';
 import { membershipRoutes, proRoutes } from './routes/membership';
 import { watchRoutes } from './routes/watch';
 import { labRoutes } from './routes/lab';
+import { notifyRoutes } from './routes/notify';
+import { emitFinalLockEvents, emitSettledDailyPnlEvents } from './lib/notify-events';
 import { getSeasonStatus } from './lib/season';
 import { refreshDataStats } from './lib/data-stats';
 import { countPredictionLogRows, findMeetingForLockTick, getMeetingLockState, LOCK_LEAD_MINUTES, lockCompletionAllowed } from './lib/lock-window';
@@ -168,6 +170,7 @@ app.route('/api/silks-svg', silksSvgRoutes);
 app.route('/api/membership', membershipRoutes);
 app.route('/api/watch', watchRoutes);
 app.route('/api/lab', labRoutes);
+app.route('/api/notify', notifyRoutes);
 app.route('/ops', opsRoutes);
 app.route('/admin', adminGateRoutes);
 app.route('/admin', adminRoutes);
@@ -290,6 +293,10 @@ app.onError((err, c) => {
       // immutable snapshot → skip the full re-verification this tick (re-checked hourly, or
       // immediately if any row is added/removed). Status stays ok=1, so lock-state is unchanged.
       if (await recentlyVerifiedOriginal(env.DB, meeting.date, 'v12')) {
+        // final 已核實：確保 notify_events 有 lock_complete／top4_lock（INSERT OR IGNORE）
+        try {
+          if (meeting.venue) await emitFinalLockEvents(env.DB, { date: meeting.date, venue: meeting.venue, edition: 'final' });
+        } catch (e) { console.warn('[notify] lock emit (verified-recent) failed', String(e)); }
         return { ok: true, action: 'verified-recent', date: meeting.date, lockAt: lock.lockAt, rows: 0 };
       }
       const recovery = await recoverOriginalFreeze(env.DB,meeting.date,meeting.venue,lock.lockAt);
@@ -306,6 +313,11 @@ app.onError((err, c) => {
             if (response.ok && receipt.sent === true) await env.DB.prepare(`INSERT OR IGNORE INTO prediction_recovery_notifications(date,event_key,sent_at) VALUES (?,?,?)`).bind(meeting.date,eventKey,new Date().toISOString()).run();
           }
         } catch { console.warn('freeze notification pending; original predictions remain blocked or unchanged'); }
+      }
+      if (recovery.ok && meeting.venue) {
+        try {
+          await emitFinalLockEvents(env.DB, { date: meeting.date, venue: meeting.venue, edition: 'final' });
+        } catch (e) { console.warn('[notify] lock emit failed', String(e)); }
       }
       return { ...recovery, date: meeting.date, lockAt: lock.lockAt };
 
@@ -481,6 +493,8 @@ app.onError((err, c) => {
           .then((r) => console.log('[cron] hit-rate refresh', r))
           .then(() => warmStrategyPnl(env))
           .then((r) => console.log('[cron] strategy-pnl warmup', r))
+          .then(() => emitSettledDailyPnlEvents(env.DB))
+          .then((r) => console.log('[cron] daily_pnl notify emit', r))
           // 11:00 HKT (03:00 UTC) is the first slot after the UTC day roll-over that keys the rollup cache.
           .then(() => (cron === '0 3 * * *' ? warmHitRateRollups(env).then((r) => console.log('[cron] hit-rate rollup warmup', r)) : undefined)),
       );
