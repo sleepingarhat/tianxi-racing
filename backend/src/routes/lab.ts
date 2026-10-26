@@ -2,6 +2,7 @@
  * Pro 研究室 API（/api/lab/*）。
  * 必須帶網站／服務唯讀 secret（X-Tianxi-Site-Token 或 X-TG-Reader-Token）；冇 → 401。
  * 會籍閘喺網站 serverFn（requireTier('pro')）；Worker 只驗 machine secret。
+ * 含 h2h / search / pace / pace-forecast / backtest / compare/baselines。
  */
 import { Hono } from 'hono';
 import type { Env } from '../types';
@@ -45,6 +46,21 @@ import {
   validateRaceId,
   type RunningStyleCode,
 } from '../lib/running-style';
+
+import {
+  compareOfficialVsElo,
+  hashParams,
+  runBacktest,
+  validateParams,
+  type BacktestResult,
+} from '../lib/lab-backtest';
+
+import {
+  getCachedBacktest,
+  loadFeatureMatrix,
+  putCachedBacktest,
+  resolveMatrixVersion,
+} from '../lib/lab-backtest-matrix';
 
 export const labRoutes = new Hono<{ Bindings: Env }>();
 
@@ -913,6 +929,130 @@ labRoutes.get('/pace-forecast/:raceId', async (c) => {
         staleMs: STALE_MS,
       };
     },
+  });
+});
+
+/** POST /api/lab/backtest — 執行（或回傳快取）自訂特徵組合回測 */
+labRoutes.post('/backtest', async (c) => {
+  const denied = await requireLabSecret(c);
+  if (denied) return denied;
+  c.header('Vary', READER_VARY);
+  c.header('Cache-Control', 'private, no-store');
+
+  let body: unknown;
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json({ error: 'invalid_json', message: '請求 body 唔係合法 JSON' }, 400);
+  }
+
+  const parsed = validateParams(body);
+  if (!parsed.ok) {
+    return c.json({ error: 'bad_request', message: parsed.error }, 400);
+  }
+
+  const matrixLoad = await loadFeatureMatrix(c.env, { preferDemo: true });
+  if (!matrixLoad.ok) {
+    return c.json(
+      { error: matrixLoad.code, message: matrixLoad.error, r2Bound: false },
+      503,
+    );
+  }
+  const matrix = matrixLoad.matrix;
+  const matrixVersion =
+    parsed.params.matrixVersion ||
+    (await resolveMatrixVersion(c.env?.DB ?? null)) ||
+    matrix.version;
+
+  const hash = await hashParams(parsed.params, matrixVersion);
+
+  if (c.env?.DB) {
+    const cached = await getCachedBacktest(c.env.DB, hash);
+    if (cached) {
+      return c.json({ hash, status: 'ready', result: cached, cached: true });
+    }
+  }
+
+  const partial = runBacktest(matrix, { ...parsed.params, matrixVersion });
+  const result: BacktestResult = {
+    ...partial,
+    hash,
+    computedAt: new Date().toISOString(),
+  };
+
+  if (c.env?.DB) {
+    c.executionCtx?.waitUntil?.(putCachedBacktest(c.env.DB, result));
+    // 無 waitUntil 時同步寫（測試／本地）
+    if (!c.executionCtx?.waitUntil) {
+      await putCachedBacktest(c.env.DB, result);
+    }
+  }
+
+  return c.json({ hash, status: 'ready', result, cached: false });
+});
+
+/** GET /api/lab/backtest/:hash — 輪詢快取結果 */
+labRoutes.get('/backtest/:hash', async (c) => {
+  const denied = await requireLabSecret(c);
+  if (denied) return denied;
+  c.header('Vary', READER_VARY);
+  c.header('Cache-Control', 'private, no-store');
+
+  const hash = (c.req.param('hash') ?? '').trim().toLowerCase();
+  if (!/^[a-f0-9]{16,64}$/.test(hash)) {
+    return c.json({ error: 'bad_request', message: 'hash 格式唔啱' }, 400);
+  }
+
+  if (!c.env?.DB) {
+    return c.json(
+      {
+        error: 'not_found',
+        message: '未有 D1：無法查快取。請用 POST /api/lab/backtest 即時計算。',
+        hash,
+      },
+      404,
+    );
+  }
+
+  const cached = await getCachedBacktest(c.env.DB, hash);
+  if (!cached) {
+    return c.json({ error: 'not_found', message: '搵唔到呢個回測結果', hash, status: 'missing' }, 404);
+  }
+  return c.json({ hash, status: 'ready', result: cached, cached: true });
+});
+
+/**
+ * GET /api/lab/compare/baselines — 功能 2 最小 stub：官方四揀 vs 純 Elo。
+ * Query: from, to（可選 pools=FF,TRIO,...）
+ */
+labRoutes.get('/compare/baselines', async (c) => {
+  const denied = await requireLabSecret(c);
+  if (denied) return denied;
+  c.header('Vary', READER_VARY);
+  c.header('Cache-Control', 'private, max-age=60');
+
+  const from = (c.req.query('from') ?? '2025-09-07').trim();
+  const to = (c.req.query('to') ?? '2026-10-04').trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(from) || !/^\d{4}-\d{2}-\d{2}$/.test(to)) {
+    return c.json({ error: 'bad_request', message: 'from／to 必須係 YYYY-MM-DD' }, 400);
+  }
+
+  const matrixLoad = await loadFeatureMatrix(c.env, { preferDemo: true });
+  if (!matrixLoad.ok) {
+    return c.json({ error: matrixLoad.code, message: matrixLoad.error }, 503);
+  }
+
+  const cmp = compareOfficialVsElo(matrixLoad.matrix, { from, to });
+  return c.json({
+    status: 'ready',
+    from,
+    to,
+    ...cmp,
+    note: '功能 2 比較器 stub：只對照官方 vs Elo。自訂策略槽見 POST /api/lab/backtest。',
+    limitations: [
+      cmp.researchNote,
+      `矩陣來源＝${cmp.matrixSource}；R2 待開。`,
+    ],
   });
 });
 
