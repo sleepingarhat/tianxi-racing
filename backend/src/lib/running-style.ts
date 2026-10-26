@@ -27,7 +27,7 @@ const STYLE_THRESHOLDS = {
   midfield: 0.7,
 } as const;
 
-const STYLE_LABELS: Record<RunningStyleCode, string> = {
+export const STYLE_LABELS: Record<RunningStyleCode, string> = {
   leader: '放',
   prominent: '前',
   midfield: '中',
@@ -70,11 +70,16 @@ function median(values: number[]): number {
     : (sorted[midpoint - 1] + sorted[midpoint]) / 2;
 }
 
-function classify(value: number): RunningStyleCode {
+export function classifyStyleFromNorm(value: number): RunningStyleCode {
   if (value <= STYLE_THRESHOLDS.leader) return 'leader';
   if (value <= STYLE_THRESHOLDS.prominent) return 'prominent';
   if (value <= STYLE_THRESHOLDS.midfield) return 'midfield';
   return 'held-up';
+}
+
+/** @deprecated use classifyStyleFromNorm */
+function classify(value: number): RunningStyleCode {
+  return classifyStyleFromNorm(value);
 }
 
 export function computeRunningStyles(
