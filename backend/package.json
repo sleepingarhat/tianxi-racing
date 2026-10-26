@@ -33,7 +33,9 @@
     "test:lab-going": "tsx scripts/test-lab-going.ts",
     "test:lab-going-auth": "tsx scripts/test-lab-going-auth.ts",
     "test:lab-pools": "tsx scripts/test-lab-pools.ts",
-    "test:lab-pools-auth": "tsx scripts/test-lab-pools-auth.ts"
+    "test:lab-pools-auth": "tsx scripts/test-lab-pools-auth.ts",
+    "test:api-v1-auth": "tsx scripts/test-api-v1-auth.ts",
+    "test:api-v1-keys": "tsx scripts/test-api-v1-keys.ts"
   },
   "dependencies": {
     "hkjc-api": "^1.0.5",
