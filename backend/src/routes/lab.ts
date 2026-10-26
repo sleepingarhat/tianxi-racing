@@ -22,6 +22,30 @@ import {
   type ResultRow,
 } from '../lib/lab-h2h';
 
+import {
+  PACE_DISCLAIMER,
+  RESEARCH_LAYER_NOTE,
+  applySectionPositions,
+  assembleRunner,
+  buildDrawStyleGrid,
+  buildPaceIndex,
+  buildStyleMix,
+  forecastFromLeaders,
+  median,
+  pickHighlightIds,
+  resolvePickRank,
+  sectionDelta,
+  type PaceRunner,
+  type PaceSection,
+} from '../lib/lab-pace';
+
+import {
+  computeRunningStyles,
+  dateFromRaceId,
+  validateRaceId,
+  type RunningStyleCode,
+} from '../lib/running-style';
+
 export const labRoutes = new Hono<{ Bindings: Env }>();
 
 const FRESH_MS = 10 * 60_000;
@@ -36,6 +60,372 @@ async function requireLabSecret(c: any): Promise<Response | null> {
     { error: 'unauthorized', message: '此研究室 API 需要服務憑證' },
     401,
   );
+}
+
+async function loadRaceMeta(db: D1Database, raceId: string) {
+  return db
+    .prepare(
+      `SELECT r.id, r.race_number, r.class, r.distance, r.going, r.track, r.course,
+              rm.date AS meeting_date, rm.venue
+       FROM races r
+       JOIN race_meetings rm ON rm.id = r.meeting_id
+       WHERE r.id = ?
+       LIMIT 1`,
+    )
+    .bind(raceId)
+    .first<any>();
+}
+
+async function loadFrozenPickRanks(
+  db: D1Database,
+  date: string,
+  raceNumber: number,
+  engine = 'v12',
+): Promise<Map<string, number>> {
+  const { results } = await db
+    .prepare(
+      `SELECT horse_id, predicted_rank
+       FROM prediction_log
+       WHERE date = ?
+         AND engine = ?
+         AND variant = 'baseline'
+         AND race_number = ?
+         AND predicted_rank IS NOT NULL
+         AND predicted_rank BETWEEN 1 AND 4
+       ORDER BY predicted_rank ASC`,
+    )
+    .bind(date, engine, raceNumber)
+    .all<{ horse_id: string; predicted_rank: number }>()
+    .catch(() => ({ results: [] as { horse_id: string; predicted_rank: number }[] }));
+  const map = new Map<string, number>();
+  for (const row of results ?? []) {
+    const id = String(row.horse_id ?? '');
+    const rank = Number(row.predicted_rank);
+    if (!id || !Number.isFinite(rank)) continue;
+    map.set(id, Math.trunc(rank));
+  }
+  return map;
+}
+
+async function loadField(db: D1Database, raceId: string) {
+  const { results } = await db
+    .prepare(
+      `SELECT rr.horse_id, rr.horse_number, rr.draw, rr.finishing_position,
+              rr.running_position, rr.actual_weight,
+              h.name_ch, h.name_en, h.code
+       FROM race_results rr
+       JOIN horses h ON h.id = rr.horse_id
+       WHERE rr.race_id = ?
+       ORDER BY rr.horse_number ASC`,
+    )
+    .bind(raceId)
+    .all<any>();
+  return results ?? [];
+}
+
+async function loadHorseSectionals(db: D1Database, raceId: string) {
+  const { results } = await db
+    .prepare(
+      `SELECT horse_id, section_number, section_time, position_at_section
+       FROM horse_sectional_times
+       WHERE race_id = ?
+       ORDER BY section_number ASC`,
+    )
+    .bind(raceId)
+    .all<any>();
+  return results ?? [];
+}
+
+async function loadRaceSectionals(db: D1Database, raceId: string) {
+  const { results } = await db
+    .prepare(
+      `SELECT section_number, section_distance, section_time, cumulative_time
+       FROM sectional_times
+       WHERE race_id = ?
+       ORDER BY section_number ASC`,
+    )
+    .bind(raceId)
+    .all<any>();
+  return results ?? [];
+}
+
+/** 同程同班歷史分段中位數（每段）；最多取近 80 場。 */
+async function loadClassSectionMedians(
+  db: D1Database,
+  distance: number | null,
+  raceClass: string | null,
+  beforeDate: string,
+): Promise<Map<number, number>> {
+  const out = new Map<number, number>();
+  if (distance == null || !Number.isFinite(distance)) return out;
+  try {
+    const { results } = await db
+      .prepare(
+        `SELECT st.section_number AS section_number, st.section_time AS section_time
+         FROM sectional_times st
+         JOIN races r ON r.id = st.race_id
+         JOIN race_meetings rm ON rm.id = r.meeting_id
+         WHERE r.distance = ?
+           AND (? IS NULL OR r.class = ?)
+           AND rm.date < ?
+           AND st.section_time IS NOT NULL
+         ORDER BY rm.date DESC
+         LIMIT 480`,
+      )
+      .bind(distance, raceClass, raceClass, beforeDate)
+      .all<any>();
+    const buckets = new Map<number, number[]>();
+    for (const row of results ?? []) {
+      const n = Number(row.section_number);
+      const t = Number(row.section_time);
+      if (!Number.isFinite(n) || !Number.isFinite(t)) continue;
+      const list = buckets.get(n) ?? [];
+      if (list.length >= 80) continue;
+      list.push(t);
+      buckets.set(n, list);
+    }
+    for (const [n, vals] of buckets) {
+      const m = median(vals);
+      if (m != null) out.set(n, m);
+    }
+  } catch {
+    // 表缺欄時安靜降級
+  }
+  return out;
+}
+
+async function loadPaceProfile(db: D1Database, raceId: string) {
+  try {
+    return await db
+      .prepare(
+        `SELECT race_id, early_idx, mid_idx, late_idx, pace_label, n_leaders, computed_at
+         FROM race_pace_profile WHERE race_id = ? LIMIT 1`,
+      )
+      .bind(raceId)
+      .first<any>();
+  } catch {
+    return null;
+  }
+}
+
+async function loadRunningStylesForField(
+  db: D1Database,
+  horseIds: string[],
+  cutoffDate: string,
+) {
+  if (!horseIds.length) return [];
+  const placeholders = horseIds.map(() => '?').join(',');
+  let formRows: any[] = [];
+  let resultRows: any[] = [];
+  try {
+    const response = await db
+      .prepare(
+        `SELECT horse_id, race_date, venue, race_number,
+                running_position, total_runners
+         FROM horse_form_records
+         WHERE horse_id IN (${placeholders})
+           AND race_date < ?
+           AND running_position IS NOT NULL
+           AND running_position != ''
+         ORDER BY race_date DESC, race_number DESC`,
+      )
+      .bind(...horseIds, cutoffDate)
+      .all<any>();
+    formRows = response.results ?? [];
+  } catch {
+    formRows = [];
+  }
+  try {
+    const response = await db
+      .prepare(
+        `SELECT rr.horse_id,
+                rm.date AS race_date,
+                rm.venue,
+                r.race_number,
+                rr.running_position,
+                (
+                  SELECT COUNT(*) FROM race_results field
+                  WHERE field.race_id = rr.race_id
+                ) AS total_runners
+         FROM race_results rr
+         JOIN races r ON r.id = rr.race_id
+         JOIN race_meetings rm ON rm.id = r.meeting_id
+         WHERE rr.horse_id IN (${placeholders})
+           AND rm.date < ?
+           AND rr.running_position IS NOT NULL
+           AND rr.running_position != ''
+         ORDER BY rm.date DESC, r.race_number DESC`,
+      )
+      .bind(...horseIds, cutoffDate)
+      .all<any>();
+    resultRows = response.results ?? [];
+  } catch {
+    resultRows = [];
+  }
+  return computeRunningStyles([
+    ...formRows.map((row) => ({ ...row, source_priority: 0 })),
+    ...resultRows.map((row) => ({ ...row, source_priority: 1 })),
+  ]);
+}
+
+function buildPacePayload(input: {
+  raceId: string;
+  meta: any;
+  field: any[];
+  raceSectionals: any[];
+  horseSectionals: any[];
+  classMedians: Map<number, number>;
+  profile: any;
+  pickRanks: Map<string, number>;
+}) {
+  const {
+    raceId,
+    meta,
+    field,
+    raceSectionals,
+    horseSectionals,
+    classMedians,
+    profile,
+    pickRanks,
+  } = input;
+
+  const sectionNumbers = [
+    ...new Set([
+      ...raceSectionals.map((s: any) => Number(s.section_number)),
+      ...horseSectionals.map((s: any) => Number(s.section_number)),
+    ]),
+  ]
+    .filter((n) => Number.isFinite(n) && n >= 1)
+    .sort((a, b) => a - b);
+
+  let effectiveSections = sectionNumbers;
+  if (!effectiveSections.length) {
+    let maxPosLen = 0;
+    for (const row of field) {
+      const raw = String(row.running_position ?? '').trim();
+      if (!raw) continue;
+      const len = raw.split(/[-\s]+/).filter(Boolean).length;
+      if (len > maxPosLen) maxPosLen = len;
+    }
+    const stages = Math.max(0, maxPosLen - 1);
+    effectiveSections = Array.from({ length: stages }, (_, i) => i + 1);
+  }
+
+  const sections: PaceSection[] = effectiveSections.map((n) => {
+    const raceRow = raceSectionals.find(
+      (s: any) => Number(s.section_number) === n,
+    );
+    const raceTime =
+      raceRow?.section_time != null ? Number(raceRow.section_time) : null;
+    const classMedian = classMedians.get(n) ?? null;
+    return {
+      sectionNumber: n,
+      distance:
+        raceRow?.section_distance != null
+          ? Number(raceRow.section_distance)
+          : null,
+      raceTime: Number.isFinite(raceTime as number) ? raceTime : null,
+      classMedian,
+      deltaVsMedian: sectionDelta(
+        Number.isFinite(raceTime as number) ? raceTime : null,
+        classMedian,
+      ),
+    };
+  });
+
+  const hasSectionals =
+    horseSectionals.length > 0 || raceSectionals.length > 0;
+  const totalRunners = field.length || null;
+
+  const timesByHorse = new Map<string, Map<number, number | null>>();
+  const posByHorse = new Map<string, Map<number, number | null>>();
+  for (const row of horseSectionals) {
+    const hid = String(row.horse_id);
+    if (!timesByHorse.has(hid)) timesByHorse.set(hid, new Map());
+    if (!posByHorse.has(hid)) posByHorse.set(hid, new Map());
+    timesByHorse
+      .get(hid)!
+      .set(
+        Number(row.section_number),
+        row.section_time != null ? Number(row.section_time) : null,
+      );
+    posByHorse
+      .get(hid)!
+      .set(
+        Number(row.section_number),
+        row.position_at_section != null
+          ? Number(row.position_at_section)
+          : null,
+      );
+  }
+
+  const runners: PaceRunner[] = field.map((row: any) => {
+    const horseId = String(row.horse_id);
+    const base = assembleRunner({
+      horseId,
+      horseNumber: row.horse_number != null ? Number(row.horse_number) : null,
+      nameCh: row.name_ch ?? null,
+      nameEn: row.name_en ?? null,
+      draw: row.draw != null ? Number(row.draw) : null,
+      finishingPosition:
+        row.finishing_position != null
+          ? Number(row.finishing_position)
+          : null,
+      runningPosition: row.running_position ?? null,
+      totalRunners,
+      sectionTimesByNumber: timesByHorse.get(horseId) ?? new Map(),
+      sectionNumbers: effectiveSections,
+      pickRank: resolvePickRank(horseId, pickRanks),
+    });
+    return applySectionPositions(
+      base,
+      effectiveSections,
+      posByHorse.get(horseId) ?? new Map(),
+      totalRunners,
+    );
+  });
+
+  const highlightIds = pickHighlightIds(runners);
+
+  return {
+    raceId,
+    meta: {
+      date: String(meta.meeting_date),
+      venue: meta.venue ?? null,
+      raceNumber: meta.race_number != null ? Number(meta.race_number) : null,
+      class: meta.class ?? null,
+      distance: meta.distance != null ? Number(meta.distance) : null,
+      going: meta.going ?? null,
+      track: meta.track ?? null,
+      course: meta.course ?? null,
+    },
+    hasSectionals,
+    sections,
+    runners: runners.map((r) => ({
+      ...r,
+      highlight: highlightIds.has(r.horseId),
+    })),
+    paceIndex: (() => {
+      if (profile) {
+        return {
+          early: profile.early_idx != null ? Number(profile.early_idx) : null,
+          mid: profile.mid_idx != null ? Number(profile.mid_idx) : null,
+          late: profile.late_idx != null ? Number(profile.late_idx) : null,
+          label: (profile.pace_label as '快' | '中' | '慢' | null) ?? null,
+          source: 'profile' as const,
+        };
+      }
+      return buildPaceIndex(sections.map((s) => s.deltaVsMedian));
+    })(),
+    notes: {
+      disclaimer: PACE_DISCLAIMER,
+      research: RESEARCH_LAYER_NOTE,
+      missingSectionals: hasSectionals
+        ? null
+        : '舊賽事缺分段時間，只顯示沿途走位數字',
+    },
+    metaGeneratedAt: new Date().toISOString(),
+  };
 }
 
 function entityCol(type: H2hType): string {
@@ -339,4 +729,191 @@ labRoutes.get('/search', async (c) => {
 });
 
 // re-export header names for tests
+
+/** GET /api/lab/pace/:raceId — 已完場分段＋走位（Pro／service secret） */
+labRoutes.get('/pace/:raceId', async (c) => {
+  const denied = await requireLabSecret(c);
+  if (denied) return denied;
+
+  const raceId = (c.req.param('raceId') ?? '').trim();
+  if (!validateRaceId(raceId)) {
+    return c.json({ error: 'raceId 格式唔啱（race_YYYY-MM-DD_ST|HV_N）' }, 400);
+  }
+
+  c.header('Vary', READER_VARY);
+
+  const meta = await loadRaceMeta(c.env.DB, raceId);
+  if (!meta) {
+    c.header('Cache-Control', 'private, no-store');
+    return c.json({ error: 'not_found', message: '搵唔到該場賽事' }, 404);
+  }
+
+  const db = c.env.DB;
+  return cachedJson({
+    request: c.req.raw,
+    key: `lab-pace|${raceId}`,
+    waitUntil: (p) => c.executionCtx.waitUntil(p),
+    compute: async () => {
+      const raceNumber =
+        meta.race_number != null ? Number(meta.race_number) : NaN;
+      const [field, raceSectionals, horseSectionals, classMedians, profile, pickRanks] =
+        await Promise.all([
+          loadField(db, raceId),
+          loadRaceSectionals(db, raceId),
+          loadHorseSectionals(db, raceId),
+          loadClassSectionMedians(
+            db,
+            meta.distance != null ? Number(meta.distance) : null,
+            meta.class ?? null,
+            String(meta.meeting_date),
+          ),
+          loadPaceProfile(db, raceId),
+          Number.isFinite(raceNumber)
+            ? loadFrozenPickRanks(db, String(meta.meeting_date), raceNumber)
+            : Promise.resolve(new Map<string, number>()),
+        ]);
+
+      const payload = buildPacePayload({
+        raceId,
+        meta,
+        field,
+        raceSectionals,
+        horseSectionals,
+        classMedians,
+        profile,
+        pickRanks,
+      });
+      const body = JSON.stringify(payload);
+      return {
+        body,
+        etag: await jsonEtag(body),
+        cacheControl: CACHE_CONTROL,
+        cacheable: true,
+        freshMs: FRESH_MS,
+        staleMs: STALE_MS,
+      };
+    },
+  });
+});
+
+/** GET /api/lab/pace-forecast/:raceId — 今場跑法組成＋節奏提示 */
+labRoutes.get('/pace-forecast/:raceId', async (c) => {
+  const denied = await requireLabSecret(c);
+  if (denied) return denied;
+
+  const raceId = (c.req.param('raceId') ?? '').trim();
+  if (!validateRaceId(raceId)) {
+    return c.json({ error: 'raceId 格式唔啱（race_YYYY-MM-DD_ST|HV_N）' }, 400);
+  }
+
+  c.header('Vary', READER_VARY);
+
+  const meta = await loadRaceMeta(c.env.DB, raceId);
+  if (!meta) {
+    c.header('Cache-Control', 'private, no-store');
+    return c.json({ error: 'not_found', message: '搵唔到該場賽事' }, 404);
+  }
+
+  const db = c.env.DB;
+  const fieldEarly = await loadField(db, raceId);
+  if (!fieldEarly.length) {
+    c.header('Cache-Control', 'private, no-store');
+    return c.json(
+      { error: 'empty_field', message: '此場尚未有出賽名單', raceId },
+      404,
+    );
+  }
+
+  return cachedJson({
+    request: c.req.raw,
+    key: `lab-pace-forecast|${raceId}`,
+    waitUntil: (p) => c.executionCtx.waitUntil(p),
+    compute: async () => {
+      const field = await loadField(db, raceId);
+      if (!field.length) {
+        // 競態：名單被清空；唔入 cache
+        const empty = JSON.stringify({
+          error: 'empty_field',
+          message: '此場尚未有出賽名單',
+          raceId,
+        });
+        return {
+          body: empty,
+          etag: await jsonEtag(empty),
+          cacheControl: 'private, no-store',
+          cacheable: false,
+          freshMs: 0,
+          staleMs: 0,
+        };
+      }
+
+      const horseIds = field.map((r: any) => String(r.horse_id));
+      const cutoff = dateFromRaceId(raceId);
+      const styles = await loadRunningStylesForField(db, horseIds, cutoff);
+      const styleByHorse = new Map(styles.map((s) => [s.horseId, s]));
+      const mix = buildStyleMix(styles, field.length);
+      const forecast = forecastFromLeaders(mix.nLeaders);
+
+      const drawGrid = buildDrawStyleGrid(
+        field.map((row: any) => {
+          const hid = String(row.horse_id);
+          const st = styleByHorse.get(hid);
+          return {
+            horseId: hid,
+            horseNumber:
+              row.horse_number != null ? Number(row.horse_number) : null,
+            nameCh: row.name_ch ?? null,
+            draw: row.draw != null ? Number(row.draw) : null,
+            style: (st?.code as RunningStyleCode | undefined) ?? null,
+          };
+        }),
+      );
+
+      const payload = {
+        raceId,
+        meta: {
+          date: String(meta.meeting_date),
+          venue: meta.venue ?? null,
+          raceNumber:
+            meta.race_number != null ? Number(meta.race_number) : null,
+          class: meta.class ?? null,
+          distance: meta.distance != null ? Number(meta.distance) : null,
+          going: meta.going ?? null,
+        },
+        styleMix: mix,
+        forecast: forecast.forecast,
+        rationale: forecast.rationale,
+        rule: forecast.rule,
+        disclaimer: forecast.disclaimer,
+        researchNote: RESEARCH_LAYER_NOTE,
+        drawStyle: drawGrid,
+        runners: field.map((row: any) => {
+          const hid = String(row.horse_id);
+          const st = styleByHorse.get(hid);
+          return {
+            horseId: hid,
+            horseNumber:
+              row.horse_number != null ? Number(row.horse_number) : null,
+            nameCh: row.name_ch ?? null,
+            draw: row.draw != null ? Number(row.draw) : null,
+            style: st?.code ?? null,
+            styleLabel: st?.label ?? '未知',
+            sampleCount: st?.sampleCount ?? 0,
+          };
+        }),
+        metaGeneratedAt: new Date().toISOString(),
+      };
+      const body = JSON.stringify(payload);
+      return {
+        body,
+        etag: await jsonEtag(body),
+        cacheControl: CACHE_CONTROL,
+        cacheable: true,
+        freshMs: FRESH_MS,
+        staleMs: STALE_MS,
+      };
+    },
+  });
+});
+
 export { SITE_READER_HEADER, TG_READER_HEADER };
