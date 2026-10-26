@@ -14,7 +14,7 @@ on:
   workflow_dispatch:
     inputs:
       date:
-        description: 'Race date YYYY-MM-DD (blank = auto from API)'
+        description: 'Race date YYYY-MM-DD (blank = today if race day, else next fixture ≤4d)'
         required: false
         default: ''
       venue:
@@ -83,15 +83,52 @@ jobs:
             console.log('schema applied');
           "
 
+      # 2026-10-26: scheduled runs used to only scrape "today", so a Wed card
+      # published on Mon stayed at D1=0 until race day. Resolve next fixture
+      # within 4 days when today is not a meet (entries cron still helps).
+      - name: Resolve target race date
+        id: target
+        working-directory: ${{ github.workspace }}
+        run: |
+          set -eu
+          DATE="${{ inputs.date }}"
+          TODAY=$(TZ=Asia/Hong_Kong date +%Y-%m-%d)
+          if [ -n "$DATE" ]; then
+            echo "date=$DATE" >> "$GITHUB_OUTPUT"
+            echo "Resolved explicit date=$DATE"
+            exit 0
+          fi
+          RC=0
+          python3 fixture_guard.py check-date "$TODAY" >/dev/null 2>&1 || RC=$?
+          if [ "$RC" -eq 0 ] || [ "$RC" -eq 20 ]; then
+            echo "date=$TODAY" >> "$GITHUB_OUTPUT"
+            echo "Resolved today race-day date=$TODAY"
+            exit 0
+          fi
+          NEXT=$(python3 fixture_guard.py next-meets 1 | awk '{print $1; exit}')
+          if [ -n "$NEXT" ]; then
+            # GNU date: days until next meet
+            DIFF=$(( ( $(date -d "$NEXT" +%s) - $(date -d "$TODAY" +%s) ) / 86400 ))
+            if [ "$DIFF" -ge 0 ] && [ "$DIFF" -le 4 ]; then
+              echo "date=$NEXT" >> "$GITHUB_OUTPUT"
+              echo "Resolved next fixture within 4d: $NEXT (diff=${DIFF}d)"
+              exit 0
+            fi
+            echo "::notice::Next fixture $NEXT is ${DIFF}d away (>4) — sticking to today=$TODAY"
+          fi
+          echo "date=$TODAY" >> "$GITHUB_OUTPUT"
+          echo "Resolved fallback date=$TODAY"
+
       - name: Scrape race card from HKJC API
         id: scrape
         env:
           GITHUB_SHA: ${{ github.sha }}
           SCRATCHED_SQL_OUT: /tmp/delete-scratched.sql
+          TARGET_DATE: ${{ steps.target.outputs.date }}
         run: |
           set -eu
           ARGS=""
-          if [ -n "${{ inputs.date }}" ];     then ARGS="$ARGS --date=${{ inputs.date }}";   fi
+          if [ -n "$TARGET_DATE" ]; then ARGS="$ARGS --date=$TARGET_DATE"; fi
           if [ -n "${{ inputs.venue }}" ];    then ARGS="$ARGS --venue=${{ inputs.venue }}"; fi
           if [ "${{ inputs.dry_run }}" = "true" ]; then ARGS="$ARGS --dry-run"; fi
           set +e
@@ -121,10 +158,9 @@ jobs:
           ROWS: ${{ steps.scrape.outputs.rows || '0' }}
         run: |
           set -eu
-          DATE="${{ inputs.date }}"
+          DATE="${{ steps.target.outputs.date }}"
           if [ -z "$DATE" ]; then DATE=$(TZ=Asia/Hong_Kong date +%Y-%m-%d); fi
-          # Also accept next meeting from season API when today is not a meet
-          # but schedule fired for pre-declare refresh — only fail when DATE is race day.
+          # Fail closed only when the resolved target date is a fixture race day.
           bash scripts/ci/assert_collected_rows.sh "${ROWS:-0}" "$DATE"
 
       - name: Resolve --since window
