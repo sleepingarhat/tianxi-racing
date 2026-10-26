@@ -2,7 +2,7 @@
  * Pro 研究室 API（/api/lab/*）。
  * 必須帶網站／服務唯讀 secret（X-Tianxi-Site-Token 或 X-TG-Reader-Token）；冇 → 401。
  * 會籍閘喺網站 serverFn（requireTier('pro')）；Worker 只驗 machine secret。
- * 含 h2h / search / pace / pace-forecast / backtest / compare/baselines。
+ * 含 h2h / search / pace / pace-forecast / backtest / compare/baselines / going / weather。
  */
 import { Hono } from 'hono';
 import type { Env } from '../types';
@@ -61,6 +61,24 @@ import {
   putCachedBacktest,
   resolveMatrixVersion,
 } from '../lib/lab-backtest-matrix';
+
+import {
+  GOING_DISCLAIMER,
+  HISTORY_SINCE,
+  MIN_SAMPLE_RACES,
+  PENDING_GOING,
+  RESEARCH_LAYER_NOTE as RESEARCH_LAYER_NOTE_GOING,
+  buildDrawHeatmap,
+  buildStyleBias,
+  buildSuitedHorses,
+  normalizeGoingBucket,
+  parseCourse,
+  parseDistance,
+  parseVenue,
+  type FieldHorse,
+  type HorseGoingStat,
+  type RawGoingResult,
+} from '../lib/lab-going';
 
 export const labRoutes = new Hono<{ Bindings: Env }>();
 
@@ -1054,6 +1072,386 @@ labRoutes.get('/compare/baselines', async (c) => {
       `矩陣來源＝${cmp.matrixSource}；R2 待開。`,
     ],
   });
+});
+
+/** GET /api/lab/going?venue=&course=&distance=&going=&meetingId= */
+labRoutes.get('/going', async (c) => {
+  const denied = await requireLabSecret(c);
+  if (denied) return denied;
+
+  const venue = parseVenue(c.req.query('venue'));
+  if (!venue) {
+    return c.json({ error: 'venue 必須係 ST 或 HV' }, 400);
+  }
+  const course = parseCourse(c.req.query('course'));
+  const distance = parseDistance(c.req.query('distance'));
+  const goingRaw = c.req.query('going')?.trim() || null;
+  const goingBucket = normalizeGoingBucket(goingRaw);
+  const meetingId = (c.req.query('meetingId') || '').trim() || null;
+
+  const db = c.env.DB;
+  if (!db) {
+    return c.json({ error: 'database unavailable' }, 503);
+  }
+
+  const cacheKey = `lab:going:v1:${venue}:${course ?? ''}:${distance ?? ''}:${goingBucket ?? ''}:${meetingId ?? ''}`;
+
+  return cachedJson({
+    request: c.req.raw,
+    key: cacheKey,
+    waitUntil: (p) => {
+      try {
+        c.executionCtx.waitUntil(p);
+      } catch {
+        /* test stub may lack executionCtx */
+      }
+    },
+    compute: async () => {
+      let effectiveGoing = goingBucket;
+      let goingStatus: 'ok' | 'pending' | 'fallback' = goingBucket ? 'ok' : 'pending';
+      let fallbackGoing: string | null = null;
+
+      if (!effectiveGoing) {
+        const last = await db
+          .prepare(
+            `SELECT r.going
+             FROM races r
+             JOIN race_meetings rm ON rm.id = r.meeting_id
+             WHERE rm.venue = ?
+               AND r.going IS NOT NULL
+               AND TRIM(r.going) != ''
+               AND r.going != ?
+             ORDER BY rm.date DESC, r.race_number DESC
+             LIMIT 1`,
+          )
+          .bind(venue, PENDING_GOING)
+          .first<{ going: string }>()
+          .catch(() => null);
+        fallbackGoing = last?.going ? normalizeGoingBucket(last.going) : null;
+        effectiveGoing = fallbackGoing;
+        goingStatus = fallbackGoing ? 'fallback' : 'pending';
+      }
+
+      const clauses: string[] = [
+        'rm.date >= ?',
+        'rm.venue = ?',
+        'rr.finishing_position IS NOT NULL',
+        'rr.finishing_position >= 1',
+        'rr.finishing_position < 90',
+        'rr.draw IS NOT NULL',
+        'rr.draw BETWEEN 1 AND 14',
+      ];
+      const binds: unknown[] = [HISTORY_SINCE, venue];
+
+      if (course) {
+        clauses.push('r.course = ?');
+        binds.push(course);
+      }
+      if (distance != null) {
+        clauses.push('r.distance = ?');
+        binds.push(distance);
+      }
+      if (effectiveGoing) {
+        clauses.push('r.going IS NOT NULL');
+      }
+
+      const where = clauses.join(' AND ');
+      const sql =
+        `SELECT rr.draw AS draw,
+               r.distance AS distance,
+               rr.finishing_position AS finishing_position,
+               rr.running_position AS running_position,
+               rr.horse_id AS horse_id,
+               r.id AS race_id,
+               r.going AS going,
+               (SELECT COUNT(*) FROM race_results rr2 WHERE rr2.race_id = r.id) AS field_size
+        FROM race_results rr
+        JOIN races r ON r.id = rr.race_id
+        JOIN race_meetings rm ON rm.id = r.meeting_id
+        WHERE ` + where;
+
+      const { results } = await db
+        .prepare(sql)
+        .bind(...binds)
+        .all<any>()
+        .catch(() => ({ results: [] as any[] }));
+
+      const filtered: RawGoingResult[] = [];
+      for (const row of results ?? []) {
+        if (effectiveGoing) {
+          const bucket = normalizeGoingBucket(row.going);
+          if (bucket !== effectiveGoing) continue;
+        }
+        filtered.push({
+          draw: row.draw == null ? null : Number(row.draw),
+          distance: row.distance == null ? null : Number(row.distance),
+          finishingPosition:
+            row.finishing_position == null ? null : Number(row.finishing_position),
+          runningPosition: row.running_position ?? null,
+          horseId: String(row.horse_id ?? ''),
+          raceId: String(row.race_id ?? ''),
+          fieldSize: row.field_size == null ? null : Number(row.field_size),
+        });
+      }
+
+      const heatmap = buildDrawHeatmap(filtered, { minSample: MIN_SAMPLE_RACES });
+      const styleBias = buildStyleBias(filtered, { minSample: MIN_SAMPLE_RACES });
+
+      let suited: ReturnType<typeof buildSuitedHorses> = [];
+      let suitedNote: string | null = null;
+      if (meetingId && effectiveGoing) {
+        const fieldRows = await db
+          .prepare(
+            `SELECT rr.horse_id, rr.horse_number, rr.draw, h.name_ch, h.name_en
+             FROM race_results rr
+             JOIN horses h ON h.id = rr.horse_id
+             JOIN races r ON r.id = rr.race_id
+             WHERE r.meeting_id = ?
+             ORDER BY r.race_number ASC, rr.horse_number ASC`,
+          )
+          .bind(meetingId)
+          .all<any>()
+          .catch(() => ({ results: [] as any[] }));
+
+        let field: FieldHorse[] = (fieldRows.results ?? []).map((r) => ({
+          horseId: String(r.horse_id),
+          horseNumber: r.horse_number == null ? null : Number(r.horse_number),
+          nameCh: r.name_ch ?? null,
+          nameEn: r.name_en ?? null,
+          draw: r.draw == null ? null : Number(r.draw),
+        }));
+
+        if (field.length === 0) {
+          const meetMeta = await db
+            .prepare(`SELECT date, venue FROM race_meetings WHERE id = ? LIMIT 1`)
+            .bind(meetingId)
+            .first<{ date: string; venue: string }>()
+            .catch(() => null);
+          if (meetMeta) {
+            const ent = await db
+              .prepare(
+                `SELECT e.horse_id, e.horse_number, e.draw, h.name_ch, h.name_en
+                 FROM entries_upcoming e
+                 LEFT JOIN horses h ON h.id = e.horse_id
+                 WHERE e.race_date = ? AND e.venue = ?
+                   AND e.horse_id IS NOT NULL
+                 ORDER BY e.race_number ASC, e.horse_number ASC`,
+              )
+              .bind(meetMeta.date, meetMeta.venue)
+              .all<any>()
+              .catch(() => ({ results: [] as any[] }));
+            field = (ent.results ?? []).map((r) => ({
+              horseId: String(r.horse_id),
+              horseNumber: r.horse_number == null ? null : Number(r.horse_number),
+              nameCh: r.name_ch ?? null,
+              nameEn: r.name_en ?? null,
+              draw: r.draw == null ? null : Number(r.draw),
+            }));
+          }
+        }
+
+        const horseIds = [...new Set(field.map((f) => f.horseId))];
+        if (horseIds.length > 0) {
+          const placeholders = horseIds.map(() => '?').join(',');
+          const histSql =
+            `SELECT rr.horse_id AS horse_id,
+                    r.going AS going,
+                    rr.finishing_position AS finishing_position
+             FROM race_results rr
+             JOIN races r ON r.id = rr.race_id
+             JOIN race_meetings rm ON rm.id = r.meeting_id
+             WHERE rm.date >= ?
+               AND rr.horse_id IN (` +
+            placeholders +
+            `)
+               AND rr.finishing_position IS NOT NULL
+               AND rr.finishing_position >= 1
+               AND rr.finishing_position < 90`;
+          const { results: hist } = await db
+            .prepare(histSql)
+            .bind(HISTORY_SINCE, ...horseIds)
+            .all<any>()
+            .catch(() => ({ results: [] as any[] }));
+
+          const statsMap = new Map<string, HorseGoingStat>();
+          for (const id of horseIds) {
+            statsMap.set(id, {
+              horseId: id,
+              goingStarts: 0,
+              goingTop3: 0,
+              overallStarts: 0,
+              overallTop3: 0,
+            });
+          }
+          for (const row of hist ?? []) {
+            const id = String(row.horse_id);
+            const s = statsMap.get(id);
+            if (!s) continue;
+            const pos = Number(row.finishing_position);
+            s.overallStarts += 1;
+            if (pos <= 3) s.overallTop3 += 1;
+            if (normalizeGoingBucket(row.going) === effectiveGoing) {
+              s.goingStarts += 1;
+              if (pos <= 3) s.goingTop3 += 1;
+            }
+          }
+          suited = buildSuitedHorses(field, [...statsMap.values()]);
+        } else {
+          suitedNote = '此賽日尚未有出賽名單';
+        }
+      } else if (!meetingId) {
+        suitedNote = '提供 meetingId 可生成「今日合地」研究名單';
+      } else {
+        suitedNote = '地況待公佈，暫未能計合地名單';
+      }
+
+      const payload = {
+        filters: {
+          venue,
+          course,
+          distance,
+          goingRequested: goingRaw,
+          goingEffective: effectiveGoing,
+          goingStatus,
+          fallbackGoing,
+          since: HISTORY_SINCE,
+          meetingId,
+        },
+        heatmap,
+        styleBias,
+        suited,
+        suitedNote,
+        notes: {
+          disclaimer: GOING_DISCLAIMER,
+          research: RESEARCH_LAYER_NOTE_GOING,
+          pendingGoing: goingStatus !== 'ok' ? PENDING_GOING : null,
+          sparseRule: `樣本少於 ${MIN_SAMPLE_RACES} 場嘅格呈灰色`,
+        },
+        metaGeneratedAt: new Date().toISOString(),
+        layer: 'research' as const,
+        source: 'on_demand' as const,
+      };
+
+      const body = JSON.stringify(payload);
+      return {
+        body,
+        etag: await jsonEtag(body),
+        cacheControl: CACHE_CONTROL,
+        cacheable: true,
+        freshMs: FRESH_MS,
+        staleMs: STALE_MS,
+      };
+    },
+  });
+});
+
+/** GET /api/lab/weather/:meetingId — 快照序列（D1 weather_snapshots；冇表／冇資料 → 空陣列＋會議地況） */
+labRoutes.get('/weather/:meetingId', async (c) => {
+  const denied = await requireLabSecret(c);
+  if (denied) return denied;
+
+  const meetingId = String(c.req.param('meetingId') || '').trim();
+  if (!meetingId || meetingId.length > 64) {
+    return c.json({ error: 'meetingId 唔啱' }, 400);
+  }
+
+  const db = c.env.DB;
+  if (!db) {
+    return c.json({ error: 'database unavailable' }, 503);
+  }
+
+  const meeting = await db
+    .prepare(
+      `SELECT id, date, venue, track_condition, weather, total_races
+       FROM race_meetings WHERE id = ? LIMIT 1`,
+    )
+    .bind(meetingId)
+    .first<any>()
+    .catch(() => null);
+
+  if (!meeting) {
+    return c.json({ error: 'not_found', message: '搵唔到該賽日' }, 404);
+  }
+
+  const goingPending =
+    !meeting.track_condition ||
+    String(meeting.track_condition).trim() === '' ||
+    String(meeting.track_condition).trim() === PENDING_GOING;
+
+  let lastSameVenueGoing: string | null = null;
+  if (goingPending) {
+    const last = await db
+      .prepare(
+        `SELECT track_condition FROM race_meetings
+         WHERE venue = ? AND id != ?
+           AND track_condition IS NOT NULL
+           AND TRIM(track_condition) != ''
+           AND track_condition != ?
+         ORDER BY date DESC LIMIT 1`,
+      )
+      .bind(meeting.venue, meetingId, PENDING_GOING)
+      .first<{ track_condition: string }>()
+      .catch(() => null);
+    lastSameVenueGoing = last?.track_condition
+      ? normalizeGoingBucket(last.track_condition)
+      : null;
+  }
+
+  let snapshots: any[] = [];
+  let weatherError: string | null = null;
+  try {
+    const { results } = await db
+      .prepare(
+        `SELECT meeting_id, ts, temp, rh, rain_mm, wind_dir, wind_kmh, soil_moisture, source
+         FROM weather_snapshots
+         WHERE meeting_id = ?
+         ORDER BY ts ASC`,
+      )
+      .bind(meetingId)
+      .all<any>();
+    snapshots = (results ?? []).map((r) => ({
+      meetingId: r.meeting_id,
+      ts: r.ts,
+      temp: r.temp == null ? null : Number(r.temp),
+      rh: r.rh == null ? null : Number(r.rh),
+      rainMm: r.rain_mm == null ? null : Number(r.rain_mm),
+      windDir: r.wind_dir ?? null,
+      windKmh: r.wind_kmh == null ? null : Number(r.wind_kmh),
+      soilMoisture: r.soil_moisture == null ? null : Number(r.soil_moisture),
+      source: r.source ?? null,
+    }));
+  } catch {
+    weatherError = '天氣快照表尚未就緒；只顯示歷史地況統計';
+    snapshots = [];
+  }
+
+  const payload = {
+    meetingId,
+    meeting: {
+      date: meeting.date,
+      venue: meeting.venue,
+      trackCondition: meeting.track_condition ?? null,
+      weather: meeting.weather ?? null,
+      totalRaces: meeting.total_races ?? null,
+      goingStatus: goingPending ? ('pending' as const) : ('ok' as const),
+      goingDisplay: goingPending ? PENDING_GOING : meeting.track_condition,
+      lastSameVenueGoing,
+    },
+    snapshots,
+    weatherError,
+    notes: {
+      disclaimer: GOING_DISCLAIMER,
+      research: RESEARCH_LAYER_NOTE_GOING,
+      liveHint:
+        '即時天氣可經網站公開 /api/public/hkjc-weather；失敗時只顯示歷史',
+    },
+    metaGeneratedAt: new Date().toISOString(),
+    layer: 'research' as const,
+  };
+
+  c.header('Cache-Control', CACHE_CONTROL);
+  c.header('Vary', READER_VARY);
+  return c.json(payload);
 });
 
 export { SITE_READER_HEADER, TG_READER_HEADER };

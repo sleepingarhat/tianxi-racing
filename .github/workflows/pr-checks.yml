@@ -94,7 +94,7 @@ jobs:
       - name: Regression test — TG scripts send X-TG-Reader-Token (Python, no network)
         run: python3 -m unittest discover -s ../tools -p test_tg_reader_auth.py
 
-      - name: Extra tests (PR only) — public today-picks, running style, horse career, lab h2h, notify, pace, backtest
+      - name: Extra tests (PR only) — public today-picks, running style, horse career, lab suite
         run: |
           npx tsx scripts/test-public-today-picks.ts
           npx tsx scripts/test-running-style.ts
@@ -107,3 +107,5 @@ jobs:
           npx tsx scripts/test-lab-pace-auth.ts
           npx tsx scripts/test-lab-backtest.ts
           npx tsx scripts/test-lab-backtest-auth.ts
+          npx tsx scripts/test-lab-going.ts
+          npx tsx scripts/test-lab-going-auth.ts

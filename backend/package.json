@@ -29,7 +29,9 @@
     "test:lab-h2h-auth": "tsx scripts/test-lab-h2h-auth.ts",
     "test:notify-events": "tsx scripts/test-notify-events.ts",
     "test:lab-pace": "tsx scripts/test-lab-pace.ts",
-    "test:lab-pace-auth": "tsx scripts/test-lab-pace-auth.ts"
+    "test:lab-pace-auth": "tsx scripts/test-lab-pace-auth.ts",
+    "test:lab-going": "tsx scripts/test-lab-going.ts",
+    "test:lab-going-auth": "tsx scripts/test-lab-going-auth.ts"
   },
   "dependencies": {
     "hkjc-api": "^1.0.5",
