@@ -22,6 +22,29 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+
+      # Content-level dead-man (jeffincn poll_ticks / healthchecks expected-by-T).
+      # GHA run-success alone can be green while collectors wrote nothing useful;
+      # job_ticks.json is only written after schema assert on race_daily.
+      - name: Check job_ticks dead-man (race_daily)
+        run: |
+          set -eu
+          # Bootstrap: until the first post-merge race_daily seeds the tick,
+          # missing file is a warning (not a red watchdog). Once present,
+          # missing/stale on race day fails closed.
+          if [ ! -f data/job_ticks/capy_race_daily.json ]; then
+            echo "::warning::job_tick capy_race_daily not seeded yet — dispatch capy_race_daily once after merge"
+            exit 0
+          fi
+          python3 scripts/ci/job_ticks.py check \
+            --job capy_race_daily \
+            --max-age-hours 36 \
+            --race-day-only
+
       - name: Check ingestion freshness
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
