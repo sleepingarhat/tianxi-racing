@@ -111,19 +111,36 @@ jobs:
           RC=$?
           set -e
           cat /tmp/scrape.err || true
-          if [ "$RC" -ne 0 ]; then
-            echo "::warning::scrape-odds exited $RC — likely no active meeting; skipping push"
-            echo "has_data=false" >> $GITHUB_OUTPUT
-            exit 0
-          fi
           ROWS=$(node -e "try{const j=JSON.parse(require('fs').readFileSync('/tmp/scrape.json','utf8'));console.log((j.oddsRowsWritten||0)+(j.poolTotalRowsWritten||0));}catch(e){console.log(0);}")
           echo "rows=$ROWS" >> $GITHUB_OUTPUT
-          if [ "$ROWS" = "0" ]; then
+          echo "scrape_rc=$RC" >> $GITHUB_OUTPUT
+          if [ "$RC" -ne 0 ]; then
+            echo "::warning::scrape-odds exited $RC"
+            echo "has_data=false" >> $GITHUB_OUTPUT
+          elif [ "$ROWS" = "0" ]; then
             echo "has_data=false" >> $GITHUB_OUTPUT
           else
             echo "has_data=true" >> $GITHUB_OUTPUT
           fi
           cat /tmp/scrape.json || true
+
+      # 2026-10-26: silent-green guard — during HKT betting hours on a race day,
+      # 0 collected odds rows must fail the job (never report green empty).
+      - name: Fail closed if race day collected 0 rows
+        working-directory: ${{ github.workspace }}
+        env:
+          ROWS: ${{ steps.scrape.outputs.rows || '0' }}
+        run: |
+          set -eu
+          HOUR=$(TZ=Asia/Hong_Kong date +%H)
+          TODAY=$(TZ=Asia/Hong_Kong date +%Y-%m-%d)
+          # Betting / snapshot window roughly 09:00–22:59 HKT (matches workflow comment).
+          if [ "$HOUR" -lt 9 ] || [ "$HOUR" -ge 23 ]; then
+            echo "::notice::Outside HKT betting window (hour=$HOUR) — 0-row skip allowed"
+            echo "collected_rows=${ROWS:-0}"
+            exit 0
+          fi
+          bash scripts/ci/assert_collected_rows.sh "${ROWS:-0}" "$TODAY"
 
       - name: Resolve --since
         if: steps.scrape.outputs.has_data == 'true'

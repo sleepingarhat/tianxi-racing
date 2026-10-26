@@ -70,7 +70,12 @@ async function main() {
   const counts = new Map<string, number>();
   for (const m of localOnly) counts.set(sig(m), (counts.get(sig(m)) ?? 0) + 1);
   meetings.splice(0, meetings.length, ...localOnly.filter(m => counts.get(sig(m)) === 1));
-  if (!meetings.length) { console.error(`[snapshot] HKJC returned no runners for ${dates.join(',')} — nothing written`); return; }
+  if (!meetings.length) {
+    console.error(`[snapshot] HKJC returned no runners for ${dates.join(',')} — nothing written`);
+    // Explicit --date backfill must fail closed (never silent-green).
+    if (arg('date')) process.exit(1);
+    return;
+  }
   const scrapedAt = new Date().toISOString();
   const stamp = scrapedAt.replace(/[-:]/g, '').replace(/\.\d+Z$/, 'Z');
   for (const meeting of meetings) {

@@ -95,15 +95,37 @@ jobs:
           if [ -n "${{ inputs.venue }}" ];    then ARGS="$ARGS --venue=${{ inputs.venue }}"; fi
           if [ "${{ inputs.dry_run }}" = "true" ]; then ARGS="$ARGS --dry-run"; fi
           set +e
-          npx tsx scripts/scrape-racecard.ts --db=bulk-local.db $ARGS 2>&1
-          RC=$?
+          npx tsx scripts/scrape-racecard.ts --db=bulk-local.db $ARGS 2>&1 | tee /tmp/scrape-racecard.log
+          RC=${PIPESTATUS[0]}
           set -e
+          # Count enriched runners written to local scratch DB (dry-run stays 0).
+          ROWS=$(node -e "try{const D=require('better-sqlite3');const d=new D('bulk-local.db');console.log(d.prepare('SELECT COUNT(*) c FROM entries_upcoming WHERE race_number>0').get().c)}catch(e){console.log(0)}")
+          echo "rows=$ROWS" >> $GITHUB_OUTPUT
+          echo "scrape_rc=$RC" >> $GITHUB_OUTPUT
           if [ $RC -ne 0 ]; then
-            echo "::warning::scrape-racecard exited $RC — no active meeting; skipping push"
+            echo "::warning::scrape-racecard exited $RC"
             echo "has_data=false" >> $GITHUB_OUTPUT
-            exit 0
+          elif [ "${{ inputs.dry_run }}" = "true" ]; then
+            echo "has_data=false" >> $GITHUB_OUTPUT
+          elif [ "$ROWS" = "0" ]; then
+            echo "has_data=false" >> $GITHUB_OUTPUT
+          else
+            echo "has_data=true" >> $GITHUB_OUTPUT
           fi
-          echo "has_data=true" >> $GITHUB_OUTPUT
+
+      # 2026-10-26: silent-green guard — race day / explicit date with 0 rows fails
+      - name: Fail closed if race day collected 0 rows
+        if: github.event.inputs.dry_run != 'true'
+        working-directory: ${{ github.workspace }}
+        env:
+          ROWS: ${{ steps.scrape.outputs.rows || '0' }}
+        run: |
+          set -eu
+          DATE="${{ inputs.date }}"
+          if [ -z "$DATE" ]; then DATE=$(TZ=Asia/Hong_Kong date +%Y-%m-%d); fi
+          # Also accept next meeting from season API when today is not a meet
+          # but schedule fired for pre-declare refresh — only fail when DATE is race day.
+          bash scripts/ci/assert_collected_rows.sh "${ROWS:-0}" "$DATE"
 
       - name: Resolve --since window
         if: steps.scrape.outputs.has_data == 'true' && github.event.inputs.dry_run != 'true'
