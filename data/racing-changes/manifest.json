@@ -138,6 +138,14 @@
       "date": "2026-10-25",
       "kind": "racing-changes",
       "venue": "ST"
+    },
+    {
+      "path": "data/racing-changes/2026-10-28/ST-4e3cf085d708fea8ab3bfc9a4045f5c32d877b942038f85a77a8edeaf34f8b97.html",
+      "sha256": "4e3cf085d708fea8ab3bfc9a4045f5c32d877b942038f85a77a8edeaf34f8b97",
+      "sourceUrl": "https://racing.hkjc.com/zh-hk/local/information/changes",
+      "date": "2026-10-28",
+      "kind": "racing-changes",
+      "venue": "ST"
     }
   ]
 }
