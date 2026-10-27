@@ -1,0 +1,89 @@
+# Official queries copied from racing.hkjc.com zh-hk ranking page bundle.
+# Do not add fields. A changed whitelist query fails the whole request.
+# operation rw_GetJockeyRanking
+query rw_GetJockeyRanking($season: String) {
+  jockeyStat(season: $season) {
+    code
+    name_ch
+    name_en
+    status
+    id 
+    isCurSsn
+    season
+    ssnStat { 
+      numFirst
+      numSecond
+      numThird
+      numFourth
+      numFifth
+      numStarts
+      stakeWon
+      trk
+      ven
+    } 
+    dhStat {
+      numFirst
+      numSecond
+      numThird
+      numFourth
+      numFifth
+      numStarts
+      stakeWon
+      trk
+      ven
+    }
+  }
+}
+
+# operation rw_GetTrainerRanking
+query rw_GetTrainerRanking($season: String) {
+  trainerStat(season: $season) {
+    code
+    name_ch
+    name_en
+    status 
+    id
+    isCurSsn
+    season
+    visitingIndex
+    ssnStat {
+      numFirst
+      numSecond
+      numThird
+      numFourth
+      numFifth
+      numStarts
+      stakeWon
+      trk
+      ven
+    }
+    dhStat {
+      numFirst
+      numSecond
+      numThird
+      numFourth
+      numFifth
+      numStarts
+      stakeWon
+      trk
+      ven
+    }
+  }
+}
+
+# operation rw_LastMeeting
+query rw_LastMeeting($venueCodes: [String!]) {
+  lastMeeting(venueCodes: $venueCodes) {
+    date
+    season 
+  }
+}
+
+# operation rw_RacingSeasonPeriod
+query rw_RacingSeasonPeriod($locSim: LocalSim) {
+  racingSeasonPeriod(locSim: $locSim) {
+    code
+    endDate
+    startDate 
+  }
+}
