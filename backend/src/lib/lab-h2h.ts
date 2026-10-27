@@ -89,9 +89,20 @@ export function isH2hType(v: string | null | undefined): v is H2hType {
   return v === 'horse' || v === 'jockey';
 }
 
+/**
+ * 對象 id 長度上限。匯入 `personId` 後綴最多 100，加 `jockey_`／`horse_` 後仍短過呢個上限。
+ * tianxi-web `h2hInput` 另外收緊到 64，呢度只擋過長字串。
+ */
+export const MAX_ENTITY_ID_LENGTH = 128;
+
+/** 後綴：Unicode 字母（含中文 name_ch）、ASCII 數字、底線、連字號。 */
+const ENTITY_ID_SUFFIX_RE = /^[\p{L}0-9_-]+$/u;
+
 export function validateEntityId(type: H2hType, id: string): boolean {
-  if (type === 'horse') return /^horse_[A-Za-z0-9_-]+$/.test(id);
-  return /^jockey_[A-Za-z0-9_-]+$/.test(id);
+  if (id.length < 1 || id.length > MAX_ENTITY_ID_LENGTH) return false;
+  const prefix = type === 'horse' ? 'horse_' : 'jockey_';
+  if (!id.startsWith(prefix)) return false;
+  return ENTITY_ID_SUFFIX_RE.test(id.slice(prefix.length));
 }
 
 export function drawBand(draw: number | null | undefined): string | null {

@@ -13,6 +13,7 @@ import {
   drawBand,
   emptyStats,
   isH2hType,
+  MAX_ENTITY_ID_LENGTH,
   meetingMarkersFrom,
   parseDistanceFilter,
   statsFromPositions,
@@ -40,9 +41,29 @@ assert.equal(isH2hType('horse'), true);
 assert.equal(isH2hType('jockey'), true);
 assert.equal(isH2hType('trainer'), false);
 assert.equal(validateEntityId('horse', 'horse_J062'), true);
+assert.equal(validateEntityId('horse', 'horse_A001'), true);
+assert.equal(validateEntityId('horse', 'horse_A-1'), true);
 assert.equal(validateEntityId('horse', 'J062'), false);
 assert.equal(validateEntityId('jockey', 'jockey_PZ'), true);
+assert.equal(validateEntityId('jockey', 'jockey_HAA'), true);
 assert.equal(validateEntityId('jockey', 'PZ'), false);
+assert.equal(validateEntityId('jockey', 'jockey_潘頓'), true);
+assert.equal(validateEntityId('jockey', 'jockey_郭能'), true);
+assert.equal(validateEntityId('jockey', 'jockey_潘_頓'), true);
+assert.equal(validateEntityId('horse', 'horse_金鎗六十'), true);
+assert.equal(validateEntityId('horse', 'jockey_潘頓'), false);
+assert.equal(validateEntityId('jockey', 'horse_J062'), false);
+assert.equal(validateEntityId('jockey', 'jockey_'), false);
+assert.equal(validateEntityId('jockey', 'jockey_潘 頓'), false);
+assert.equal(validateEntityId('jockey', 'jockey_潘|頓'), false);
+assert.equal(validateEntityId('jockey', "jockey_潘頓'"), false);
+assert.equal(validateEntityId('jockey', 'jockey_../潘'), false);
+assert.equal(validateEntityId('jockey', 'jockey_潘\n頓'), false);
+assert.equal(validateEntityId('jockey', 'jockey_潘\u0000頓'), false);
+const maxSuffix = 'A'.repeat(MAX_ENTITY_ID_LENGTH - 'jockey_'.length);
+assert.equal(validateEntityId('jockey', `jockey_${maxSuffix}`), true);
+assert.equal(validateEntityId('jockey', `jockey_${maxSuffix}A`), false);
+assert.equal(validateEntityId('jockey', `jockey_${'潘'.repeat(100)}`), true);
 
 assert.equal(drawBand(1), '1-4');
 assert.equal(drawBand(4), '1-4');
