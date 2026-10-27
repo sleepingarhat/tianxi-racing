@@ -2,7 +2,8 @@
  * Pro 研究室 API（/api/lab/*）。
  * 必須帶網站／服務唯讀 secret（X-Tianxi-Site-Token 或 X-TG-Reader-Token）；冇 → 401。
  * 會籍閘喺網站 serverFn（requireTier('pro')）；Worker 只驗 machine secret。
- * 含 h2h / search / pace / pace-forecast / backtest / compare / compare/baselines / going / weather。
+ * 含 h2h / search / pace / pace-forecast / going / weather。
+ * 自訂回測／策略比較器已下架：/backtest、/compare* 回 410。
  */
 import { Hono } from 'hono';
 import type { Env } from '../types';
@@ -46,60 +47,6 @@ import {
   validateRaceId,
   type RunningStyleCode,
 } from '../lib/running-style';
-
-import {
-  compareOfficialVsElo,
-  hashParams,
-  runBacktest,
-  runCompare,
-  validateCompareParams,
-  validateParams,
-  type BacktestResult,
-  type EloBaselinePicksMap,
-} from '../lib/lab-backtest';
-
-import {
-  getCachedBacktest,
-  loadFeatureMatrix,
-  putCachedBacktest,
-  resolveMatrixVersion,
-} from '../lib/lab-backtest-matrix';
-
-/**
- * 讀 elo_baseline_picks（可選）。表未 apply／查詢失敗 → 空 map，呼叫端 fallback on-demand。
- * 唔拋錯、唔阻 API。
- */
-async function loadEloBaselinePicks(
-  db: D1Database | null | undefined,
-  matrixVersion: string,
-): Promise<EloBaselinePicksMap> {
-  const empty = new Map<string, readonly [number, number, number, number]>();
-  if (!db || !matrixVersion) return empty;
-  try {
-    const { results } = await db
-      .prepare(
-        `SELECT race_id, pick1, pick2, pick3, pick4
-         FROM elo_baseline_picks
-         WHERE matrix_version = ?`,
-      )
-      .bind(matrixVersion)
-      .all<{
-        race_id: string;
-        pick1: number;
-        pick2: number;
-        pick3: number;
-        pick4: number;
-      }>();
-    const map = new Map<string, readonly [number, number, number, number]>();
-    for (const row of results ?? []) {
-      if (!row?.race_id) continue;
-      map.set(row.race_id, [row.pick1, row.pick2, row.pick3, row.pick4]);
-    }
-    return map;
-  } catch {
-    return empty;
-  }
-}
 
 import {
   GOING_DISCLAIMER,
@@ -989,214 +936,31 @@ labRoutes.get('/pace-forecast/:raceId', async (c) => {
   });
 });
 
-/** POST /api/lab/backtest — 執行（或回傳快取）自訂特徵組合回測 */
-labRoutes.post('/backtest', async (c) => {
-  const denied = await requireLabSecret(c);
-  if (denied) return denied;
-  c.header('Vary', READER_VARY);
-  c.header('Cache-Control', 'private, no-store');
+/** 自訂回測／策略比較器已下架（產品面移除）。舊客戶端呼叫回 410 Gone。 */
+const LAB_FEATURE_GONE = {
+  error: 'gone',
+  message: '自訂回測／策略比較器已下架。請改用研究室其他工具（頭對頭／走位／場地／彩池）。',
+  redirect: '/lab',
+} as const;
 
-  let body: unknown;
-  try {
-    body = await c.req.json();
-  } catch {
-    return c.json({ error: 'invalid_json', message: '請求 body 唔係合法 JSON' }, 400);
-  }
+function labFeatureGone(c: { json: (body: unknown, status?: number) => Response }) {
+  return c.json(LAB_FEATURE_GONE, 410);
+}
 
-  const parsed = validateParams(body);
-  if (!parsed.ok) {
-    return c.json({ error: 'bad_request', message: parsed.error }, 400);
-  }
+/** POST /api/lab/backtest — gone */
+labRoutes.post('/backtest', async (c) => labFeatureGone(c));
 
-  const matrixLoad = await loadFeatureMatrix(c.env, { preferDemo: true });
-  if (!matrixLoad.ok) {
-    return c.json(
-      { error: matrixLoad.code, message: matrixLoad.error, r2Bound: false },
-      503,
-    );
-  }
-  const matrix = matrixLoad.matrix;
-  const matrixVersion =
-    parsed.params.matrixVersion ||
-    (await resolveMatrixVersion(c.env?.DB ?? null)) ||
-    matrix.version;
+/** GET /api/lab/backtest/:hash — gone */
+labRoutes.get('/backtest/:hash', async (c) => labFeatureGone(c));
 
-  const hash = await hashParams(parsed.params, matrixVersion);
+/** GET /api/lab/compare — gone */
+labRoutes.get('/compare', async (c) => labFeatureGone(c));
 
-  if (c.env?.DB) {
-    const cached = await getCachedBacktest(c.env.DB, hash);
-    if (cached) {
-      return c.json({ hash, status: 'ready', result: cached, cached: true });
-    }
-  }
+/** POST /api/lab/compare — gone */
+labRoutes.post('/compare', async (c) => labFeatureGone(c));
 
-  const eloBaselinePicks = await loadEloBaselinePicks(c.env?.DB ?? null, matrixVersion);
-  const partial = runBacktest(matrix, { ...parsed.params, matrixVersion }, { eloBaselinePicks });
-  const result: BacktestResult = {
-    ...partial,
-    hash,
-    computedAt: new Date().toISOString(),
-  };
-
-  if (c.env?.DB) {
-    c.executionCtx?.waitUntil?.(putCachedBacktest(c.env.DB, result));
-    // 無 waitUntil 時同步寫（測試／本地）
-    if (!c.executionCtx?.waitUntil) {
-      await putCachedBacktest(c.env.DB, result);
-    }
-  }
-
-  return c.json({ hash, status: 'ready', result, cached: false });
-});
-
-/** GET /api/lab/backtest/:hash — 輪詢快取結果 */
-labRoutes.get('/backtest/:hash', async (c) => {
-  const denied = await requireLabSecret(c);
-  if (denied) return denied;
-  c.header('Vary', READER_VARY);
-  c.header('Cache-Control', 'private, no-store');
-
-  const hash = (c.req.param('hash') ?? '').trim().toLowerCase();
-  if (!/^[a-f0-9]{16,64}$/.test(hash)) {
-    return c.json({ error: 'bad_request', message: 'hash 格式唔啱' }, 400);
-  }
-
-  if (!c.env?.DB) {
-    return c.json(
-      {
-        error: 'not_found',
-        message: '未有 D1：無法查快取。請用 POST /api/lab/backtest 即時計算。',
-        hash,
-      },
-      404,
-    );
-  }
-
-  const cached = await getCachedBacktest(c.env.DB, hash);
-  if (!cached) {
-    return c.json({ error: 'not_found', message: '搵唔到呢個回測結果', hash, status: 'missing' }, 404);
-  }
-  return c.json({ hash, status: 'ready', result: cached, cached: true });
-});
-
-/**
- * GET /api/lab/compare — 功能 2 比較器（官方／Elo；query strategies=official,elo）。
- * Query: from, to, pools, strategies|s
- */
-labRoutes.get('/compare', async (c) => {
-  const denied = await requireLabSecret(c);
-  if (denied) return denied;
-  c.header('Vary', READER_VARY);
-  c.header('Cache-Control', 'private, max-age=60');
-
-  const parsed = validateCompareParams({
-    from: c.req.query('from') ?? '2025-09-07',
-    to: c.req.query('to') ?? '2026-10-04',
-    pools: c.req.query('pools') ?? undefined,
-    strategies: c.req.query('strategies') ?? c.req.query('s') ?? 'official,elo',
-  });
-  if (!parsed.ok) {
-    return c.json({ error: 'bad_request', message: parsed.error }, 400);
-  }
-
-  const matrixLoad = await loadFeatureMatrix(c.env, { preferDemo: true });
-  if (!matrixLoad.ok) {
-    return c.json({ error: matrixLoad.code, message: matrixLoad.error }, 503);
-  }
-
-  const eloBaselinePicks = await loadEloBaselinePicks(
-    c.env?.DB ?? null,
-    matrixLoad.matrix.version,
-  );
-  const result = runCompare(matrixLoad.matrix, {
-    from: parsed.from,
-    to: parsed.to,
-    pools: parsed.pools,
-    strategies: parsed.strategies,
-    eloBaselinePicks,
-  });
-  return c.json(result);
-});
-
-/**
- * POST /api/lab/compare — 完整比較（可帶 custom 槽 FeatureWeight）。
- * Body: { from, to, pools?, strategies:[{key,label,kind,features?}] }
- */
-labRoutes.post('/compare', async (c) => {
-  const denied = await requireLabSecret(c);
-  if (denied) return denied;
-  c.header('Vary', READER_VARY);
-  c.header('Cache-Control', 'private, no-store');
-
-  let body: unknown;
-  try {
-    body = await c.req.json();
-  } catch {
-    return c.json({ error: 'invalid_json', message: '請求 body 唔係合法 JSON' }, 400);
-  }
-
-  const parsed = validateCompareParams(body);
-  if (!parsed.ok) {
-    return c.json({ error: 'bad_request', message: parsed.error }, 400);
-  }
-
-  const matrixLoad = await loadFeatureMatrix(c.env, { preferDemo: true });
-  if (!matrixLoad.ok) {
-    return c.json({ error: matrixLoad.code, message: matrixLoad.error }, 503);
-  }
-
-  const eloBaselinePicks = await loadEloBaselinePicks(
-    c.env?.DB ?? null,
-    matrixLoad.matrix.version,
-  );
-  const result = runCompare(matrixLoad.matrix, {
-    from: parsed.from,
-    to: parsed.to,
-    pools: parsed.pools,
-    strategies: parsed.strategies,
-    eloBaselinePicks,
-  });
-  return c.json(result);
-});
-
-/**
- * GET /api/lab/compare/baselines — 功能 2 最小 stub：官方四揀 vs 純 Elo。
- * Query: from, to（可選 pools=FF,TRIO,...）
- */
-labRoutes.get('/compare/baselines', async (c) => {
-  const denied = await requireLabSecret(c);
-  if (denied) return denied;
-  c.header('Vary', READER_VARY);
-  c.header('Cache-Control', 'private, max-age=60');
-
-  const from = (c.req.query('from') ?? '2025-09-07').trim();
-  const to = (c.req.query('to') ?? '2026-10-04').trim();
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(from) || !/^\d{4}-\d{2}-\d{2}$/.test(to)) {
-    return c.json({ error: 'bad_request', message: 'from／to 必須係 YYYY-MM-DD' }, 400);
-  }
-
-  const matrixLoad = await loadFeatureMatrix(c.env, { preferDemo: true });
-  if (!matrixLoad.ok) {
-    return c.json({ error: matrixLoad.code, message: matrixLoad.error }, 503);
-  }
-
-  const eloBaselinePicks = await loadEloBaselinePicks(
-    c.env?.DB ?? null,
-    matrixLoad.matrix.version,
-  );
-  const cmp = compareOfficialVsElo(matrixLoad.matrix, { from, to, eloBaselinePicks });
-  return c.json({
-    status: 'ready',
-    from,
-    to,
-    ...cmp,
-    note: '功能 2 比較器 stub：只對照官方 vs Elo。自訂策略槽見 POST /api/lab/backtest。',
-    limitations: [
-      cmp.researchNote,
-      `矩陣來源＝${cmp.matrixSource}；R2 待開。`,
-    ],
-  });
-});
+/** GET /api/lab/compare/baselines — gone */
+labRoutes.get('/compare/baselines', async (c) => labFeatureGone(c));
 
 /** GET /api/lab/going?venue=&course=&distance=&going=&meetingId= */
 labRoutes.get('/going', async (c) => {
