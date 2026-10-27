@@ -64,6 +64,46 @@ async function main(): Promise<void> {
     assert.equal(res.status, 400, 'same a=b → 400');
   }
 
+  const emptyDb = {
+    prepare() {
+      return {
+        bind() {
+          return {
+            async first() {
+              return null;
+            },
+          };
+        },
+      };
+    },
+  };
+
+  {
+    const a = encodeURIComponent('jockey_潘頓');
+    const b = encodeURIComponent('jockey_郭能');
+    const res = await hit(
+      `/api/lab/h2h?type=jockey&a=${a}&b=${b}`,
+      { 'X-Tianxi-Site-Token': 'correct-secret' },
+      { SITE_READER_TOKEN: 'correct-secret', DB: emptyDb },
+    );
+    assert.equal(res.status, 404, 'chinese jockey id passes format check');
+    const j = (await res.json()) as { error?: string };
+    assert.equal(j.error, '找不到對象');
+  }
+
+  {
+    const a = encodeURIComponent("jockey_潘頓'");
+    const b = encodeURIComponent('jockey_郭能');
+    const res = await hit(
+      `/api/lab/h2h?type=jockey&a=${a}&b=${b}`,
+      { 'X-Tianxi-Site-Token': 'correct-secret' },
+      { SITE_READER_TOKEN: 'correct-secret', DB: emptyDb },
+    );
+    assert.equal(res.status, 400, 'unsafe jockey id → 400');
+    const j = (await res.json()) as { error?: string };
+    assert.equal(j.error, '對象 id 格式唔啱');
+  }
+
   console.log('test-lab-h2h-auth: all passed');
 }
 
