@@ -11,7 +11,7 @@ import {
   type RunningStyleCode,
 } from './running-style';
 
-export type H2hType = 'horse' | 'jockey';
+export type H2hType = 'horse' | 'jockey' | 'trainer';
 
 export const LOW_SAMPLE_THRESHOLD = 5;
 export const LOW_SAMPLE_NOTE = '樣本較少，解讀需審慎';
@@ -86,21 +86,27 @@ export type ResultRow = {
 };
 
 export function isH2hType(v: string | null | undefined): v is H2hType {
-  return v === 'horse' || v === 'jockey';
+  return v === 'horse' || v === 'jockey' || v === 'trainer';
 }
 
 /**
- * 對象 id 長度上限。匯入 `personId` 後綴最多 100，加 `jockey_`／`horse_` 後仍短過呢個上限。
+ * 對象 id 長度上限。匯入 `personId` 後綴最多 100，加 `horse_`／`jockey_`／`trainer_` 後仍短過呢個上限。
  * tianxi-web `h2hInput` 另外收緊到 64，呢度只擋過長字串。
  */
 export const MAX_ENTITY_ID_LENGTH = 128;
 
-/** 後綴：Unicode 字母（含中文 name_ch）、ASCII 數字、底線、連字號。 */
+/** 後綴：Unicode 字母（含中文 name_ch）、ASCII 數字、底線、連字號。`trainer_` 同 `jockey_`。 */
 const ENTITY_ID_SUFFIX_RE = /^[\p{L}0-9_-]+$/u;
+
+const ENTITY_PREFIX: Record<H2hType, string> = {
+  horse: 'horse_',
+  jockey: 'jockey_',
+  trainer: 'trainer_',
+};
 
 export function validateEntityId(type: H2hType, id: string): boolean {
   if (id.length < 1 || id.length > MAX_ENTITY_ID_LENGTH) return false;
-  const prefix = type === 'horse' ? 'horse_' : 'jockey_';
+  const prefix = ENTITY_PREFIX[type];
   if (!id.startsWith(prefix)) return false;
   return ENTITY_ID_SUFFIX_RE.test(id.slice(prefix.length));
 }

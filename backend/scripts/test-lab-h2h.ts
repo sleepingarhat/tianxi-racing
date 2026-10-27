@@ -39,7 +39,8 @@ function r(partial: Partial<ResultRow> & Pick<ResultRow, 'entityId' | 'raceId' |
 
 assert.equal(isH2hType('horse'), true);
 assert.equal(isH2hType('jockey'), true);
-assert.equal(isH2hType('trainer'), false);
+assert.equal(isH2hType('trainer'), true);
+assert.equal(isH2hType('owner'), false);
 assert.equal(validateEntityId('horse', 'horse_J062'), true);
 assert.equal(validateEntityId('horse', 'horse_A001'), true);
 assert.equal(validateEntityId('horse', 'horse_A-1'), true);
@@ -64,6 +65,25 @@ const maxSuffix = 'A'.repeat(MAX_ENTITY_ID_LENGTH - 'jockey_'.length);
 assert.equal(validateEntityId('jockey', `jockey_${maxSuffix}`), true);
 assert.equal(validateEntityId('jockey', `jockey_${maxSuffix}A`), false);
 assert.equal(validateEntityId('jockey', `jockey_${'潘'.repeat(100)}`), true);
+assert.equal(validateEntityId('trainer', 'trainer_CAS'), true);
+assert.equal(validateEntityId('trainer', 'trainer_方嘉柏'), true);
+assert.equal(validateEntityId('trainer', 'trainer_蔡約翰'), true);
+assert.equal(validateEntityId('trainer', 'trainer_方_嘉柏'), true);
+assert.equal(validateEntityId('trainer', '方嘉柏'), false);
+assert.equal(validateEntityId('trainer', 'jockey_方嘉柏'), false);
+assert.equal(validateEntityId('trainer', 'horse_方嘉柏'), false);
+assert.equal(validateEntityId('jockey', 'trainer_方嘉柏'), false);
+assert.equal(validateEntityId('trainer', 'trainer_'), false);
+assert.equal(validateEntityId('trainer', 'trainer_方 嘉柏'), false);
+assert.equal(validateEntityId('trainer', 'trainer_方|嘉柏'), false);
+assert.equal(validateEntityId('trainer', "trainer_方嘉柏'"), false);
+assert.equal(validateEntityId('trainer', 'trainer_../方'), false);
+assert.equal(validateEntityId('trainer', 'trainer_方\n嘉柏'), false);
+assert.equal(validateEntityId('trainer', 'trainer_方\u0000嘉柏'), false);
+const trainerMax = 'A'.repeat(MAX_ENTITY_ID_LENGTH - 'trainer_'.length);
+assert.equal(validateEntityId('trainer', `trainer_${trainerMax}`), true);
+assert.equal(validateEntityId('trainer', `trainer_${trainerMax}A`), false);
+assert.equal(validateEntityId('trainer', `trainer_${'蔡'.repeat(100)}`), true);
 
 assert.equal(drawBand(1), '1-4');
 assert.equal(drawBand(4), '1-4');
