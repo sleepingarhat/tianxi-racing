@@ -27,6 +27,7 @@
  *   race_results.id    = 'result_{race_id}_{horse_number}'
  */
 import { writeFileSync } from 'node:fs';
+import { parseScrapedFinishingPosition } from '../src/lib/finishing-position';
 
 interface Args {
   date: string;
@@ -157,7 +158,8 @@ function parseResultsTable(html: string): RaceResultRow[] {
     if (cells.length < 8) continue;
 
     const posText = stripHtml(cells[0]);
-    const pos = /^\d+$/.test(posText) ? Number(posText) : 999;
+    // 「1 DH」「3 平頭馬」、中文數字係完成名次；PU／WV 等仍入 999。
+    const pos = parseScrapedFinishingPosition(posText);
     const horseNumberText = stripHtml(cells[1]);
     const horse_number = /^\d+$/.test(horseNumberText) ? Number(horseNumberText) : null;
 

@@ -10,6 +10,7 @@
 import { Hono } from 'hono';
 import type { Env } from '../types';
 import { cachedJson, jsonEtag } from '../lib/edge-cache';
+import { coerceFinishingPosition } from '../lib/finishing-position';
 import { hasReaderCredential, READER_VARY, SITE_READER_HEADER, TG_READER_HEADER } from '../lib/tg-reader';
 import {
   buildConditionRows,
@@ -196,7 +197,7 @@ async function loadResultRows(
     going: r.going ?? null,
     track: r.track ?? null,
     draw: r.draw != null ? Number(r.draw) : null,
-    position: r.position != null ? Number(r.position) : null,
+    position: coerceFinishingPosition(r.position),
     runningPosition: r.running_position ?? null,
     totalRunners: r.total_runners != null ? Number(r.total_runners) : null,
     last400: r.last400 != null ? Number(r.last400) : null,
