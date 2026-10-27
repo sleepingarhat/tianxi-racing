@@ -1,8 +1,3 @@
--- DRAFT ONLY — 唔自動 apply。頭對頭 API 用現有 idx_results_horse / idx_results_jockey / idx_results_race。
--- 若 D1 查詢計劃顯示 self-join／條件切片偏慢，可考慮：
---
--- CREATE INDEX IF NOT EXISTS idx_results_horse_race ON race_results(horse_id, race_id);
--- CREATE INDEX IF NOT EXISTS idx_results_jockey_race ON race_results(jockey_id, race_id);
---
--- Elo 已有 idx_hes_axis / idx_jes_jockey；唔需要新表。
--- 驗證：EXPLAIN QUERY PLAN 對 lab-h2h loadResultRows 先確認用咗邊個 index。
+-- RETIRED — 正式 migration 見 20261027_lab_h2h_indexes.sql
+-- 保留檔名以免舊 PR／文件連結 404；內容唔再含 CREATE INDEX。
+SELECT 1;
