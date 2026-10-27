@@ -1,0 +1,5 @@
+{"rows": 123, "scraped_at": "2026-10-27T14:09:16+00:00", "sha256": "4da99d69ed4b65634b85f64b465eb225d0c23e6c3245b4f23a9f8e5b4dae4362", "surface": "report"}
+{"rows": 77, "scraped_at": "2026-10-27T14:09:16+00:00", "sha256": "90f3ed6d18cce077faee470c46137d8b8782a6e700063bf5e9ef1dd466229db0", "surface": "formline"}
+{"rows": 69, "scraped_at": "2026-10-27T14:09:16+00:00", "sha256": "ba52709d30a66a6fcc6c5fdb1869caa688a7fca9db998ce10de4a0f4f83bcaa1", "surface": "exceptional"}
+{"rows": 163, "scraped_at": "2026-10-27T14:09:16+00:00", "sha256": "850a8a935046ea4ced28a2aa61b6d44c1d72414c098a5239004f48a19cbbef13", "surface": "veterinary"}
+{"rows": 4673, "scraped_at": "2026-10-27T14:09:16+00:00", "sha256": "9f33789ab679710af054dfa7467e22f261fa9ab7ec38db16d3a838c85a424eb4", "surface": "trackwork"}
