@@ -1,7 +1,6 @@
 #!/usr/bin/env tsx
 /**
- * going／weather API 合約：冇 secret → 401；參數驗證。
- * 用 Hono app + stub Env（無真 D1）；只驗閘同 400。
+ * going／weather API 已下架：無論有冇 secret 一律 410 Gone（唔再係產品端點）。
  */
 import assert from 'node:assert/strict';
 import { Hono } from 'hono';
@@ -13,10 +12,10 @@ async function main(): Promise<void> {
 
   async function hit(
     path: string,
-    headers: Record<string, string> = {},
+    init: RequestInit = {},
     env: Record<string, unknown> = {},
   ) {
-    const req = new Request(`http://localhost${path}`, { headers });
+    const req = new Request(`http://localhost${path}`, init);
     return app.fetch(req, {
       DB: null,
       SITE_READER_TOKEN: undefined,
@@ -26,55 +25,77 @@ async function main(): Promise<void> {
 
   {
     const res = await hit('/api/lab/going?venue=ST');
-    assert.equal(res.status, 401, 'going no secret → 401');
+    assert.equal(res.status, 410, 'GET going no secret → 410');
     const j = (await res.json()) as any;
-    assert.equal(j.error, 'unauthorized');
+    assert.equal(j.error, 'gone');
+    assert.equal(j.redirect, '/lab');
+    assert.equal(/場地|天氣/.test(String(j.message)), false, 'gone message 唔再提場地／天氣');
   }
 
   {
     const res = await hit('/api/lab/weather/2026-10-26_ST');
-    assert.equal(res.status, 401, 'weather no secret → 401');
+    assert.equal(res.status, 410, 'GET weather no secret → 410');
+    const j = (await res.json()) as any;
+    assert.equal(j.error, 'gone');
+    assert.equal(/場地|天氣/.test(String(j.message)), false);
   }
 
   {
     const res = await hit(
       '/api/lab/going?venue=ST',
-      { 'X-Tianxi-Site-Token': 'wrong' },
+      { headers: { 'X-Tianxi-Site-Token': 'wrong' } },
       { SITE_READER_TOKEN: 'correct-secret' },
     );
-    assert.equal(res.status, 401, 'wrong secret → 401');
+    assert.equal(res.status, 410, 'wrong secret → 410');
   }
 
   {
     const res = await hit(
       '/api/lab/going?venue=XX',
-      { 'X-Tianxi-Site-Token': 'correct-secret' },
+      { headers: { 'X-Tianxi-Site-Token': 'correct-secret' } },
       { SITE_READER_TOKEN: 'correct-secret' },
     );
-    assert.equal(res.status, 400, 'bad venue → 400');
+    assert.equal(res.status, 410, 'bad venue with secret → 410 (no longer 400)');
+    const j = (await res.json()) as any;
+    assert.equal(j.error, 'gone');
   }
 
   {
     const res = await hit(
       '/api/lab/weather/',
-      { 'X-Tianxi-Site-Token': 'correct-secret' },
+      { headers: { 'X-Tianxi-Site-Token': 'correct-secret' } },
       { SITE_READER_TOKEN: 'correct-secret' },
     );
-    // empty meetingId path may 404 from router
-    assert.ok([400, 404].includes(res.status), `empty meeting → 400/404 got ${res.status}`);
+    assert.equal(res.status, 410, `empty meeting → 410 (got ${res.status})`);
   }
 
-  // 有 secret 但 DB null → 503（證明已過 auth）
   {
     const res = await hit(
       '/api/lab/going?venue=ST&going=好地',
-      { 'X-Tianxi-Site-Token': 'correct-secret' },
+      {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'X-Tianxi-Site-Token': 'correct-secret',
+        },
+        body: '{}',
+      },
       { SITE_READER_TOKEN: 'correct-secret', DB: null },
     );
-    assert.equal(res.status, 503, 'no DB after auth → 503');
+    assert.equal(res.status, 410, 'POST going with secret and no DB → 410');
   }
 
-  console.log('test-lab-going-auth: all passed');
+  {
+    const res = await hit('/api/lab/weather/2026-10-26_ST/extra');
+    assert.equal(res.status, 410, 'nested weather path → 410');
+  }
+
+  {
+    const res = await hit('/api/lab/going/extra');
+    assert.equal(res.status, 410, 'nested going path → 410');
+  }
+
+  console.log('test-lab-going-auth: all passed (410 gone)');
 }
 
 main().catch((err) => {
