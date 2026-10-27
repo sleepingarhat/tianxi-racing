@@ -1,7 +1,6 @@
 #!/usr/bin/env tsx
 /**
- * pace API 合約：冇 secret → 401；raceId 驗證。
- * 用 Hono app + stub Env（無真 D1）；只驗閘同 400。
+ * pace / pace-forecast API 已下架：無論有冇 secret 一律 410 Gone（唔再係產品端點）。
  */
 import assert from 'node:assert/strict';
 import { Hono } from 'hono';
@@ -13,10 +12,10 @@ async function main(): Promise<void> {
 
   async function hit(
     path: string,
-    headers: Record<string, string> = {},
+    init: RequestInit = {},
     env: Record<string, unknown> = {},
   ) {
-    const req = new Request(`http://localhost${path}`, { headers });
+    const req = new Request(`http://localhost${path}`, init);
     return app.fetch(req, {
       DB: null,
       SITE_READER_TOKEN: undefined,
@@ -26,44 +25,67 @@ async function main(): Promise<void> {
 
   {
     const res = await hit('/api/lab/pace/race_2026-04-15_HV_1');
-    assert.equal(res.status, 401, 'pace no secret → 401');
+    assert.equal(res.status, 410, 'GET pace no secret → 410 gone');
     const j = (await res.json()) as any;
-    assert.equal(j.error, 'unauthorized');
+    assert.equal(j.error, 'gone');
+    assert.equal(j.redirect, '/lab');
   }
 
   {
     const res = await hit('/api/lab/pace-forecast/race_2026-04-15_HV_1');
-    assert.equal(res.status, 401, 'pace-forecast no secret → 401');
+    assert.equal(res.status, 410, 'GET pace-forecast no secret → 410');
+    const j = (await res.json()) as any;
+    assert.equal(j.error, 'gone');
   }
 
   {
-    const res = await hit(
-      '/api/lab/pace/race_2026-04-15_HV_1',
-      { 'X-Tianxi-Site-Token': 'wrong' },
-      { SITE_READER_TOKEN: 'correct-secret' },
-    );
-    assert.equal(res.status, 401, 'wrong secret → 401');
+    const res = await hit('/api/lab/pace');
+    assert.equal(res.status, 410, 'GET /pace (no raceId) → 410');
+  }
+
+  {
+    const res = await hit('/api/lab/pace-forecast');
+    assert.equal(res.status, 410, 'GET /pace-forecast (no raceId) → 410');
   }
 
   {
     const res = await hit(
       '/api/lab/pace/not-a-race',
-      { 'X-Tianxi-Site-Token': 'correct-secret' },
+      { headers: { 'X-Tianxi-Site-Token': 'correct-secret' } },
       { SITE_READER_TOKEN: 'correct-secret' },
     );
-    assert.equal(res.status, 400, 'bad raceId → 400');
+    assert.equal(res.status, 410, 'bad raceId with secret → 410 (no longer 400)');
+    const j = (await res.json()) as any;
+    assert.equal(j.error, 'gone');
+    assert.equal(j.redirect, '/lab');
   }
 
   {
     const res = await hit(
       '/api/lab/pace-forecast/race_2099-99-99_ST_1',
-      { 'X-Tianxi-Site-Token': 'correct-secret' },
+      {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'X-Tianxi-Site-Token': 'correct-secret',
+        },
+        body: '{}',
+      },
       { SITE_READER_TOKEN: 'correct-secret' },
     );
-    assert.equal(res.status, 400, 'invalid date in raceId → 400');
+    assert.equal(res.status, 410, `POST pace-forecast with secret → 410 (got ${res.status})`);
   }
 
-  console.log('test-lab-pace-auth: all passed');
+  {
+    const res = await hit(
+      '/api/lab/pace/race_2026-04-15_HV_1/extra',
+      { headers: { 'X-Tianxi-Site-Token': 'wrong' } },
+      { SITE_READER_TOKEN: 'correct-secret' },
+    );
+    assert.equal(res.status, 410, 'nested pace path → 410');
+  }
+
+  console.log('test-lab-pace-auth: all passed (410 gone)');
 }
 
 main().catch((err) => {

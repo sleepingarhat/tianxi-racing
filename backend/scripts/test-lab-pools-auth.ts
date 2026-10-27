@@ -1,5 +1,7 @@
 #!/usr/bin/env tsx
-/** 彩池優化器合約：無 secret → 401；回傳含 disclaimer；唔回投注 URL。 */
+/**
+ * pools API 已下架：無論有冇 secret 一律 410 Gone（唔再係產品端點）。
+ */
 import assert from 'node:assert/strict';
 import { Hono } from 'hono';
 import { labPoolsRoutes } from '../src/routes/lab-pools';
@@ -22,10 +24,10 @@ async function main(): Promise<void> {
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ pool: 'FF', raceIds: ['race_2026-10-25_ST_1'], budget: 100 }),
     });
-    assert.equal(res.status, 401, 'optimize no secret → 401');
+    assert.equal(res.status, 410, 'optimize no secret → 410 gone');
     const j = (await res.json()) as any;
-    assert.equal(j.error, 'unauthorized');
-    assert.ok(String(j.disclaimer ?? '').includes('研究'));
+    assert.equal(j.error, 'gone');
+    assert.equal(j.redirect, '/lab');
   }
 
   {
@@ -34,7 +36,14 @@ async function main(): Promise<void> {
       headers: { 'content-type': 'application/json' },
       body: '{}',
     });
-    assert.equal(res.status, 401, 'backtest no secret → 401');
+    assert.equal(res.status, 410, 'backtest no secret → 410');
+    const j = (await res.json()) as any;
+    assert.equal(j.error, 'gone');
+  }
+
+  {
+    const res = await hit('/api/lab/pools');
+    assert.equal(res.status, 410, 'GET /pools → 410');
   }
 
   {
@@ -47,7 +56,7 @@ async function main(): Promise<void> {
       },
       { SITE_READER_TOKEN: 'correct' },
     );
-    assert.equal(res.status, 401, 'wrong secret → 401');
+    assert.equal(res.status, 410, 'wrong secret → 410');
   }
 
   {
@@ -60,32 +69,31 @@ async function main(): Promise<void> {
       },
       { SITE_READER_TOKEN: 'ok', DB: null },
     );
-    assert.equal(res.status, 200, 'backtest stub with secret');
+    assert.equal(res.status, 410, `backtest with secret → 410 (got ${res.status})`);
     const j = (await res.json()) as any;
-    assert.ok(String(j.disclaimer).includes('研究'));
-    assert.ok(String(j.researchBanner).includes('唔入公開戰績'));
-    assert.equal(j.betUrl, null);
-    assert.equal(j.placeBetUrl, null);
-    const text = JSON.stringify(j);
-    assert.equal(/hkjc\.com\//i.test(text), false);
-    assert.equal(typeof j.betUrl === 'string' && j.betUrl.length > 0, false);
-    assert.equal(typeof j.placeBetUrl === 'string' && j.placeBetUrl.length > 0, false);
+    assert.equal(j.error, 'gone');
+    assert.equal(j.redirect, '/lab');
+    assert.equal(/hkjc\.com\//i.test(JSON.stringify(j)), false);
   }
 
   {
     const res = await hit(
       '/api/lab/pools/optimize',
       {
-        method: 'POST',
-        headers: { 'content-type': 'application/json', 'X-Tianxi-Site-Token': 'ok' },
-        body: JSON.stringify({ pool: 'FF', raceIds: ['race_2026-10-25_ST_1'], budget: 100 }),
+        method: 'GET',
+        headers: { 'X-Tianxi-Site-Token': 'ok' },
       },
       { SITE_READER_TOKEN: 'ok', DB: null },
     );
-    assert.equal(res.status, 503, 'optimize auth ok, no DB → 503');
+    assert.equal(res.status, 410, 'GET optimize with secret → 410');
   }
 
-  console.log('test-lab-pools-auth: all passed');
+  {
+    const res = await hit('/api/lab/pools/optimize/extra');
+    assert.equal(res.status, 410, 'nested pools path → 410');
+  }
+
+  console.log('test-lab-pools-auth: all passed (410 gone)');
 }
 
 main().catch((e) => {
