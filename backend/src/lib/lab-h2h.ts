@@ -297,28 +297,71 @@ export function buildRunningStyle(rows: ResultRow[]): RunningStyleSummary {
   };
 }
 
+function groupByRace(rows: ResultRow[]): Map<string, ResultRow[]> {
+  const map = new Map<string, ResultRow[]>();
+  for (const r of rows) {
+    const list = map.get(r.raceId);
+    if (list) list.push(r);
+    else map.set(r.raceId, [r]);
+  }
+  return map;
+}
+
+/**
+ * 同場多駒（練馬師／騎師）取最低有效名次。
+ * 平名次時取較細檔位，結果唔受查詢次序影響。
+ */
+function bestFinishRow(rows: ResultRow[]): ResultRow | null {
+  let best: ResultRow | null = null;
+  let bestPos = Number.POSITIVE_INFINITY;
+  let bestDraw = Number.POSITIVE_INFINITY;
+  for (const r of rows) {
+    if (!validFinish(r.position)) continue;
+    const draw = r.draw ?? Number.POSITIVE_INFINITY;
+    if (r.position < bestPos || (r.position === bestPos && draw < bestDraw)) {
+      best = r;
+      bestPos = r.position;
+      bestDraw = draw;
+    }
+  }
+  return best;
+}
+
+/**
+ * 直接交手：每場一次。
+ * 練馬師／騎師同場可有多駒。以前 `mapB.set(raceId)` 只留最後一列，
+ * 再逐列掃 A，會配到較差名次或 999（PU／WV），`ahead` 變成 null，
+ * 同一場亦會出多行。而家兩邊都用最佳有效名次；只有一邊有效時
+ * 另一邊名次為 null、ahead 為 null。
+ */
 export function buildDirectMeetings(rowsA: ResultRow[], rowsB: ResultRow[]): DirectMeeting[] {
-  const mapB = new Map<string, ResultRow>();
-  for (const r of rowsB) mapB.set(r.raceId, r);
+  const mapA = groupByRace(rowsA);
+  const mapB = groupByRace(rowsB);
   const out: DirectMeeting[] = [];
-  for (const a of rowsA) {
-    const b = mapB.get(a.raceId);
-    if (!b) continue;
+  for (const [raceId, listA] of mapA) {
+    const listB = mapB.get(raceId);
+    if (!listB) continue;
+    const bestA = bestFinishRow(listA);
+    const bestB = bestFinishRow(listB);
+    const rowA = bestA ?? listA[0];
+    const rowB = bestB ?? listB[0];
+    const posA = bestA ? bestA.position : null;
+    const posB = bestB ? bestB.position : null;
     let ahead: DirectMeeting['ahead'] = null;
-    if (validFinish(a.position) && validFinish(b.position)) {
-      if (a.position < b.position) ahead = 'a';
-      else if (b.position < a.position) ahead = 'b';
+    if (posA != null && posB != null) {
+      if (posA < posB) ahead = 'a';
+      else if (posB < posA) ahead = 'b';
       else ahead = 'tie';
     }
     out.push({
-      date: a.date,
-      raceId: a.raceId,
-      venue: a.venue,
-      raceNumber: a.raceNumber,
-      distance: a.distance,
-      going: a.going,
-      a: { position: validFinish(a.position) ? a.position : null, draw: a.draw },
-      b: { position: validFinish(b.position) ? b.position : null, draw: b.draw },
+      date: rowA.date,
+      raceId,
+      venue: rowA.venue,
+      raceNumber: rowA.raceNumber,
+      distance: rowA.distance,
+      going: rowA.going,
+      a: { position: posA, draw: rowA.draw },
+      b: { position: posB, draw: rowB.draw },
       ahead,
     });
   }

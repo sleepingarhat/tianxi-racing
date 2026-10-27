@@ -20,6 +20,7 @@ import {
   validateEntityId,
   type ResultRow,
 } from '../src/lib/lab-h2h';
+import { coerceFinishingPosition } from '../src/lib/finishing-position';
 
 function r(partial: Partial<ResultRow> & Pick<ResultRow, 'entityId' | 'raceId' | 'date'>): ResultRow {
   return {
@@ -132,6 +133,147 @@ const meetings = buildDirectMeetings(rowsA, rowsB);
 assert.equal(meetings.length, 1);
 assert.equal(meetings[0].raceId, 'race_1');
 assert.equal(meetings[0].ahead, 'a');
+
+// 兩邊都有效 → ahead；同名次 → tie
+const bothValid = buildDirectMeetings(
+  [r({ entityId: 'a', raceId: 'race_tie', date: '2026-05-01', position: 3, draw: 4 })],
+  [r({ entityId: 'b', raceId: 'race_tie', date: '2026-05-01', position: 3, draw: 8 })],
+);
+assert.equal(bothValid.length, 1);
+assert.equal(bothValid[0].ahead, 'tie');
+assert.equal(bothValid[0].a.position, 3);
+assert.equal(bothValid[0].b.position, 3);
+
+const aAhead = buildDirectMeetings(
+  [r({ entityId: 'a', raceId: 'race_win', date: '2026-05-02', position: 1, draw: 2 })],
+  [r({ entityId: 'b', raceId: 'race_win', date: '2026-05-02', position: 6, draw: 9 })],
+);
+assert.equal(aAhead[0].ahead, 'a');
+const bAhead = buildDirectMeetings(
+  [r({ entityId: 'a', raceId: 'race_win', date: '2026-05-02', position: 8, draw: 2 })],
+  [r({ entityId: 'b', raceId: 'race_win', date: '2026-05-02', position: 2, draw: 1 })],
+);
+assert.equal(bAhead[0].ahead, 'b');
+
+// 只有一邊有效名次 → 該邊名次保留，另一邊 null，ahead null
+const oneInvalid = buildDirectMeetings(
+  [r({ entityId: 'a', raceId: 'race_pu', date: '2026-06-13', position: 999, draw: null, raceNumber: 10 })],
+  [r({ entityId: 'b', raceId: 'race_pu', date: '2026-06-13', position: 9, draw: 12, raceNumber: 10 })],
+);
+assert.equal(oneInvalid.length, 1);
+assert.equal(oneInvalid[0].ahead, null);
+assert.equal(oneInvalid[0].a.position, null);
+assert.equal(oneInvalid[0].a.draw, null);
+assert.equal(oneInvalid[0].b.position, 9);
+assert.equal(oneInvalid[0].b.draw, 12);
+
+// 練馬師同場兩駒：以前 mapB.set 留最後一列（往往係較差名次或 999），
+// 再逐列掃 A，會出重複場次，並把 ahead 配成 null。
+// 而家每場一次，用兩邊最佳有效名次。
+const multiA = [
+  r({ entityId: 'trainer_呂健威', raceId: 'race_multi', date: '2026-06-01', position: 999, draw: 5, raceNumber: 4 }),
+  r({ entityId: 'trainer_呂健威', raceId: 'race_multi', date: '2026-06-01', position: 2, draw: 3, raceNumber: 4 }),
+];
+const multiB = [
+  r({ entityId: 'trainer_方嘉柏', raceId: 'race_multi', date: '2026-06-01', position: 4, draw: 9, raceNumber: 4 }),
+  r({ entityId: 'trainer_方嘉柏', raceId: 'race_multi', date: '2026-06-01', position: 999, draw: 11, raceNumber: 4 }),
+];
+const multi = buildDirectMeetings(multiA, multiB);
+assert.equal(multi.length, 1);
+assert.equal(multi[0].raceId, 'race_multi');
+assert.equal(multi[0].a.position, 2);
+assert.equal(multi[0].a.draw, 3);
+assert.equal(multi[0].b.position, 4);
+assert.equal(multi[0].b.draw, 9);
+assert.equal(multi[0].ahead, 'a');
+
+// 同名次多駒：取較細檔位，唔取後寫入嗰匹。
+const samePlace = buildDirectMeetings(
+  [
+    r({ entityId: 'a', raceId: 'race_dh', date: '2026-06-02', position: 2, draw: 8 }),
+    r({ entityId: 'a', raceId: 'race_dh', date: '2026-06-02', position: 2, draw: 3 }),
+  ],
+  [r({ entityId: 'b', raceId: 'race_dh', date: '2026-06-02', position: 2, draw: 1 })],
+);
+assert.equal(samePlace.length, 1);
+assert.equal(samePlace[0].ahead, 'tie');
+assert.equal(samePlace[0].a.position, 2);
+assert.equal(samePlace[0].a.draw, 3);
+
+// 2026-06-27 沙田第9場（race_2026-06-27_ST_9）：
+// 呂健威只有 PU（入庫 999，檔5）；方嘉柏第4檔9 同第8檔11。
+// 舊配對留最後一匹方嘉柏（第8），ahead 因 999 而係 null。
+// 新行為：一場、呂健威名次 null、方嘉柏最佳第4、ahead null。
+const race9 = buildDirectMeetings(
+  [r({
+    entityId: 'trainer_呂健威', raceId: 'race_2026-06-27_ST_9', date: '2026-06-27',
+    venue: 'ST', raceNumber: 9, distance: 1650, going: '好地', position: 999, draw: 5,
+  })],
+  [
+    r({
+      entityId: 'trainer_方嘉柏', raceId: 'race_2026-06-27_ST_9', date: '2026-06-27',
+      venue: 'ST', raceNumber: 9, distance: 1650, going: '好地', position: 4, draw: 9,
+    }),
+    r({
+      entityId: 'trainer_方嘉柏', raceId: 'race_2026-06-27_ST_9', date: '2026-06-27',
+      venue: 'ST', raceNumber: 9, distance: 1650, going: '好地', position: 8, draw: 11,
+    }),
+  ],
+);
+assert.equal(race9.length, 1);
+assert.equal(race9[0].ahead, null);
+assert.equal(race9[0].a.position, null);
+assert.equal(race9[0].a.draw, 5);
+assert.equal(race9[0].b.position, 4);
+assert.equal(race9[0].b.draw, 9);
+
+// 2026-06-13 沙田第10場：呂健威 WV-A（999、無檔），方嘉柏第9檔12。ahead null。
+const race10 = buildDirectMeetings(
+  [r({
+    entityId: 'trainer_呂健威', raceId: 'race_2026-06-13_ST_10', date: '2026-06-13',
+    venue: 'ST', raceNumber: 10, distance: 1600, going: '好地至黏地', position: 999, draw: null,
+  })],
+  [r({
+    entityId: 'trainer_方嘉柏', raceId: 'race_2026-06-13_ST_10', date: '2026-06-13',
+    venue: 'ST', raceNumber: 10, distance: 1600, going: '好地至黏地', position: 9, draw: 12,
+  })],
+);
+assert.equal(race10.length, 1);
+assert.equal(race10[0].ahead, null);
+assert.equal(race10[0].a.position, null);
+assert.equal(race10[0].b.position, 9);
+
+// 2026-06-13 沙田第1場：呂健威兩駒第2檔2、第5檔4；方嘉柏第6檔1。只出一行，用最佳名次。
+const race1 = buildDirectMeetings(
+  [
+    r({
+      entityId: 'trainer_呂健威', raceId: 'race_2026-06-13_ST_1', date: '2026-06-13',
+      venue: 'ST', raceNumber: 1, going: '好地至黏地', position: 2, draw: 2,
+    }),
+    r({
+      entityId: 'trainer_呂健威', raceId: 'race_2026-06-13_ST_1', date: '2026-06-13',
+      venue: 'ST', raceNumber: 1, going: '好地至黏地', position: 5, draw: 4,
+    }),
+  ],
+  [r({
+    entityId: 'trainer_方嘉柏', raceId: 'race_2026-06-13_ST_1', date: '2026-06-13',
+    venue: 'ST', raceNumber: 1, going: '好地至黏地', position: 6, draw: 1,
+  })],
+);
+assert.equal(race1.length, 1);
+assert.equal(race1[0].ahead, 'a');
+assert.equal(race1[0].a.position, 2);
+assert.equal(race1[0].a.draw, 2);
+assert.equal(race1[0].b.position, 6);
+assert.equal(race1[0].b.draw, 1);
+
+// 路由層：DB 若存到文字名次，唔好 Number("1 DH") → NaN。
+assert.equal(coerceFinishingPosition(4), 4);
+assert.equal(coerceFinishingPosition(999), 999);
+assert.equal(coerceFinishingPosition('1 DH'), 1);
+assert.equal(coerceFinishingPosition('三'), 3);
+assert.equal(coerceFinishingPosition('PU'), null);
+assert.equal(coerceFinishingPosition(null), null);
 
 const style = buildRunningStyle(rowsA);
 assert.ok(style.sample >= 1);

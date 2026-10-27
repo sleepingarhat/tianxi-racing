@@ -17,6 +17,7 @@
 import Database from 'better-sqlite3';
 import * as fs from 'fs';
 import * as path from 'path';
+import { parseFinishingPositionText } from '../src/lib/finishing-position';
 
 // =============================================
 // CLI 參數
@@ -82,16 +83,12 @@ export function extractHorseCode(horseName: string): { name: string; code: strin
 }
 
 /**
- * 解析官方名次欄：普通名次「3」、平頭馬「3 平頭馬」（dead heat，兩駒同名次，
- * 係有效賽果）、特殊情況「---」／DNF／PU／UR → null（唔入訓練集）。
+ * 解析官方名次欄：普通名次「3」、平頭馬「3 平頭馬」／「1 DH」（dead heat，
+ * 兩駒同名次，係有效賽果）、中文數字「三」。
+ * 特殊情況「---」／DNF／PU／UR／WV → null（唔入訓練集）。
  */
 export function parseFinishingPlace(place: string | undefined | null): number | null {
-  if (!place) return null;
-  const trimmed = place.trim();
-  if (/^\d+$/.test(trimmed)) return parseInt(trimmed, 10);
-  const dh = trimmed.match(/^(\d+)\s*平頭馬/);
-  if (dh) return parseInt(dh[1], 10);
-  return null;
+  return parseFinishingPositionText(place);
 }
 
 // 將 "0:56.75" / "1:23.45" / "56.75" 轉為秒
