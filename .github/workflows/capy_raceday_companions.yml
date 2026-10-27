@@ -1,0 +1,216 @@
+name: Capy Race-day Companions
+
+# Last-start comments, form lines, exceptional factors, the day's veterinary
+# list, meeting trackwork, jockey/trainer rides, and the summary going sentence,
+# pool list and suspensions. Rows are the public board, not race results.
+#
+# Schedule (UTC → HKT): 00:25→08:25, 04:25→12:25, 08:25→16:25, 11:25→19:25.
+# A scheduled run covers today and tomorrow when either is on the fixture calendar.
+
+on:
+  schedule:
+    - cron: '25 0,4,8,11 * * *'
+  workflow_dispatch:
+    inputs:
+      surfaces:
+        description: 'report,formline,exceptional,veterinary,trackwork,rides,summary'
+        required: false
+        default: 'report,formline,exceptional,veterinary,trackwork,rides,summary'
+      date:
+        description: 'YYYY-MM-DD; blank follows the date printed on the page'
+        required: false
+        default: ''
+      venue:
+        description: 'ST or HV when a date is set'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+concurrency:
+  group: capy-raceday-companions
+  cancel-in-progress: false
+
+jobs:
+  season_gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      skip: ${{ steps.chk.outputs.skip }}
+    steps:
+      - id: chk
+        name: Season gate (off-season auto-pause)
+        run: |
+          SKIP=false
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            STATUS=$(curl -sf --max-time 20 "https://tianxi-backend.tianxi-entertainment.workers.dev/api/season" | grep -o '"status":"[a-z_]*"' | head -1 | cut -d'"' -f4 || true)
+            echo "season status: ${STATUS:-unknown (fail-open)}"
+            if [ "$STATUS" = "off_season" ]; then
+              SKIP=true
+              echo "::notice::休季中 off-season — skipping scheduled race-day companions"
+            fi
+          fi
+          echo "skip=$SKIP" >> "$GITHUB_OUTPUT"
+
+  companions:
+    needs: season_gate
+    if: needs.season_gate.outputs.skip != 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: main, fetch-depth: 1 }
+
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+
+      - name: Install parser dependency
+        run: python3 -m pip install beautifulsoup4==4.14.2
+
+      - name: Test race-day companion identity rules
+        run: python3 -m unittest discover -s scripts -p test_hkjc_raceday_companions.py
+
+      - name: Pre-flight — today or tomorrow HK
+        id: guard
+        if: github.event_name == 'schedule'
+        run: |
+          set +e
+          python fixture_guard.py check-date "$(TZ=Asia/Hong_Kong date +%Y-%m-%d)"
+          today=$?
+          NEXT=$(TZ=Asia/Hong_Kong date -d tomorrow +%Y-%m-%d)
+          python fixture_guard.py check-date "$NEXT"
+          tom=$?
+          set -e
+          echo "today=$today tomorrow=$tom ($NEXT)"
+          if [ "$today" -eq 0 ] || [ "$tom" -eq 0 ]; then
+            echo "no_race=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "no_race=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Short-circuit — no race today or tomorrow
+        if: github.event_name == 'schedule' && steps.guard.outputs.no_race == 'true'
+        run: echo "::notice::fixture_guard reports no race today or tomorrow, exiting cleanly"
+
+      - name: Choose local meetings
+        id: plan
+        if: github.event_name != 'schedule' || steps.guard.outputs.no_race != 'true'
+        run: |
+          set -eu
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            printf '%s %s\n' "${{ github.event.inputs.date }}" "${{ github.event.inputs.venue }}" > /tmp/raceday-meetings.txt
+            echo "surfaces=${{ github.event.inputs.surfaces }}" >> "$GITHUB_OUTPUT"
+          else
+            python3 - << 'PY'
+          import csv
+          from datetime import datetime, timedelta, timezone
+          from pathlib import Path
+          hk = (datetime.now(timezone.utc) + timedelta(hours=8)).date()
+          wanted = {hk.isoformat(), (hk + timedelta(days=1)).isoformat()}
+          seen = []
+          path = Path('data/fixtures/fixtures.csv')
+          if path.exists():
+              for row in csv.DictReader(path.open(encoding='utf-8-sig')):
+                  if row.get('date') in wanted and row.get('venue') in ('ST', 'HV'):
+                      item = f"{row['date']} {row['venue']}"
+                      if item not in seen:
+                          seen.append(item)
+          if not seen:
+              seen = [' ']
+          Path('/tmp/raceday-meetings.txt').write_text('\n'.join(seen) + '\n', encoding='utf-8')
+          print('meetings', seen)
+          PY
+            echo "surfaces=report,formline,exceptional,veterinary,trackwork,rides,summary" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Scrape race-day companions
+        id: scrape
+        if: github.event_name != 'schedule' || steps.guard.outputs.no_race != 'true'
+        continue-on-error: true
+        env:
+          SURFACES: ${{ steps.plan.outputs.surfaces }}
+        run: |
+          set -eu
+          while read -r day venue; do
+            args=(--root=. --surfaces="$SURFACES")
+            if [ -n "${day:-}" ]; then args+=(--date="$day"); fi
+            if [ -n "${venue:-}" ]; then args+=(--venue="$venue"); fi
+            python3 scripts/hkjc_raceday_companions.py "${args[@]}"
+          done < /tmp/raceday-meetings.txt
+
+      - name: Commit projection and append-only manifest
+        if: always() && (github.event_name != 'schedule' || steps.guard.outputs.no_race != 'true')
+        run: |
+          set -eu
+          [ -d data/official_raceday ] || exit 0
+          git config user.name 'tianxi-bot'
+          git config user.email 'tianxi-bot@users.noreply.github.com'
+          git add data/official_raceday
+          git diff --cached --quiet && exit 0
+          for f in $(git diff --cached --name-only --diff-filter=M); do
+            case "$f" in
+              data/official_raceday/manifest.jsonl)
+                if git diff --cached "$f" | grep -qE '^-[^-]'; then echo 'manifest rewrite refused'; exit 1; fi
+                ;;
+              data/official_raceday/*.csv) ;;
+              *) echo "unexpected official_raceday change: $f"; exit 1 ;;
+            esac
+          done
+          if [ -n "$(git diff --cached --name-only --diff-filter=D)" ]; then echo 'race-day companion deletion refused'; exit 1; fi
+          git commit -m '[data][skip ci] official HKJC race-day companion boards'
+          git push origin HEAD:main
+
+      - name: Fail closed on an unparsed board
+        if: steps.scrape.outcome == 'failure'
+        run: exit 1
+
+      - name: Require Cloudflare token on a schedule
+        if: steps.scrape.outcome == 'success' && github.event_name == 'schedule'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+        run: |
+          set -eu
+          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
+            echo 'CF_API_TOKEN missing; scheduled race-day companion ingest cannot write D1'
+            exit 1
+          fi
+
+      - name: Install wrangler
+        if: steps.scrape.outcome == 'success'
+        run: npm install -g wrangler@4
+
+      - name: Upsert race-day companions into D1
+        if: steps.scrape.outcome == 'success'
+        working-directory: backend
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+        run: |
+          set -eu
+          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
+            echo 'CF_API_TOKEN missing; leaving the CSV projection unsent'
+            exit 0
+          fi
+          wrangler d1 execute tianxi-db --remote --file=src/db/migrations/20261027_raceday_companions.sql --yes
+          python3 ../scripts/hkjc_raceday_companions.py --root=.. --emit-sql /tmp/raceday_companions.sql
+          python3 - << 'PY'
+          from pathlib import Path
+          text = Path('/tmp/raceday_companions.sql').read_text(encoding='utf-8')
+          parts = [part.strip() for part in text.split(';\n') if part.strip() and not part.strip().startswith('--')]
+          out = Path('/tmp/raceday_chunks')
+          out.mkdir(exist_ok=True)
+          size = 250
+          for index in range(0, len(parts), size):
+              chunk = ';\n'.join(parts[index:index + size]) + ';\n'
+              (out / f'{index:05d}.sql').write_text(chunk, encoding='utf-8')
+          print(f'chunks={(len(parts) + size - 1) // size if parts else 0} statements={len(parts)}')
+          PY
+          if ! ls /tmp/raceday_chunks/*.sql >/dev/null 2>&1; then
+            echo 'no race-day companion statements to apply'
+            exit 0
+          fi
+          for f in $(ls /tmp/raceday_chunks/*.sql | sort); do
+            echo "--> $f"
+            wrangler d1 execute tianxi-db --remote --file="$f" --yes
+          done
