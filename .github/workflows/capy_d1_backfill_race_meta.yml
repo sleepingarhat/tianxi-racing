@@ -1,0 +1,108 @@
+name: Capy D1 Backfill — races rating_range / track / course
+
+# One-off / on-demand backfill: old meetings were pushed to D1 before the
+# results pipeline carried rating_range + track/course, and the regular delta
+# push is INSERT OR IGNORE (never updates existing rows). This workflow reads
+# the archived official results CSVs (no HKJC re-scrape) and pushes
+# UPDATE-only, NULL-fill statements via backend/scripts/backfill-race-meta.ts.
+#
+# Manual dispatch only. Default is a dry run (prints counts, pushes nothing).
+
+on:
+  workflow_dispatch:
+    inputs:
+      since:
+        description: 'First race date YYYY-MM-DD'
+        required: true
+        default: '2016-01-01'
+      until:
+        description: 'Last race date YYYY-MM-DD'
+        required: true
+      dry_run:
+        description: 'true = generate SQL and print counts only, no D1 writes'
+        required: true
+        default: 'true'
+
+permissions:
+  contents: read
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: backend
+        run: npm ci --no-audit --no-fund
+
+      - name: Generate backfill SQL from archived results CSVs
+        working-directory: backend
+        env:
+          SINCE: ${{ inputs.since }}
+          UNTIL: ${{ inputs.until }}
+        run: |
+          set -eu
+          rm -rf /tmp/race-meta-backfill
+          npx tsx scripts/backfill-race-meta.ts \
+            --data-dir=../data \
+            --since="$SINCE" \
+            --until="$UNTIL" \
+            --out=/tmp/race-meta-backfill | tee /tmp/backfill-summary.json
+          ls -la /tmp/race-meta-backfill | head -10
+
+      - name: Dry run — report only
+        if: inputs.dry_run == 'true'
+        run: |
+          echo "::notice::dry run — no D1 writes. Summary:"
+          cat /tmp/backfill-summary.json
+
+      - name: Install wrangler
+        if: inputs.dry_run != 'true'
+        run: npm install -g wrangler@4
+
+      - name: Push backfill chunks to D1
+        if: inputs.dry_run != 'true'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+        run: |
+          set -eu
+          FAILED=0
+          for f in /tmp/race-meta-backfill/race-meta-*.sql; do
+            [ -f "$f" ] || continue
+            base=$(basename "$f")
+            ok=0
+            for try in 1 2 3; do
+              if wrangler d1 execute tianxi-db --remote --file="$f" >/tmp/out.log 2>&1; then ok=1; break; fi
+              grep -q "long-running import" /tmp/out.log && sleep 45 || break
+            done
+            if [ "$ok" -eq 1 ]; then
+              echo "OK  $base"
+            else
+              echo "FAIL $base"
+              tail -20 /tmp/out.log
+              FAILED=1
+            fi
+          done
+          if [ "$FAILED" -eq 1 ]; then
+            exit 1
+          fi
+
+      - name: Verify D1 post-backfill
+        if: inputs.dry_run != 'true'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+        run: |
+          set -eu
+          wrangler d1 execute tianxi-db --remote --json \
+            --command="SELECT COUNT(*) AS races_total, SUM(CASE WHEN rating_range IS NULL THEN 1 ELSE 0 END) AS missing_rating, SUM(CASE WHEN track IS NULL THEN 1 ELSE 0 END) AS missing_track FROM races r JOIN race_meetings m ON m.id = r.meeting_id WHERE m.date BETWEEN '${{ inputs.since }}' AND '${{ inputs.until }}'" \
+            | tail -20
