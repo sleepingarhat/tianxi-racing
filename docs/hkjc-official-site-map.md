@@ -136,11 +136,11 @@
 | [傷患（單駒）](https://racing.hkjc.com/zh-hk/local/information/ovehorse?horseid=HK_2025_L457) | 已有 | 日期、詳情、通過日期 | `HorseInjury_Scraper.py` → `horses/injury`、`horse_injury` | 未通過的紀錄要保留通過日空白 |
 | [搬遷紀錄](https://racing.hkjc.com/zh-hk/local/information/movementrecords?horseid=HK_2025_L457) | 冇 | 由、至、到達日期 | 主檔只有「現在位置（到達日期）」一句 | 到達日唔等於出賽日 |
 | [同父系馬](https://racing.hkjc.com/zh-hk/local/information/samesire?horsesire=Zoustar) | 部分 | 冠、亞、季、出賽、曾勝路程 | 血統欄有父系名。同父系名單冇收 | 退役馬仍在名單 |
-| [馬匹搜尋／馬主搜尋](https://racing.hkjc.com/zh-hk/local/information/ownersearch) | 部分 | 馬名、烙號、馬主、父系。結果連去馬匹頁。選單亦有按筆畫、馬房、所在地、馬齡 | 馬主係 `horse_profile_extra.owner` 一欄。冇馬主索引，搜尋頁冇爬 | 馬主字串要原句，團體名中間有「與」 |
+| [馬匹搜尋／馬主搜尋](https://racing.hkjc.com/zh-hk/local/information/ownersearch) | 部分 | 馬名、烙號、馬主、父系。結果連去馬匹頁。選單亦有按筆畫、馬房、所在地、馬齡 | 現役 `horse_profiles.csv` 馬主原句 → `data/official_p2/owner_horse.csv`、D1 `official_owner_horse`。回聲必須等於查詢字。頁面列出的退役馬一併入索引；烙號轉世而馬名不同，唔當成現役主檔那一匹。每週一 04:20 HKT `capy_official_p2`。已無現役馬的馬主未逐個爬。筆畫／馬房選單未爬 | 馬主字串要原句，團體名中間有「與」 |
 | [馬匹列表](https://racing.hkjc.com/zh-hk/local/information/selecthorse) | 部分 | 現役馬、評分、按練馬師／位置／馬齡 | 活躍馬來自賽果同排位，唔係這張目錄的副本 | 位置分香港、從化、海外 |
 | [馬匹評分榜](https://racing.hkjc.com/zh-hk/local/information/latestonhorse?View=Horses/clas/) | 冇 | 評分榜視圖 | 單匹現評在主檔 | `View` 路徑要整段保留 |
 | [馬匹消息](https://racing.hkjc.com/zh-hk/local/information/latestonhorse) | 冇 | 消息列表 | 無 | — |
-| [初出馬介紹](https://racing.hkjc.com/zh-hk/local/page/new-horse) | 冇 | 2026-10-27 畫面：馬名、烙號、資料及評語（截至日期）、出生地、毛色、進口類別、血統表、父系簡介、母系簡介。馬匹頁可以帶 `racedate`、`raceNo`、`brandNo` 指住某一匹 | 介紹文冇收。新馬父系母系由 `HorsePedigree_Scraper.py` 跟排位馬號補。一／二／六 21:30 HKT；星期三 05:00 全池 | 評語的「截至」日期早過出賽日。唔好把評語寫成賽果 |
+| [初出馬介紹](https://racing.hkjc.com/zh-hk/local/page/new-horse) | 已有 | 2026-10-27 畫面：馬名、烙號、資料及評語（截至日期）、出生地、毛色、進口類別、血統表、父系簡介、母系簡介。馬匹頁可以帶 `racedate`、`raceNo`、`brandNo` 指住某一匹 | `official_new_horse_intro`：評語正文、截至日、出生地、毛色、進口類別。`not_race_result=1`。血統計數留在父系母系簡介，唔寫入正文。近 14 日有介紹的會議。`capy_official_p2` 每日 07:17 HKT。父系母系數字仍由 `HorsePedigree_Scraper.py` 收 | 評語的「截至」日期早過出賽日。唔好把評語寫成賽果 |
 | [試閘](https://racing.hkjc.com/zh-hk/local/information/btresult) | 已有 | 日期、馬場、途程、地況、組別時間；馬名、騎師、練馬師、排位、配備、頭馬距離、沿途走位、完成時間、結果、評述 | `TrialResults_Scraper.py` → `trials/` → `trial_sessions`、`trial_runners`。每日 02:00 HKT 抓、05:17 入 D1 | 馬會只留約 176 個試閘日 |
 | [晨操搜尋](https://racing.hkjc.com/zh-hk/local/information/trackworksearch) | 部分 | 搜尋入口，結果去單駒晨操 | 單駒晨操已有 | — |
 | [傷患資料庫](https://racing.hkjc.com/zh-hk/local/information/ovedatabase) | 部分 | 過去 12 個月：烙號、馬名、日期、詳情、通過日期 | 單駒檔有；這張全庫滾動表冇獨立收 | 截至日係抓取日 |
@@ -163,21 +163,21 @@
 | [練馬師資料](https://racing.hkjc.com/zh-hk/local/information/trainerprofile?trainerid=HDA&season=Current) | 部分 | 所贏獎金、冠亞季殿、出馬總數、過去 10 個賽馬日、勝出率 | `trainers/trainer_profiles.csv` 主要係代碼同姓名。季績頁未整頁收 | 同騎師 |
 | [練馬師往績](https://racing.hkjc.com/zh-hk/local/information/trainerpastrec?trainerid=HDA&season=Current) | 已有 | 場次、馬匹、名次、跑道／賽道、途程、場地、檔位、評分、賠率、騎師、配備、體重、實際負磅、首三名 | `trainers/records/`。`capy_trainer_fix` 每日 01:00 HKT，近兩日有賽先跑 | — |
 | [練馬師勝出場地途程](https://racing.hkjc.com/zh-hk/local/information/trainerwinstat?trainerid=NPC) | 部分 | 途程 × 馬場 | 可從往績加總 | — |
-| [騎師榜](https://racing.hkjc.com/zh-hk/local/info/jockey-ranking?season=Current&view=Numbers&racecourse=ALL) | 部分 | 上列榜欄，另有場地同百分比 | 季總數在 profile CSV 的一份，唔係這張榜的逐日副本，亦冇「殿、第五、場地篩選」 | 截至賽事日係上一賽馬日 |
-| [練馬師榜](https://racing.hkjc.com/zh-hk/local/info/trainer-ranking?season=Current&view=Numbers&racecourse=ALL) | 冇 | 同上 | 姓名有。冠亞季殿、出馬總數、獎金的官方榜冇收 | 同上 |
-| [本地騎師讓磅](https://racing.hkjc.com/zh-hk/local/information/jockeyallowance) | 冇 | 騎師、頭馬次數、現時讓磅。標題有截至賽事日 | 排位表有分齡讓磅欄，見習讓磅表冇收 | 讓磅會隨頭馬次數變 |
+| [騎師榜](https://racing.hkjc.com/zh-hk/local/info/jockey-ranking?season=Current&view=Numbers&racecourse=ALL) | 已有 | 上列榜欄，另有場地同百分比 | `official_ranking_board`、`official_ranking_slice`。今季截至上一賽馬日，上季截至季終。冠亞季殿第五、出賽、獎金，以及 ALL／STT／STA／HVT／CHT／CHA。空場地唔造行。百分比跟頁面四捨五入，不另存一份。`capy_official_p2` 每日 07:17 HKT，近兩日有賽先跑。profile CSV 季總數仍然係另一份 | 截至賽事日係上一賽馬日 |
+| [練馬師榜](https://racing.hkjc.com/zh-hk/local/info/trainer-ranking?season=Current&view=Numbers&racecourse=ALL) | 已有 | 同上 | 同騎師榜，寫入同一對表，`role=trainer`。空的 `ssnStat` 跟頁面丟掉，唔補零 | 同上 |
+| [本地騎師讓磅](https://racing.hkjc.com/zh-hk/local/information/jockeyallowance) | 已有 | 騎師、頭馬次數、現時讓磅。標題有截至賽事日 | `official_jockey_allowance`。`--` 留空，唔當 0 磅。同 `capy_official_p2`。排位表分齡讓磅仍然係另一欄 | 讓磅會隨頭馬次數變 |
 | [騎練配對及初出馬成績](https://racing.hkjc.com/zh-hk/local/page/jtcombo-debutants-statistics) | 冇 | 內容殼 | 無 | — |
 
 ## 統計（P2）
 
 | 頁 | 狀態 | 公開欄位 | 天喜落點同節奏 | 日期風險 |
 |---|---|---|---|---|
-| [檔位統計](https://racing.hkjc.com/zh-hk/local/information/draw) | 部分 | 當日每場：途程、跑道、檔位、出賽次數、冠亞季殿、勝出率、入Q率、上名率、前 4 名率 | 逐匹檔位在 `entries_upcoming.draw`、`race_results.draw`。官方統計表冇收 | 統計窗口係馬會定的歷史，唔係該場即將發生的事 |
+| [檔位統計](https://racing.hkjc.com/zh-hk/local/information/draw) | 已有 | 當日每場：途程、跑道、檔位、出賽次數、冠亞季殿、勝出率、入Q率、上名率、前 4 名率 | `official_draw_stat`、`official_draw_favourite`，`not_race_result=1`，窗口註腳原句。排位表未出記 pending，唔當空榜。逐匹檔位仍在 `entries_upcoming.draw`、`race_results.draw`。`capy_official_p2` | 統計窗口係馬會定的歷史，唔係該場即將發生的事 |
 | [檔位進階搜尋](https://racing.hkjc.com/zh-hk/local/information/drawadvsearch) | 冇 | 馬季、馬場－跑道（含從化）、賽道、途程、場地狀況 | 無 | 參數 `Year`、`Racecourse`、`Course`、`Distance`、`Going` |
-| [練馬師王統計](https://racing.hkjc.com/zh-hk/local/information/tncstat) | 冇 | 編號、練馬師、近十個賽事日積分、平均、季度 | 無對應表 | 欄頭日期係過去賽馬日 |
-| [騎師王統計](https://racing.hkjc.com/zh-hk/local/information/jkcstat) | 冇 | 同上，騎師 | 無 | 同上 |
-| [騎師大熱](https://racing.hkjc.com/zh-hk/local/information/jockeyfavourite) | 冇 | 出賽、頭馬、位置、大熱次數同百分比、大熱勝出、大熱入位。截至賽事日 | 無 | — |
-| [練馬師大熱](https://racing.hkjc.com/zh-hk/local/information/trainerfavourite) | 冇 | 同上 | 無 | — |
+| [練馬師王統計](https://racing.hkjc.com/zh-hk/local/information/tncstat) | 已有 | 編號、練馬師、近十個賽事日積分、平均、季度 | `official_pool_stat`，`pool=tnc`。`-` 留 NULL。截至最近一欄賽事日。`capy_official_p2` | 欄頭日期係過去賽馬日 |
+| [騎師王統計](https://racing.hkjc.com/zh-hk/local/information/jkcstat) | 已有 | 同上，騎師 | 同表，`pool=jkc` | 同上 |
+| [騎師大熱](https://racing.hkjc.com/zh-hk/local/information/jockeyfavourite) | 已有 | 出賽、頭馬、位置、大熱次數同百分比、大熱勝出、大熱入位。截至賽事日 | `official_favourite_stat`、`official_favourite_summary`。頁尾「其他」冇數字，唔造人。同 `capy_official_p2` | — |
+| [練馬師大熱](https://racing.hkjc.com/zh-hk/local/information/trainerfavourite) | 已有 | 同上 | 同表，`role=trainer` | — |
 | [騎師王賠率走勢](https://racing.hkjc.com/zh-hk/local/page/jkc-odds-chart) | 冇 | 走勢圖 | 無。WIN/PLA 快照唔係這張圖 | — |
 | [練馬師王賠率走勢](https://racing.hkjc.com/zh-hk/local/page/tnc-odds-chart) | 冇 | 走勢圖 | 無 | — |
 

@@ -1,0 +1,177 @@
+name: Capy Official P2 — rankings, draw, pools, intros, owners
+on:
+  workflow_dispatch:
+    inputs:
+      surfaces:
+        description: 'rankings,draw,pools,favourites,allowance,new-horse,owners'
+        required: false
+        default: 'rankings,draw,pools,favourites,allowance,new-horse'
+      date:
+        description: 'YYYY-MM-DD for draw and new-horse; blank follows the page'
+        required: false
+        default: ''
+      owner:
+        description: 'One owner string. Blank with owners selected uses every active profile owner'
+        required: false
+        default: ''
+  schedule:
+    # 07:17 HKT. Nearby race days only. Boards follow the official as-of, not the clock date.
+    - cron: '17 23 * * *'
+    # Monday 04:20 HKT. Owner index plus the same boards, including weeks without a nearby race.
+    - cron: '20 20 * * 0'
+permissions:
+  contents: write
+concurrency:
+  group: capy-official-p2
+  cancel-in-progress: false
+jobs:
+  season_gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      skip: ${{ steps.chk.outputs.skip }}
+    steps:
+      - id: chk
+        name: Season gate (off-season auto-pause)
+        run: |
+          SKIP=false
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            STATUS=$(curl -sf --max-time 20 "https://tianxi-backend.tianxi-entertainment.workers.dev/api/season" | grep -o '"status":"[a-z_]*"' | head -1 | cut -d'"' -f4 || true)
+            echo "season status: ${STATUS:-unknown (fail-open)}"
+            if [ "$STATUS" = "off_season" ]; then
+              SKIP=true
+              echo "::notice::休季中 off-season — skipping scheduled official boards"
+            fi
+          fi
+          echo "skip=$SKIP" >> "$GITHUB_OUTPUT"
+
+  collect:
+    needs: season_gate
+    if: needs.season_gate.outputs.skip != 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: main, fetch-depth: 1 }
+
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+
+      - name: Install parser dependency
+        run: pip install beautifulsoup4==4.14.2
+
+      - name: Test official board identity rules
+        run: python3 -m unittest discover -s scripts -p test_hkjc_official_boards.py
+
+      - name: Race-day guard for the daily board run
+        id: guard
+        run: |
+          if [ "${{ github.event_name }}" = "schedule" ] && [ "${{ github.event.schedule }}" = "17 23 * * *" ]; then
+            bash scripts/fixture_guard.sh --window 2 --direction any
+          else
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            echo "guard: weekly or manual, run=true"
+          fi
+
+      - name: Choose surfaces
+        id: plan
+        if: steps.guard.outputs.run == 'true'
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "surfaces=${{ github.event.inputs.surfaces }}" >> "$GITHUB_OUTPUT"
+            echo "date=${{ github.event.inputs.date }}" >> "$GITHUB_OUTPUT"
+            echo "owner=${{ github.event.inputs.owner }}" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event.schedule }}" = "20 20 * * 0" ]; then
+            echo "surfaces=rankings,draw,pools,favourites,allowance,new-horse,owners" >> "$GITHUB_OUTPUT"
+            echo "date=" >> "$GITHUB_OUTPUT"
+            echo "owner=" >> "$GITHUB_OUTPUT"
+          else
+            echo "surfaces=rankings,draw,pools,favourites,allowance,new-horse" >> "$GITHUB_OUTPUT"
+            echo "date=" >> "$GITHUB_OUTPUT"
+            echo "owner=" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Scrape official boards
+        if: steps.guard.outputs.run == 'true'
+        env:
+          SURFACES: ${{ steps.plan.outputs.surfaces }}
+          RACE_DATE: ${{ steps.plan.outputs.date }}
+          OWNER: ${{ steps.plan.outputs.owner }}
+        run: |
+          set -eu
+          args=(--root=. --surfaces="$SURFACES")
+          if [ -n "$RACE_DATE" ]; then args+=(--date="$RACE_DATE"); fi
+          if [ -n "$OWNER" ]; then args+=(--owner="$OWNER"); fi
+          python3 scripts/hkjc_official_boards.py "${args[@]}"
+
+      - name: Commit projection and append-only manifest
+        if: steps.guard.outputs.run == 'true'
+        run: |
+          set -eu
+          [ -d data/official_p2 ] || exit 0
+          git config user.name 'tianxi-bot'
+          git config user.email 'tianxi-bot@users.noreply.github.com'
+          git add data/official_p2
+          git diff --cached --quiet && exit 0
+          for f in $(git diff --cached --name-only --diff-filter=M); do
+            case "$f" in
+              data/official_p2/manifest.jsonl)
+                if git diff --cached "$f" | grep -qE '^-[^-]'; then echo 'manifest rewrite refused'; exit 1; fi
+                ;;
+              data/official_p2/*.csv) ;;
+              *) echo "unexpected official_p2 change: $f"; exit 1 ;;
+            esac
+          done
+          if [ -n "$(git diff --cached --name-only --diff-filter=D)" ]; then echo 'official board deletion refused'; exit 1; fi
+          git commit -m '[data][skip ci] official HKJC ranking, draw, pool, intro and owner boards'
+          git push origin HEAD:main
+
+      - name: Require Cloudflare token on a schedule
+        if: steps.guard.outputs.run == 'true' && github.event_name == 'schedule'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+        run: |
+          set -eu
+          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
+            echo 'CF_API_TOKEN missing; scheduled official board ingest cannot write D1'
+            exit 1
+          fi
+
+      - name: Install wrangler
+        if: steps.guard.outputs.run == 'true'
+        run: npm install -g wrangler@4
+
+      - name: Upsert official boards into D1
+        if: steps.guard.outputs.run == 'true'
+        working-directory: backend
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+        run: |
+          set -eu
+          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
+            echo 'CF_API_TOKEN missing; leaving the CSV projection unsent'
+            exit 0
+          fi
+          wrangler d1 execute tianxi-db --remote --file=src/db/migrations/20261027_official_p2_boards.sql --yes
+          python3 ../scripts/hkjc_official_boards.py --root=.. --emit-sql /tmp/official_p2.sql
+          python3 - << 'PY'
+          from pathlib import Path
+          text = Path('/tmp/official_p2.sql').read_text(encoding='utf-8')
+          parts = [part.strip() for part in text.split(';\n') if part.strip() and not part.strip().startswith('--')]
+          out = Path('/tmp/official_p2_chunks')
+          out.mkdir(exist_ok=True)
+          size = 250
+          for index in range(0, len(parts), size):
+              chunk = ';\n'.join(parts[index:index + size]) + ';\n'
+              (out / f'{index:05d}.sql').write_text(chunk, encoding='utf-8')
+          print(f'chunks={(len(parts) + size - 1) // size if parts else 0} statements={len(parts)}')
+          PY
+          if ! ls /tmp/official_p2_chunks/*.sql >/dev/null 2>&1; then
+            echo 'no official board statements to apply'
+            exit 0
+          fi
+          for f in $(ls /tmp/official_p2_chunks/*.sql | sort); do
+            echo "--> $f"
+            wrangler d1 execute tianxi-db --remote --file="$f" --yes
+          done
