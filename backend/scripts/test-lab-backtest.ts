@@ -10,10 +10,12 @@ import {
   compareOfficialVsElo,
   compositeScore,
   hashParams,
+  isDemoMatrix,
   normalizeWeights,
   pickTop4,
   runBacktest,
   validateParams,
+  type FeatureMatrix,
 } from '../src/lib/lab-backtest';
 
 async function main(): Promise<void> {
@@ -84,15 +86,27 @@ async function main(): Promise<void> {
 
   const result = runBacktest(matrix, params);
   assert.equal(result.status, 'ready');
+  assert.equal(isDemoMatrix(matrix), true);
+  assert.equal(result.demo, true);
   assert.ok(result.overall.raceCount >= MIN_ROI_SAMPLE, `raceCount=${result.overall.raceCount}`);
-  assert.equal(result.overall.showRoi, true);
-  assert.ok(result.overall.roiPct != null);
+  // demo-fixture：命中可留，ROI／盈虧必須隱藏（避免 653% 類誇張數字）
+  assert.equal(result.overall.showRoi, false);
+  assert.equal(result.overall.roiPct, null);
+  assert.equal(result.overall.net, null);
+  assert.equal(result.overall.cost, null);
+  assert.equal(result.overall.payout, null);
+  assert.equal(result.overall.maxDrawdown, null);
+  assert.equal(result.eloBaseline?.showRoi, false);
+  assert.equal(result.eloBaseline?.roiPct, null);
+  assert.equal(result.officialBaseline?.showRoi, false);
+  assert.equal(result.officialBaseline?.roiPct, null);
   assert.ok(result.train.raceCount > 0);
   assert.ok(result.validation.raceCount > 0);
   assert.ok(result.eloBaseline);
   assert.ok(result.officialBaseline);
   assert.ok(result.series.length > 0);
-  assert.ok(result.limitations.some((l) => l.includes('demo-fixture') || l.includes('R2')));
+  assert.ok(result.limitations[0]?.includes('示範合成數據') || result.limitations[0]?.includes('demo-fixture'));
+  assert.ok(result.limitations.some((l) => l.includes('demo-fixture') || l.includes('R2') || l.includes('示範')));
 
   // 小樣本：唔出 ROI
   const small = buildDemoMatrix({ raceCount: 40, seed: 7, withDividends: true });
@@ -114,6 +128,20 @@ async function main(): Promise<void> {
   assert.equal(cmp.official.label, 'official');
   assert.equal(cmp.elo.label, 'elo');
   assert.ok(cmp.elo.raceCount > 0);
+
+  // 真矩陣路徑：行為不變——大樣本＋派彩可出 ROI
+  const realMatrix: FeatureMatrix = {
+    version: 'r2-fixture-v1',
+    source: 'r2',
+    races: matrix.races,
+  };
+  assert.equal(isDemoMatrix(realMatrix), false);
+  const realRes = runBacktest(realMatrix, params);
+  assert.equal(realRes.demo, false);
+  assert.equal(realRes.overall.showRoi, true);
+  assert.ok(realRes.overall.roiPct != null);
+  assert.ok(realRes.overall.net != null);
+  assert.ok(!realRes.limitations.some((l) => l.includes('示範合成數據')));
 
   // hash 穩定性
   const hash2 = await hashParams(params, matrix.version);
