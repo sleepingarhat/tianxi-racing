@@ -1,7 +1,6 @@
 #!/usr/bin/env tsx
 /**
- * compare API 合約：冇 secret → 401；壞 body → 400；有 secret → 200（demo 矩陣）。
- * baselines stub 繼續可用。
+ * compare API 已下架：無論有冇 secret 一律 410 Gone（唔再係產品端點）。
  */
 import assert from 'node:assert/strict';
 import { Hono } from 'hono';
@@ -26,7 +25,7 @@ async function main(): Promise<void> {
 
   {
     const res = await hit('/api/lab/compare?from=2025-09-01&to=2026-04-01');
-    assert.equal(res.status, 401, 'GET compare no secret → 401');
+    assert.equal(res.status, 410, 'GET compare no secret → 410');
   }
 
   {
@@ -42,35 +41,12 @@ async function main(): Promise<void> {
         ],
       }),
     });
-    assert.equal(res.status, 401, 'POST compare no secret → 401');
+    assert.equal(res.status, 410, 'POST compare no secret → 410');
   }
 
   {
     const res = await hit('/api/lab/compare/baselines?from=2025-09-01&to=2026-04-01');
-    assert.equal(res.status, 401, 'baselines no secret → 401');
-  }
-
-  {
-    const res = await hit(
-      '/api/lab/compare',
-      {
-        method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-          'X-Tianxi-Site-Token': 'correct-secret',
-        },
-        body: JSON.stringify({
-          from: '2026-01-01',
-          to: '2025-01-01',
-          strategies: [
-            { key: 'official', kind: 'official' },
-            { key: 'elo', kind: 'elo' },
-          ],
-        }),
-      },
-      { SITE_READER_TOKEN: 'correct-secret' },
-    );
-    assert.equal(res.status, 400, 'bad range → 400');
+    assert.equal(res.status, 410, 'baselines no secret → 410');
   }
 
   {
@@ -79,13 +55,10 @@ async function main(): Promise<void> {
       { headers: { 'X-Tianxi-Site-Token': 'correct-secret' } },
       { SITE_READER_TOKEN: 'correct-secret' },
     );
-    assert.equal(res.status, 200, `GET compare → 200 (got ${res.status})`);
+    assert.equal(res.status, 410, `GET compare with secret → 410 (got ${res.status})`);
     const j = (await res.json()) as any;
-    assert.equal(j.status, 'ready');
-    assert.equal(j.liveFrom, '2026-10-04');
-    assert.ok(Array.isArray(j.strategies) && j.strategies.length === 2);
-    assert.ok(Array.isArray(j.dayDiff));
-    assert.equal(j.matrixSource, 'demo-fixture');
+    assert.equal(j.error, 'gone');
+    assert.equal(j.redirect, '/lab');
   }
 
   {
@@ -104,25 +77,12 @@ async function main(): Promise<void> {
           strategies: [
             { key: 'official', label: '官方四揀', kind: 'official' },
             { key: 'elo', label: '純 Elo', kind: 'elo' },
-            {
-              key: 'mine',
-              label: '我的',
-              kind: 'custom',
-              features: [
-                { id: 'elo', weight: 2 },
-                { id: 'form', weight: 1 },
-              ],
-            },
           ],
         }),
       },
       { SITE_READER_TOKEN: 'correct-secret' },
     );
-    assert.equal(res.status, 200, `POST compare → 200 (got ${res.status})`);
-    const j = (await res.json()) as any;
-    assert.equal(j.strategies.length, 3);
-    assert.ok(j.strategies.some((s: any) => s.kind === 'custom'));
-    assert.ok(j.researchNote);
+    assert.equal(res.status, 410, `POST compare with secret → 410 (got ${res.status})`);
   }
 
   {
@@ -131,13 +91,10 @@ async function main(): Promise<void> {
       { headers: { 'X-Tianxi-Site-Token': 'correct-secret' } },
       { SITE_READER_TOKEN: 'correct-secret' },
     );
-    assert.equal(res.status, 200, 'baselines stub still 200');
-    const j = (await res.json()) as any;
-    assert.ok(j.official);
-    assert.ok(j.elo);
+    assert.equal(res.status, 410, 'baselines with secret → 410');
   }
 
-  console.log('test-lab-compare-auth: all passed');
+  console.log('test-lab-compare-auth: all passed (410 gone)');
 }
 
 main().catch((err) => {

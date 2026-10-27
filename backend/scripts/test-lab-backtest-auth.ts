@@ -1,6 +1,6 @@
 #!/usr/bin/env tsx
 /**
- * backtest API 合約：冇 secret → 401；壞 body → 400；有 secret → 200（demo 矩陣）。
+ * backtest API 已下架：無論有冇 secret 一律 410 Gone（唔再係產品端點）。
  */
 import assert from 'node:assert/strict';
 import { Hono } from 'hono';
@@ -34,57 +34,14 @@ async function main(): Promise<void> {
         pools: ['FF'],
       }),
     });
-    assert.equal(res.status, 401, 'POST backtest no secret → 401');
+    assert.equal(res.status, 410, 'POST backtest no secret → 410 gone');
+    const j = (await res.json()) as any;
+    assert.equal(j.error, 'gone');
   }
 
   {
     const res = await hit('/api/lab/backtest/abcdef0123456789abcdef0123456789');
-    assert.equal(res.status, 401, 'GET backtest no secret → 401');
-  }
-
-  {
-    const res = await hit('/api/lab/compare/baselines?from=2025-09-01&to=2026-04-01');
-    assert.equal(res.status, 401, 'compare no secret → 401');
-  }
-
-  {
-    const res = await hit(
-      '/api/lab/backtest',
-      {
-        method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-          'X-Tianxi-Site-Token': 'wrong',
-        },
-        body: JSON.stringify({
-          features: [{ id: 'elo', weight: 1 }],
-          from: '2025-09-01',
-          to: '2026-04-01',
-        }),
-      },
-      { SITE_READER_TOKEN: 'correct-secret' },
-    );
-    assert.equal(res.status, 401, 'wrong secret → 401');
-  }
-
-  {
-    const res = await hit(
-      '/api/lab/backtest',
-      {
-        method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-          'X-Tianxi-Site-Token': 'correct-secret',
-        },
-        body: JSON.stringify({
-          features: [],
-          from: '2025-09-01',
-          to: '2026-04-01',
-        }),
-      },
-      { SITE_READER_TOKEN: 'correct-secret' },
-    );
-    assert.equal(res.status, 400, 'empty features → 400');
+    assert.equal(res.status, 410, 'GET backtest no secret → 410');
   }
 
   {
@@ -108,38 +65,22 @@ async function main(): Promise<void> {
       },
       { SITE_READER_TOKEN: 'correct-secret' },
     );
-    assert.equal(res.status, 200, `POST backtest with secret → 200 (got ${res.status})`);
+    assert.equal(res.status, 410, `POST backtest with secret → 410 (got ${res.status})`);
     const j = (await res.json()) as any;
-    assert.equal(j.status, 'ready');
-    assert.ok(j.hash);
-    assert.ok(j.result?.overall);
-    assert.equal(j.result.matrixSource, 'demo-fixture');
-    assert.ok(j.result.eloBaseline);
-    assert.ok(Array.isArray(j.result.limitations));
+    assert.equal(j.error, 'gone');
+    assert.equal(j.redirect, '/lab');
   }
 
   {
     const res = await hit(
-      '/api/lab/compare/baselines?from=2025-09-01&to=2026-04-01',
+      '/api/lab/backtest/abcdef0123456789abcdef0123456789',
       { headers: { 'X-Tianxi-Site-Token': 'correct-secret' } },
       { SITE_READER_TOKEN: 'correct-secret' },
     );
-    assert.equal(res.status, 200, 'compare with secret → 200');
-    const j = (await res.json()) as any;
-    assert.ok(j.official);
-    assert.ok(j.elo);
+    assert.equal(res.status, 410, 'GET backtest hash with secret → 410');
   }
 
-  {
-    const res = await hit(
-      '/api/lab/backtest/not-a-hash',
-      { headers: { 'X-Tianxi-Site-Token': 'correct-secret' } },
-      { SITE_READER_TOKEN: 'correct-secret' },
-    );
-    assert.equal(res.status, 400, 'bad hash → 400');
-  }
-
-  console.log('test-lab-backtest-auth: all passed');
+  console.log('test-lab-backtest-auth: all passed (410 gone)');
 }
 
 main().catch((err) => {
