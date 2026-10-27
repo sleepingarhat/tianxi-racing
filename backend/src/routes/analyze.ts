@@ -37,6 +37,7 @@ import { todayPicksViewForRequest } from '../lib/tg-reader';
 import { hitRateBodyForNonAdmin } from '../lib/hit-rate-access';
 import { getDataStats } from '../lib/data-stats';
 import { FreezeBlockedError } from '../lib/freeze-recovery';
+import { railKey } from '../lib/result-course';
 
 import {
   ADMIN_AUTH_POLICY,
@@ -1672,15 +1673,6 @@ export async function getDrawModel(db: D1Database): Promise<DrawModel> {
     if (row?.value === 'v2') return 'v2';
   } catch { /* ignore */ }
   return 'v1';
-}
-
-// 由 races.course（例：草地 - "C+3" 賽道 / 全天候跑道）取出跑道鍵。
-export function railKey(course: string | null | undefined): string {
-  const c = String(course || '').trim();
-  if (!c) return 'NA';
-  if (c.includes('全天候')) return 'AWT';
-  const m = c.match(/"([^"]+)"/) || c.match(/[""]([^""]+)[""]/);
-  return m ? m[1]!.toUpperCase() : 'NA';
 }
 
 // 場地狀況分層鍵：快／好／黏／軟／濕（全天候）。

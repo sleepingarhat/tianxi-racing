@@ -31,6 +31,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
 from selenium.webdriver.chrome.service import Service as ChromeService
+from results_header_guard import official_header_miss
 
 # Honor env overrides; fall back to Replit Nix paths, then common Linux/macOS
 # locations so local contributors do not have to set env vars manually.
@@ -485,6 +486,10 @@ def scrape_one_date(driver, single_date):
         # race_no over the URL and skip duplicates.
         if not race_no or race_no in seen_race_nos:
             continue
+        miss = official_header_miss(header, tabs[0].text if tabs else "")
+        if miss:
+            print(f"[results] {formatted_date} R{race_no} {miss} — failing closed", flush=True)
+            return "fail"
         seen_race_nos.add(race_no)
 
         results = parse_results_table(driver)
@@ -596,9 +601,10 @@ def _hk_today() -> date:
     return (datetime.now(timezone.utc) + timedelta(hours=8)).date()
 
 
-def run_single_dates(dates: list) -> int:
-    """Scrape explicit list of dates in one driver. Returns count of successful days."""
+def run_single_dates(dates: list):
+    """Scrape explicit dates. Returns (successful days, failed days)."""
     ok = 0
+    failed = 0
     driver = None
     try:
         driver = make_driver()
@@ -607,6 +613,7 @@ def run_single_dates(dates: list) -> int:
             if result in ("skip", "norace", "pending"):
                 print(f"[single] {d} {result}", flush=True)
             elif result == "fail":
+                failed += 1
                 print(f"[single] {d} FAIL", flush=True)
             else:
                 ok += 1
@@ -617,7 +624,7 @@ def run_single_dates(dates: list) -> int:
                 driver.quit()
         except Exception:
             pass
-    return ok
+    return ok, failed
 
 
 def run_daily() -> int:
@@ -649,7 +656,10 @@ def run_daily() -> int:
         targets = [hk_now]
 
     print(f"[daily] scraping race day(s): {[str(t) for t in targets]}", flush=True)
-    ok = run_single_dates(targets)
+    ok, failed = run_single_dates(targets)
+    if failed:
+        print(f"[daily] {failed} date(s) failed closed for {targets}", flush=True)
+        return 1
     if ok == 0:
         print(f"[daily] no data written for {targets} (empty pages?)", flush=True)
     return 0
@@ -689,7 +699,8 @@ if __name__ == "__main__":
             except ValueError:
                 print(f"[error] invalid date: {s}", flush=True)
                 sys.exit(2)
-        run_single_dates(dates)
+        _ok, failed = run_single_dates(dates)
+        sys.exit(1 if failed else 0)
     elif args.backfill:
         run_backfill()
     else:

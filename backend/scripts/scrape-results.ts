@@ -27,6 +27,7 @@
  *   race_results.id    = 'result_{race_id}_{horse_number}'
  */
 import { writeFileSync } from 'node:fs';
+import { normalizeRatingRange, splitOfficialCourse } from '../src/lib/result-course';
 
 interface Args {
   date: string;
@@ -73,17 +74,6 @@ function parseFinishTime(s: string | null): number | null {
   return Number.isFinite(n) && n > 0 ? n : null;
 }
 
-/** Split combined "草地 - "C+3" 賽道" into {track, course}. */
-function splitTrackCourse(s: string | null): { track: string | null; course: string | null } {
-  if (!s) return { track: null, course: null };
-  const t = s.trim();
-  // "草地 - "C+3" 賽道" → track="草地", course=C+3
-  const m = t.match(/^(.+?)\s*-\s*"?([^"]+?)"?\s*賽道\s*$/);
-  if (m) return { track: m[1].trim(), course: m[2].trim() };
-  // "全天候跑道" — no separator, no course
-  return { track: t, course: null };
-}
-
 interface RaceHeader {
   race_number: number;
   klass: string | null;
@@ -93,6 +83,7 @@ interface RaceHeader {
   course: string | null;
   prize: string | null;
   title: string | null;
+  rating_range: string | null;
 }
 
 interface RaceResultRow {
@@ -128,7 +119,8 @@ function parseRaceHeader(html: string, raceNumber: number): RaceHeader | null {
   const prizeM = ctx.match(/HK\$\s*([\d,]+)/);
 
   const tcRaw = trackM ? stripHtml(trackM[2]).replace(/&quot;/g, '"') : null;
-  const { track, course } = splitTrackCourse(tcRaw);
+  const split = tcRaw ? splitOfficialCourse(tcRaw) : null;
+  const ratingM = ctx.match(/\((\d{1,3})\s*-\s*(\d{1,3})\)/);
 
   return {
     race_number: raceNumber,
@@ -136,9 +128,10 @@ function parseRaceHeader(html: string, raceNumber: number): RaceHeader | null {
     distance: detailM ? Number(detailM[2]) : null,
     going: detailM ? stripHtml(detailM[3]) : null,
     title: trackM ? stripHtml(trackM[1]) : null,
-    track,
-    course,
+    track: split?.track ?? null,
+    course: split?.course ?? null,
     prize: prizeM ? prizeM[1].replace(/,/g, '') : null,
+    rating_range: ratingM ? normalizeRatingRange(`${ratingM[1]}-${ratingM[2]}`) : null,
   };
 }
 
@@ -310,11 +303,15 @@ async function main() {
   for (const p of parsed) {
     const raceId = `race_${a.date}_${a.venue}_${p.header.race_number}`;
     sql.push(
-      `INSERT OR REPLACE INTO races (id, meeting_id, race_number, title, class, distance, going, track, course, prize) ` +
+      `INSERT INTO races (id, meeting_id, race_number, title, class, distance, going, track, course, prize, rating_range) ` +
       `SELECT ${esc(raceId)}, ${esc(meetingId)}, ${p.header.race_number}, ${esc(p.header.title)}, ` +
       `${esc(p.header.klass)}, ${p.header.distance ?? 'NULL'}, ${esc(p.header.going)}, ` +
-      `${esc(p.header.track)}, ${esc(p.header.course)}, ${esc(p.header.prize)} ` +
-      `WHERE EXISTS (SELECT 1 FROM race_meetings WHERE id = ${esc(meetingId)});`
+      `${esc(p.header.track)}, ${esc(p.header.course)}, ${esc(p.header.prize)}, ${esc(p.header.rating_range)} ` +
+      `WHERE EXISTS (SELECT 1 FROM race_meetings WHERE id = ${esc(meetingId)}) ` +
+      `ON CONFLICT(id) DO UPDATE SET title = excluded.title, class = excluded.class, ` +
+      `distance = excluded.distance, going = excluded.going, track = excluded.track, ` +
+      `course = excluded.course, prize = excluded.prize, ` +
+      `rating_range = COALESCE(excluded.rating_range, races.rating_range);`
     );
   }
 

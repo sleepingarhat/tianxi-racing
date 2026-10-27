@@ -473,3 +473,24 @@ CREATE TABLE IF NOT EXISTS lgb_predictions (
 );
 CREATE INDEX IF NOT EXISTS idx_lgbp_race ON lgb_predictions(race_id);
 CREATE INDEX IF NOT EXISTS idx_lgbp_created ON lgb_predictions(created_at DESC);
+
+-- Official 更易事項 projection. HTML snapshots stay append-only.
+CREATE TABLE IF NOT EXISTS racing_changes (
+  id TEXT PRIMARY KEY,
+  race_date TEXT NOT NULL,
+  venue TEXT NOT NULL,
+  race_number INTEGER NOT NULL,
+  horse_number INTEGER,
+  horse_name TEXT,
+  change_type TEXT NOT NULL,
+  before_value TEXT,
+  after_value TEXT,
+  announced_at TEXT,
+  raw_text TEXT NOT NULL,
+  source_sha256 TEXT NOT NULL,
+  snapshot_path TEXT,
+  captured_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_racing_changes_meeting
+  ON racing_changes(race_date, venue, race_number);

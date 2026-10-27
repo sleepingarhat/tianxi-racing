@@ -157,7 +157,11 @@ def main():
         sys.exit(_cli_check(d))
     if args.cmd == "next-meets":
         for r in next_meets(args.n):
-            print(f"{r['date']} {r.get('weekday','?'):>3}  {r.get('venue_hint','?'):>2}  {r.get('timing','?')}")
+            venue = r.get("venue") or r.get("venue_hint") or "?"
+            print(
+                f"{r['date']} {r.get('weekday','?'):>3}  {venue:>2}  "
+                f"{r.get('timing','?'):<5}  {r.get('surface','?'):<5}  n={r.get('race_count','?')}"
+            )
         sys.exit(0)
     if args.cmd == "cache-status":
         st = cache_status()

@@ -4,7 +4,7 @@ name: PR checks (backend)
 # 部署只喺 backend_deploy.yml（push 到 main／手動）發生。
 on:
   pull_request:
-    paths: ['backend/**', 'tools/tx_reader_auth.py', 'tools/tg_notify.py', 'tools/tg_race_cards.py', 'tools/test_tg_reader_auth.py', '.github/workflows/pr-checks.yml', '.github/workflows/backend_deploy.yml', '.github/workflows/tg_notify_*.yml']
+    paths: ['backend/**', 'scripts/**', 'FixtureCalendar_Scraper.py', 'RacingData_Scraper.py', 'results_header_guard.py', 'tools/tx_reader_auth.py', 'tools/tg_notify.py', 'tools/tg_race_cards.py', 'tools/test_tg_reader_auth.py', '.github/workflows/pr-checks.yml', '.github/workflows/backend_deploy.yml', '.github/workflows/tg_notify_*.yml']
 
 permissions:
   contents: read
@@ -90,6 +90,13 @@ jobs:
 
       - name: Regression test — site reader credential + ANON_HITRATE_MODE
         run: npx tsx scripts/test-hit-rate-access.ts
+
+      - name: Regression test — results course split, changes board, fixture icons
+        run: |
+          npx tsx scripts/test-result-course.ts
+          python3 -m unittest discover -s ../scripts -p 'test_racing_changes.py'
+          python3 -m unittest discover -s ../scripts -p 'test_fixture_calendar.py'
+          python3 -m unittest discover -s ../scripts -p 'test_results_header_guard.py'
 
       - name: Regression test — TG scripts send X-TG-Reader-Token (Python, no network)
         run: python3 -m unittest discover -s ../tools -p test_tg_reader_auth.py
