@@ -11,7 +11,12 @@ Other-month fillers are <td class="color_H font_wb">DD</td>.
 We fetch each month with httpx and regex-extract td.calendar cells.
 
 Output: data/fixtures/fixtures.csv with columns:
-    date (YYYY-MM-DD), season_year, month, day, weekday, captured_at
+    date, season_year, month, day, weekday, venue, timing, race_count, surface, captured_at
+
+venue is ST/HV, timing is day/night/twilight, surface is turf/awt/mixed.
+Twilight is the dusk.gif icon (alt T, 黃昏). race_count is the sum of the
+distance(n) lines in the cell.
+An empty month whose calendar title is a different month is still skipped.
 
 Run:
     python FixtureCalendar_Scraper.py                 # current year + next year
@@ -25,9 +30,6 @@ import re
 import sys
 from datetime import date, datetime, timezone
 from typing import List, Dict
-
-import httpx
-import pandas as pd
 
 FIXTURE_URL = "https://racing.hkjc.com/racing/information/Chinese/Racing/Fixture.aspx"
 OUTPUT_DIR = os.path.join("data", "fixtures")
@@ -57,6 +59,36 @@ CALENDAR_CELL_RE = re.compile(
 )
 DAY_IN_CELL_RE = re.compile(r'>\s*(\d{1,2})\s*<|^\s*(\d{1,2})\b', re.DOTALL)
 VENUE_MARKER_RE = re.compile(r'(?:alt="(?:ST|HV|AWT)"|/(?:st-ch|hv-ch|awt)\.(?:gif|png))', re.IGNORECASE)
+HEADER_ICONS_RE = re.compile(r'<span class="f_fr">(.*?)</span>', re.IGNORECASE | re.DOTALL)
+ALT_RE = re.compile(r'alt="([^"]*)"', re.IGNORECASE)
+DAY_SPAN_RE = re.compile(r'class="[^"]*\bf_fs14\b[^"]*"[^>]*>\s*(\d{1,2})\s*<', re.IGNORECASE)
+RACE_COUNT_RE = re.compile(r'\d{3,4}\((\d+)\)')
+DISTANCE_TEXT_RE = re.compile(r'\d{3,4}')
+# T is dusk.gif (黃昏 / twilight). Day and night stay D and N.
+TIMING_ALT = {"D": "day", "N": "night", "T": "twilight"}
+SURFACE_ALT = {"TURF": "turf", "AWT": "awt", "MIXED": "mixed"}
+def _blank(value):
+    if value is None:
+        return ""
+    try:
+        import pandas as pd
+        if pd.isna(value):
+            return ""
+    except TypeError:
+        pass
+    if isinstance(value, float) and value.is_integer():
+        return str(int(value))
+    return str(value).strip()
+
+
+FIXTURE_COLUMNS = [
+    "date", "season_year", "month", "day", "weekday",
+    "venue", "timing", "race_count", "surface", "captured_at",
+]
+
+
+class FixtureParseError(ValueError):
+    """The calendar showed a race day but a critical icon or count was empty."""
 
 
 # The calendar header renders the month actually displayed, e.g.
@@ -95,73 +127,152 @@ def rendered_month(html: str) -> tuple[int, int] | None:
     return None
 
 
-def fetch_month(client: httpx.Client, year: int, month: int) -> List[int]:
-    """Return list of race-day day-of-month integers for the given (year, month).
+def parse_calendar_cell(cell_html: str) -> dict | None:
+    """Race-day identity from the cell's header icons, or None if it is not a race day.
 
-    Note: HKJC accepts both lowercase (calyear/calmonth) and CamelCase
-    (CalYear/CalMonth). The page redirects to /zh-hk/local/information/fixture,
-    so follow_redirects=True is required.
+    Header icons live in the first ``f_fr`` span (venue, day/night/twilight, surface).
+    Later AWT dots mark individual races and are not the meeting surface.
     """
-    url = f"{FIXTURE_URL}?CalYear={year}&CalMonth={month:02d}"
-    r = client.get(url, timeout=20.0)
-    r.raise_for_status()
+    icon_block = HEADER_ICONS_RE.search(cell_html)
+    alts = [alt.upper() for alt in ALT_RE.findall(icon_block.group(1) if icon_block else "")]
+    venue = next((alt for alt in alts if alt in ("ST", "HV")), None)
+    if venue is None:
+        if VENUE_MARKER_RE.search(cell_html):
+            raise FixtureParseError("race-day cell has a venue marker but no ST/HV icon")
+        return None
+    timing = next((TIMING_ALT[alt] for alt in alts if alt in TIMING_ALT), None)
+    surface = next((SURFACE_ALT[alt] for alt in alts if alt in SURFACE_ALT), None)
+    if not timing or not surface:
+        raise FixtureParseError(f"{venue} cell missing day/night/twilight or turf/AWT/mixed icons: {alts}")
+    counts = [int(n) for n in RACE_COUNT_RE.findall(cell_html)]
+    if counts:
+        race_count = str(sum(counts))
+    else:
+        # A programmed card always prints distances. An icon-only cell (a future
+        # season, or a day HKJC has not listed distances for) has no count to store.
+        visible = re.sub(r"<[^>]+>", " ", cell_html)
+        if DISTANCE_TEXT_RE.search(visible):
+            raise FixtureParseError(f"{venue} cell shows a distance but no distance(count) lines: {alts}")
+        race_count = ""
+    day_match = DAY_SPAN_RE.search(cell_html) or DAY_IN_CELL_RE.search(cell_html)
+    if not day_match:
+        raise FixtureParseError(f"{venue} cell has no day number")
+    day_text = next((group for group in day_match.groups() if group), None)
+    if not day_text:
+        raise FixtureParseError(f"{venue} cell has no day number")
+    day = int(day_text)
+    if not 1 <= day <= 31:
+        raise FixtureParseError(f"day out of range: {day}")
+    return {
+        "day": day,
+        "venue": venue,
+        "timing": timing,
+        "surface": surface,
+        "race_count": race_count,
+    }
 
-    shown = rendered_month(r.text)
+
+def parse_month_html(html: str, year: int, month: int) -> List[dict]:
+    """Race days for one month. A title for a different month yields no days.
+
+    That empty-month guard stays: HKJC serves the current month when the
+    requested month has no fixtures. Cells that are clearly race days but
+    lack venue, session, or surface raise FixtureParseError. A distance that
+    is on the page but does not match distance(count) fails the same way.
+    A cell with no distances keeps a blank race count.
+    """
+    shown = rendered_month(html)
     if shown is None:
         print(f"[fixture] {year}-{month:02d} WARN: cannot read calendar header — skipping month",
               file=sys.stderr)
         return []
     if shown != (year, month):
-        # Off-season / unavailable month: HKJC served a different month instead.
         print(f"[fixture] {year}-{month:02d} no fixtures (page showed "
               f"{shown[0]}-{shown[1]:02d}) — skipping month", file=sys.stderr)
         return []
 
-    days = []
-    for cell_html in CALENDAR_CELL_RE.findall(r.text):
-        # Require a venue marker to qualify as race day
-        if not VENUE_MARKER_RE.search(cell_html):
-            continue
-        m = DAY_IN_CELL_RE.search(cell_html)
-        if m:
-            d = int(m.group(1) or m.group(2))
-            if 1 <= d <= 31:
-                days.append(d)
-    return sorted(set(days))
+    cells = CALENDAR_CELL_RE.findall(html)
+    parsed = []
+    for cell_html in cells:
+        row = parse_calendar_cell(cell_html)
+        if row:
+            parsed.append(row)
+    if cells and not parsed:
+        raise FixtureParseError(f"{year}-{month:02d} has calendar cells but no parsed race days")
+    by_day = {row["day"]: row for row in parsed}
+    return [by_day[day] for day in sorted(by_day)]
+
+
+def fetch_month(client, year: int, month: int) -> List[dict]:
+    """Return race-day records for (year, month).
+
+    HKJC accepts both lowercase and CamelCase query keys. The page redirects
+    to /zh-hk/local/information/fixture, so follow_redirects=True is required.
+    """
+    url = f"{FIXTURE_URL}?CalYear={year}&CalMonth={month:02d}"
+    r = client.get(url, timeout=20.0)
+    r.raise_for_status()
+    return parse_month_html(r.text, year, month)
 
 
 def scrape_year(year: int) -> List[Dict]:
     rows: List[Dict] = []
+    import httpx
     captured = datetime.now(timezone.utc).isoformat()
     with httpx.Client(headers=HEADERS, follow_redirects=True) as client:
         for month in range(1, 13):
             try:
                 days = fetch_month(client, year, month)
+            except FixtureParseError:
+                raise
             except Exception as e:
                 print(f"[fixture] {year}-{month:02d} error: {e}", file=sys.stderr)
                 continue
-            print(f"[fixture] {year}-{month:02d}  race days: {days}")
-            for d in days:
+            print(f"[fixture] {year}-{month:02d}  race days: "
+                  f"{[row['day'] for row in days]}")
+            for row in days:
                 try:
-                    dt = date(year, month, d)
+                    dt = date(year, month, row["day"])
                 except ValueError:
                     continue
+                if not row["venue"] or not row["timing"] or not row["surface"]:
+                    raise FixtureParseError(f"{dt.isoformat()} missing venue, timing, or surface")
                 rows.append({
                     "date": dt.isoformat(),
                     "season_year": year,
                     "month": month,
-                    "day": d,
+                    "day": row["day"],
                     "weekday": dt.strftime("%a"),
+                    "venue": row["venue"],
+                    "timing": row["timing"],
+                    "race_count": row["race_count"],
+                    "surface": row["surface"],
                     "captured_at": captured,
                 })
     return rows
 
 
 def merge_fixture_rows(old_rows, new_rows):
-    """Calendar disappearance is not cancellation evidence; retain original dates."""
+    """Calendar disappearance is not cancellation evidence; retain original dates.
+
+    A blank new field does not erase a value already stored for that date.
+    This function stays self-contained: the ingestion safety test loads it alone.
+    """
+    def present(value):
+        if value is None:
+            return False
+        text = str(value).strip()
+        return text != "" and text.lower() != "nan"
+
     merged = {row['date']: dict(row) for row in old_rows}
     for row in new_rows:
-        merged[row['date']] = {**merged.get(row['date'], {}), **row}
+        prior = dict(merged.get(row['date'], {}))
+        incoming = {}
+        for key, value in row.items():
+            if not present(value) and present(prior.get(key)):
+                continue
+            incoming[key] = value
+        merged[row['date']] = {**prior, **incoming}
     return [merged[key] for key in sorted(merged)]
 
 
@@ -190,6 +301,7 @@ def main():
               file=sys.stderr)
         sys.exit(1)
 
+    import pandas as pd
     df_new = pd.DataFrame(all_rows).drop_duplicates(subset=["date"]).sort_values("date")
 
     # Preserve historical scheduled dates; cancellations require separate evidence.
@@ -199,6 +311,11 @@ def main():
     else:
         df_final = df_new
 
+    for col in ("venue", "timing", "race_count", "surface"):
+        if col not in df_final.columns:
+            df_final[col] = ""
+        df_final[col] = df_final[col].apply(_blank)
+    df_final = df_final.reindex(columns=FIXTURE_COLUMNS)
     df_final.to_csv(OUTPUT_CSV, index=False)
     print(f"[fixture] wrote {len(df_final)} total rows ({len(df_new)} new) -> {OUTPUT_CSV}")
 

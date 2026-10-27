@@ -29,8 +29,9 @@ CREATE TABLE IF NOT EXISTS races (
   class TEXT,                         -- Class 1-5, Griffin, Group 1/2/3
   distance INTEGER,                   -- 米
   going TEXT,                         -- 好地/黏地/軟地等
-  track TEXT,                         -- 草地/泥地/全天候跑道
-  course TEXT,                        -- A/A+3/B/B+2/C/C+3 等
+  track TEXT,                         -- 草地 / 全天候 / 泥地 / 沙地
+  course TEXT,                        -- 賽道 A/C+3；全天候場為「全天候」
+  rating_range TEXT,                  -- 官方評分區間 60-40 / 40-0；冇評分留空
   prize TEXT,
   start_time TEXT,
   video_url TEXT,

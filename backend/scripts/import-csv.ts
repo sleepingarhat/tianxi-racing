@@ -18,6 +18,7 @@ import Database from 'better-sqlite3';
 import * as fs from 'fs';
 import * as path from 'path';
 import { parseFinishingPositionText } from '../src/lib/finishing-position';
+import { normalizeRatingRange, splitOfficialCourse } from '../src/lib/result-course';
 
 // =============================================
 // CLI 參數
@@ -235,13 +236,20 @@ function initDatabase(db: Database.Database) {
     .map((s) => s.trim())
     .filter((s) => s.length > 0);
 
-  for (const stmt of statements) {
+    for (const stmt of statements) {
     try {
       db.exec(stmt + ';');
     } catch (err: any) {
       if (!err.message.includes('already exists')) {
         console.warn(`Schema warning: ${err.message.slice(0, 150)}`);
       }
+    }
+  }
+  try {
+    db.exec('ALTER TABLE races ADD COLUMN rating_range TEXT');
+  } catch (err: any) {
+    if (!String(err.message).includes('duplicate column')) {
+      console.warn(`Schema warning: ${String(err.message).slice(0, 150)}`);
     }
   }
 }
@@ -261,8 +269,8 @@ function prepareStatements(db: Database.Database) {
     `),
     insertRace: db.prepare(`
       INSERT OR REPLACE INTO races
-      (id, meeting_id, race_number, title, class, distance, going, track, course, prize, start_time)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      (id, meeting_id, race_number, title, class, distance, going, track, course, prize, start_time, rating_range)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `),
     insertHorse: db.prepare(`
       INSERT OR IGNORE INTO horses (id, name_en, name_ch, code)
@@ -344,6 +352,8 @@ function importResults(stmts: Stmts, db: Database.Database, filePath: string) {
       const rId = raceId(date, venue, raceNo);
       const first = entries[0];
 
+      const courseSplit = splitOfficialCourse(first.course);
+      const ratingRange = normalizeRatingRange(first.rating_range);
       stmts.insertRace.run(
         rId,
         mId,
@@ -352,12 +362,13 @@ function importResults(stmts: Stmts, db: Database.Database, filePath: string) {
         first.race_class || null,
         parseInteger(first.distance_m),
         first.going || null,
-        null,  // track (grass/dirt) — 需要從 course 推斷
-        first.course || null,
+        courseSplit.track,
+        courseSplit.course,
         first.prize_hkd || null,
         // race_finish_time CSV 欄位實際係分段時間 splits，唔係 clock 時間。
         // HKJC results CSV 冇 start_time，留 null；scheduled 賽事 start time 由另一個 source 填入。
-        null
+        null,
+        ratingRange
       );
 
       for (const entry of entries) {
@@ -660,6 +671,7 @@ function main() {
           process.stdout.write(`  ${processed}/${dateFileMap.size} ...\r`);
         }
       } catch (err: any) {
+        if (err?.name === 'OfficialFieldError') throw err;
         stats.errors++;
         console.error(`\n  [錯誤] ${date}: ${err.message}`);
       }
