@@ -17,7 +17,7 @@
   import Database from 'better-sqlite3';
   import { resolve } from 'node:path';
   import { fetchLocalRacecards, mapWeights } from './ingest/lib/hkjc-racecard.js';
-  import { fetchRaceMeta, type RaceMeta } from './ingest/lib/racecard-meta.js';
+  import { emptyRaceMeta, fetchRaceMeta, meetingTrackCondition, raceLevelAssignment, RACECARD_HEADER_MISS_EXIT, type RaceMeta } from './ingest/lib/racecard-meta.js';
   import { entryId } from './ingest/lib/ids.js';
     import { ensureSchema } from './ingest/lib/db.js';
     import { resolve as resolvePath } from 'node:path';
@@ -104,6 +104,7 @@
       resolvePath(schemaDir, 'schema.sql'),
       resolvePath(schemaDir, 'schema_v2.sql'),
       resolvePath(schemaDir, 'schema_silks.sql'),
+      resolvePath(schemaDir, 'migrations', '20261027_entries_upcoming_race_meta.sql'),
     ]);
 
     const deleteSentinels = db.prepare(
@@ -113,17 +114,28 @@
     const upsert = db.prepare(
       `INSERT INTO entries_upcoming
          (id, race_date, venue, race_number, race_class, distance, track, course,
+          race_name, prize, rating_range, going,
           horse_id, horse_number, horse_code, draw, jockey_name, jockey_id,
           trainer_name, trainer_id, actual_weight, declared_weight, gear,
           rating, priority_order, post_time, scraped_at, source_commit)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(race_date, venue, race_number, horse_number) DO UPDATE SET
          -- Race-level meta comes from RaceCard.aspx; an unparseable page must
-         -- never wipe values already stored.
+         -- never wipe values already stored. A header that visibly contains
+         -- 米 and 全天候/草地 but still yields empty distance/track fails the
+         -- process after this write (see RACECARD_HEADER_MISS_EXIT) so the
+         -- racecard job cannot stay green on a permanent COALESCE-to-empty.
          race_class      = COALESCE(excluded.race_class, entries_upcoming.race_class),
          distance        = COALESCE(excluded.distance, entries_upcoming.distance),
          track           = COALESCE(excluded.track, entries_upcoming.track),
-         course          = COALESCE(excluded.course, entries_upcoming.course),
+         -- A parsed all-weather line has a null course (no quoted 賽道). That null
+         -- is the value, so it must replace a stale course. An unparsed line
+         -- leaves distance null and keeps the stored course.
+         course          = CASE WHEN excluded.distance IS NOT NULL THEN excluded.course ELSE COALESCE(excluded.course, entries_upcoming.course) END,
+         race_name       = COALESCE(excluded.race_name, entries_upcoming.race_name),
+         prize           = COALESCE(excluded.prize, entries_upcoming.prize),
+         rating_range    = COALESCE(excluded.rating_range, entries_upcoming.rating_range),
+         going           = COALESCE(excluded.going, entries_upcoming.going),
          horse_id        = excluded.horse_id,
          horse_code      = excluded.horse_code,
          draw            = excluded.draw,
@@ -184,9 +196,13 @@
     // from the classic RaceCard.aspx pages instead; unparseable races keep
     // existing database values via COALESCE in the upsert below.
     const metaByRace = new Map<number, RaceMeta>();
+    const headerMisses: number[] = [];
     for (const race of races) {
       const rn = Number(race.no ?? 0);
-      if (rn) metaByRace.set(rn, await fetchRaceMeta(meetingDate, venueCode, rn));
+      if (!rn) continue;
+      const fetched = await fetchRaceMeta(meetingDate, venueCode, rn);
+      metaByRace.set(rn, fetched.meta);
+      if (fetched.headerUnparsed) headerMisses.push(rn);
     }
     // 官方退出（Scratched）：只喺鎖點（首場前90分鐘）前從排位剔走；鎖後唔郁，原凍結保持不變。
     const postTimes = [...metaByRace.values()].map(m => m.postTime ? Date.parse(`${meetingDate}T${m.postTime}:00+08:00`) : NaN).filter(Number.isFinite);
@@ -210,9 +226,10 @@
     const tx = db.transaction(() => {
       upsertMeeting.run(`${meetingDate}_${venueCode}`, meetingDate, venueCode);
 
-      // Derive track_condition from first race going (e.g. "好地")
-      const firstGoing: string | null = [...metaByRace.values()].find(m => m.going)?.going ?? null;
-      if (firstGoing) updateMeetingGoing.run(firstGoing, meetingDate, venueCode);
+      // Uniform cards record the shared going. Mixed goings stay off the
+      // meeting row; each race keeps its own entries_upcoming.going.
+      const sharedGoing = meetingTrackCondition(metaByRace.values());
+      if (sharedGoing) updateMeetingGoing.run(sharedGoing, meetingDate, venueCode);
 
       const del = deleteSentinels.run(meetingDate, venueCode);
       deleted = del.changes;
@@ -222,10 +239,7 @@
         if (!raceNo) continue;
 
         const meta = metaByRace.get(raceNo);
-        const distance: number | null = meta?.distance ?? null;
-        const track: string | null = meta?.track ?? null;
-        const course: string | null = meta?.course ?? null;
-        const raceClass: string | null = meta?.raceClass ?? null;
+        const level = raceLevelAssignment(meta ?? emptyRaceMeta());
         const postTime: string | null = meta?.postTime ? `${meetingDate}T${meta.postTime}:00+08:00` : null;
         const runners: any[] = race.runners ?? [];
 
@@ -271,7 +285,9 @@
 
           const id = entryId(meetingDate, venueCode, raceNo, horseNo);
           upsert.run(
-            id, meetingDate, venueCode, raceNo, raceClass, distance, track, course,
+            id, meetingDate, venueCode, raceNo,
+            level.race_class, level.distance, level.track, level.course,
+            level.race_name, level.prize, level.rating_range, level.going,
             horseId, horseNo, horseCode,
             draw, jNameCh || null, null, // jockey_id = null (avoids FK; name kept for display)
             tNameCh || null, null, // trainer_id = null (avoids FK; name kept for display)
@@ -294,6 +310,10 @@
     }
     console.error(`[racecard] scratched pre-lock=${preLock} removed=${scratched.map(x => `R${x.raceNo}#${x.horseNo}`).join(',') || 'none'}`);
     console.error(`[racecard] ✓ deleted ${deleted} sentinels · wrote ${inserted} enriched entries for ${meetingDate}@${venueCode}`);
+    if (headerMisses.length) {
+      console.error(`[racecard] header has 米 and 全天候/草地 but distance/track empty for races ${headerMisses.join(',')} — failing closed`);
+      process.exit(RACECARD_HEADER_MISS_EXIT);
+    }
   }
 
   main().catch((err) => {

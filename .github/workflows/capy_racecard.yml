@@ -150,6 +150,16 @@ jobs:
             echo "has_data=true" >> $GITHUB_OUTPUT
           fi
 
+      # Header miss writes runners locally then exits 2. has_data stays false so
+      # the empty distance/track is not pushed, and this step turns the job red.
+      # Other non-zero exits (no local meeting) keep the existing row-count guard.
+      - name: Fail closed when racecard header did not parse
+        if: github.event.inputs.dry_run != 'true' && steps.scrape.outputs.scrape_rc == '2'
+        run: |
+          echo "::error::Racecard page shows 米 and 全天候/草地 but distance or track is empty. Refusing a green run."
+          tail -40 /tmp/scrape-racecard.log || true
+          exit 1
+
       # 2026-10-26: silent-green guard — race day / explicit date with 0 rows fails
       - name: Fail closed if race day collected 0 rows
         if: github.event.inputs.dry_run != 'true'
@@ -190,6 +200,30 @@ jobs:
       - name: Install wrangler
         if: steps.scrape.outputs.has_data == 'true' && github.event.inputs.dry_run != 'true'
         run: npm install -g wrangler@4
+
+      # schema_v2 CREATE already has the columns for a fresh scratch DB.
+      # Remote D1 needs ALTER before push-delta inserts race_name/prize/rating_range/going.
+      - name: Add racecard header columns on D1
+        if: steps.scrape.outputs.has_data == 'true' && github.event.inputs.dry_run != 'true'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+        run: |
+          set -eu
+          INFO=$(wrangler d1 execute tianxi-db --remote --command="PRAGMA table_info(entries_upcoming)" --json)
+          for SPEC in \
+            "race_name TEXT" \
+            "prize TEXT" \
+            "rating_range TEXT" \
+            "going TEXT"; do
+            COL=${SPEC%% *}
+            if printf '%s' "$INFO" | grep -q "\"name\": \"$COL\""; then
+              echo "exists: entries_upcoming.$COL"
+            else
+              wrangler d1 execute tianxi-db --remote \
+                --command="ALTER TABLE entries_upcoming ADD COLUMN $SPEC"
+            fi
+          done
 
       - name: Delete sentinel race_number=0 rows from D1
         if: steps.scrape.outputs.has_data == 'true' && github.event.inputs.dry_run != 'true'

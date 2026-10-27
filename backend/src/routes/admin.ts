@@ -19,6 +19,11 @@ import {
 } from '../lib/admin-auth';
 import { parseHkjcDividends, BOX_POOL_MAP } from '../lib/parse-dividends';
 import { getSeasonStatus } from '../lib/season';
+import {
+  allEntriesOrLegacy,
+  ENTRY_RACE_META_COLUMNS,
+  ENTRY_RACE_META_COLUMNS_LEGACY,
+} from '../lib/upcoming-race-header';
 
 interface AdminEnv {
   DB: D1Database;
@@ -1004,11 +1009,12 @@ adminRoutes.get('/api/entries-upcoming-export', async (c) => {
   const today = new Date().toISOString().slice(0, 10);
   const from = c.req.query('from') || today;
   const to = c.req.query('to') || from;
-  const { results } = await c.env.DB.prepare(`
+  const exportSql = (goingExpr: string, metaCols: string) => `
     SELECT e.race_date, e.venue, e.race_number, e.race_class, e.distance, e.track, e.course,
+           ${metaCols},
            e.horse_id, e.horse_number, e.horse_code, e.draw, e.jockey_name, e.jockey_id,
            e.trainer_name, e.trainer_id, e.actual_weight, e.declared_weight, e.rating,
-           e.priority_order, m.id AS meeting_id, m.track_condition AS going,
+           e.priority_order, m.id AS meeting_id, ${goingExpr} AS going,
            r.id AS race_id
       FROM entries_upcoming e
       LEFT JOIN race_meetings m ON m.date = e.race_date AND m.venue = e.venue
@@ -1017,8 +1023,19 @@ adminRoutes.get('/api/entries-upcoming-export', async (c) => {
        AND e.venue IN ('ST','HV')
        AND (e.priority_order IS NULL OR e.priority_order = '' OR e.priority_order = '正選')
      ORDER BY e.race_date, e.venue, e.race_number, e.horse_number
-  `).bind(from, to).all<any>().catch(() => ({ results: [] as any[] }));
-  return c.json({ from, to, count: (results || []).length, entries: results || [] });
+  `;
+  let results: any[] = [];
+  try {
+    results = await allEntriesOrLegacy(
+      c.env.DB,
+      exportSql('COALESCE(e.going, m.track_condition)', ENTRY_RACE_META_COLUMNS),
+      exportSql('m.track_condition', ENTRY_RACE_META_COLUMNS_LEGACY),
+      [from, to],
+    );
+  } catch {
+    results = [];
+  }
+  return c.json({ from, to, count: results.length, entries: results });
 });
 
 // ── /api/alerts (unchanged) ──
