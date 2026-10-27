@@ -2,6 +2,12 @@ import { Hono } from 'hono';
 import type { Env, RaceMeetingRow } from '../types';
 import { hhmmFromPostTime, fetchPostTimeMap } from '../lib/race-time';
 import { fetchLatestWinOddsByRace, normHorseKey } from '../lib/market-blend';
+import {
+  allEntriesOrLegacy,
+  ENTRY_RACE_META_COLUMNS,
+  ENTRY_RACE_META_COLUMNS_LEGACY,
+  upcomingRaceHeaderView,
+} from '../lib/upcoming-race-header';
 
 export const meetingsRoutes = new Hono<{ Bindings: Env }>();
 
@@ -46,9 +52,10 @@ async function buildRacecardFromEntries(
   venue: string,
   trackCondition: string | null,
 ): Promise<any[]> {
-  const { results: rows } = await db.prepare(
+  const entrySql = (metaCols: string) =>
     `SELECT
         e.race_number, e.race_class, e.distance, e.track, e.course,
+        ${metaCols},
         e.horse_id, e.horse_number, e.horse_code, e.draw,
         e.jockey_name, e.trainer_name, e.actual_weight, e.declared_weight,
         e.rating, e.gear, e.priority_order,
@@ -57,8 +64,13 @@ async function buildRacecardFromEntries(
        LEFT JOIN horses h ON h.id = e.horse_id
       WHERE e.race_date = ? AND e.venue = ? AND e.race_number > 0
         AND (e.priority_order IS NULL OR e.priority_order NOT LIKE '後備%')
-      ORDER BY e.race_number, e.horse_number`
-  ).bind(date, venue).all<any>();
+      ORDER BY e.race_number, e.horse_number`;
+  const rows = await allEntriesOrLegacy(
+    db,
+    entrySql(ENTRY_RACE_META_COLUMNS),
+    entrySql(ENTRY_RACE_META_COLUMNS_LEGACY),
+    [date, venue],
+  );
 
   const ptMap = await fetchPostTimeMap(db, date, venue);
   const oddsByRace = await fetchLatestWinOddsByRace(db, date, venue);
@@ -72,16 +84,18 @@ async function buildRacecardFromEntries(
   return Array.from(byRace.keys()).sort((a, b) => a - b).map((rn) => {
     const entries = byRace.get(rn)!;
     const first = entries[0];
+    const header = upcomingRaceHeaderView(first, trackCondition);
     return {
       id: `race_${date}_${venue}_${rn}`,
       raceNumber: rn,
-      title: null,
-      class: first.race_class ?? null,
-      distance: first.distance ?? null,
-      going: trackCondition ?? null,
-      track: first.track ?? null,
-      course: first.course ?? null,
-      prize: null,
+      title: header.title,
+      class: header.class,
+      distance: header.distance,
+      going: header.going,
+      track: header.track,
+      course: header.course,
+      prize: header.prize,
+      ratingRange: header.ratingRange,
       startTime: hhmmFromPostTime(ptMap.get(rn)) ?? null,
       videoUrl: null,
       isDeclaredCard: true,
@@ -262,6 +276,7 @@ meetingsRoutes.get('/:date', async (c) => {
           track: race.track,
           course: race.course,
           prize: race.prize,
+          ratingRange: null,
           startTime: hhmmFromPostTime(ptMap.get(race.race_number)) ?? race.start_time,
           videoUrl: race.video_url,
           horses: (entries ?? []).map((e: any) => ({

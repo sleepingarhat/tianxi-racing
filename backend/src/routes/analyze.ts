@@ -7,6 +7,11 @@ import { parseHkjcDividends, BOX_POOL_MAP } from '../lib/parse-dividends';
 import { computeRaceProbabilities, roundCoverage } from '../lib/pl-prob';
 import { hhmmFromPostTime, fetchPostTimeMap } from '../lib/race-time';
 import {
+  allEntriesOrLegacy,
+  ENTRY_RACE_META_COLUMNS,
+  ENTRY_RACE_META_COLUMNS_LEGACY,
+} from '../lib/upcoming-race-header';
+import {
   applyPlatt, fitPlatt, scoreSamples, parseCalibration,
   ODDS_BANDS, bandForOdds,
   type PlattParams, type Sample, type StoredCalibration,
@@ -3111,9 +3116,9 @@ analyzeRoutes.get('/factors', (c) => {
           const raceDB = racesDBMap.get(raceNum);
           const lgbLookupRaceId: string = raceDB?.id ?? `race_${targetDate}_${meeting.venue}_${raceNum}`;
           const raceId: string = raceDB?.id ?? lgbLookupRaceId;
-          const raceTitle = raceDB?.title ?? (raceNum > 0 ? `第 ${raceNum} 場` : `${targetDate} 排位`);
+          const raceTitle = raceDB?.title ?? firstE.race_name ?? (raceNum > 0 ? `第 ${raceNum} 場` : `${targetDate} 排位`);
           const raceDistance: number | null = firstE.distance ?? null;
-          const raceGoing: string | null = raceDB?.going ?? meeting.track_condition ?? null;
+          const raceGoing: string | null = firstE.going ?? raceDB?.going ?? meeting.track_condition ?? null;
           const raceTrack: string | null = firstE.track ?? null;
           const raceCourse: string | null = firstE.course ?? null;
           const raceClass: string | null = firstE.race_class ?? null;
@@ -3241,11 +3246,12 @@ analyzeRoutes.get('/factors', (c) => {
             if (cached) return cached;
           }
           const loadEntries = async (withVenue: boolean) => {
-          const q = withVenue
+          const q = (meta: string) => withVenue
             ? `SELECT e.race_number, e.horse_number, e.horse_id, e.horse_code,
                      e.draw, e.declared_weight, e.actual_weight, e.jockey_name, e.jockey_id,
                      e.trainer_name, e.trainer_id, e.rating, e.priority_order,
                      e.distance, e.track, e.course, e.race_class,
+                     ${meta},
                      h.name_ch, h.name_en
                FROM entries_upcoming e LEFT JOIN horses h ON h.id = e.horse_id
                WHERE e.race_date = ? AND e.venue = ? AND e.race_number > 0
@@ -3254,13 +3260,17 @@ analyzeRoutes.get('/factors', (c) => {
                      e.draw, e.declared_weight, e.actual_weight, e.jockey_name, e.jockey_id,
                      e.trainer_name, e.trainer_id, e.rating, e.priority_order,
                      e.distance, e.track, e.course, e.race_class,
+                     ${meta},
                      h.name_ch, h.name_en
                FROM entries_upcoming e LEFT JOIN horses h ON h.id = e.horse_id
                WHERE e.race_date = ? AND e.venue IN ('ST','HV') AND e.race_number > 0
                ORDER BY e.race_number, e.horse_number`;
-          const stmt = withVenue ? db.prepare(q).bind(targetDate, meeting.venue) : db.prepare(q).bind(targetDate);
-          const { results } = await stmt.all<any>().catch(() => ({ results: [] as any[] }));
-          return results ?? [];
+          const binds = withVenue ? [targetDate, meeting.venue] : [targetDate];
+          try {
+            return await allEntriesOrLegacy(db, q(ENTRY_RACE_META_COLUMNS), q(ENTRY_RACE_META_COLUMNS_LEGACY), binds);
+          } catch {
+            return [];
+          }
         };
         let entries = await loadEntries(true);
         if (!entries.length) entries = await loadEntries(false);
@@ -3318,9 +3328,9 @@ analyzeRoutes.get('/factors', (c) => {
           const raceDB = racesDBMap.get(raceNum);
           const raceId = raceDB?.id ?? null;
           const lgbLookupRaceId: string = raceDB?.id ?? `race_${targetDate}_${meeting.venue}_${raceNum}`;
-          const raceTitle = raceDB?.title ?? (raceNum > 0 ? `第 ${raceNum} 場` : `${targetDate} 排位`);
+          const raceTitle = raceDB?.title ?? firstE.race_name ?? (raceNum > 0 ? `第 ${raceNum} 場` : `${targetDate} 排位`);
           const raceDistance: number | null = firstE.distance ?? null;
-          const raceGoing: string | null = raceDB?.going ?? meeting.track_condition ?? null;
+          const raceGoing: string | null = firstE.going ?? raceDB?.going ?? meeting.track_condition ?? null;
           const raceTrack: string | null = firstE.track ?? null;
           const raceCourse: string | null = firstE.course ?? null;
           const raceClass: string | null = firstE.race_class ?? null;
@@ -3692,17 +3702,22 @@ analyzeRoutes.get('/factors', (c) => {
           const meeting = await db.prepare(`SELECT m.* FROM race_meetings m WHERE m.date = ? AND m.venue IN ('ST','HV') ORDER BY (SELECT COUNT(*) FROM races r WHERE r.meeting_id = m.id) DESC, m.id LIMIT 1`).bind(date).first<any>().catch(() => null);
           if (!meeting) return c.json({ error: `${date} 賽馬日記錄不存在` }, 404);
           // Try entries_upcoming first (works for upcoming dates)
-          const { results: euRows } = await db.prepare(
+          const picksEntrySql = (meta: string) =>
             `SELECT e.race_number, e.horse_number, e.horse_id, e.horse_code,
                     e.draw, e.declared_weight, e.actual_weight, e.jockey_name, e.jockey_id,
                     e.trainer_name, e.trainer_id, e.rating, e.priority_order,
                     e.distance, e.track, e.course, e.race_class,
+                    ${meta},
                     h.name_ch, h.name_en
              FROM entries_upcoming e LEFT JOIN horses h ON h.id = e.horse_id
              WHERE e.race_date = ? AND e.venue IN ('ST','HV') AND e.race_number > 0
-             ORDER BY e.race_number, e.horse_number`
-          ).bind(date).all<any>().catch(() => ({ results: [] as any[] }));
-          let entries = euRows ?? [];
+             ORDER BY e.race_number, e.horse_number`;
+          let entries: any[] = [];
+          try {
+            entries = await allEntriesOrLegacy(db, picksEntrySql(ENTRY_RACE_META_COLUMNS), picksEntrySql(ENTRY_RACE_META_COLUMNS_LEGACY), [date]);
+          } catch {
+            entries = [];
+          }
           let source: 'upcoming' | 'historical' = 'upcoming';
           // Fallback to race_results for past meetings
           if (!entries.length) {

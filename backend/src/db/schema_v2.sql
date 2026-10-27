@@ -227,6 +227,10 @@ CREATE TABLE IF NOT EXISTS entries_upcoming (
   distance INTEGER,
   track TEXT,
   course TEXT,
+  race_name TEXT,                    -- 官方場名（畫眉山讓賽）；賽果未入庫前由經典排位頁寫入
+  prize TEXT,                        -- 獎金港元數字，同 races.prize（875000）
+  rating_range TEXT,                 -- 官方評分區間原文（40-0 / 60-40）
+  going TEXT,                        -- 該場地況；混合草地／全天候時唔好只用第一場
   horse_id TEXT REFERENCES horses(id),
   horse_number INTEGER,
   horse_code TEXT,                     -- HKJC 馬號（未 resolve horse_id 時 fallback）
