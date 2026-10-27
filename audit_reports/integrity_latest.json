@@ -1,9 +1,9 @@
 {
-  "scan_date": "2026-10-26",
+  "scan_date": "2026-10-27",
   "repo_root": "/home/runner/work/tianxi-racing/tianxi-racing",
   "overall_severity": "warn",
   "critical_gap_count": 0,
-  "warn_gap_count": 7,
+  "warn_gap_count": 6,
   "recommendation": "monitor_no_block",
   "categories": {
     "race_artefacts": {
@@ -38,8 +38,8 @@
     },
     "horse_profiles": {
       "name": "horse_profiles",
-      "expected": 1199,
-      "present": 1199,
+      "expected": 1191,
+      "present": 1191,
       "missing": [],
       "stale": [],
       "pending": [],
@@ -50,8 +50,8 @@
     },
     "horse_form_records": {
       "name": "horse_form_records",
-      "expected": 1199,
-      "present": 1199,
+      "expected": 1191,
+      "present": 1191,
       "missing": [],
       "stale": [],
       "pending": [],
@@ -119,15 +119,14 @@
     "entries_upcoming": {
       "name": "entries_upcoming",
       "expected": 2,
-      "present": 0,
+      "present": 1,
       "missing": [
-        "2026-10-28",
         "2026-11-01"
       ],
       "stale": [],
       "pending": [],
       "notes": [
-        "2 upcoming race days lack entries file"
+        "1 upcoming race days lack entries file"
       ],
       "severity": "warn"
     }
