@@ -1,0 +1,315 @@
+# Official queries copied from racing.hkjc.com zh-hk jockeys-rides, trainers-entries, and summary bundles.
+# Do not add fields. A changed whitelist query can fail the whole request.
+# Dividends, jackpots, penetrometer and hammer readings stay in the summary document
+# because the page asks for them. The importer does not store those values.
+
+# operation rw_JockeysRides
+query rw_JockeysRides ($dates: [String!]) {
+  commonMeetings(dates: $dates, venueCodes: ["ST", "HV"], active: true) {
+    date
+    venueCode
+    status
+    races {
+      no
+      claCode
+      distance
+      status
+      raceTrack {
+        code
+        description_ch
+        description_en
+      }
+      runners {
+        horse {
+          code
+          name_ch
+          name_en
+          id
+        }
+        jockey {
+          name_en
+          name_ch
+          code
+        }
+        id
+        no
+        winOdds
+        status
+        trumpCard
+      }
+    }
+    pmPools(oddsTypes: [WIN]) {
+      status
+      sellStatus
+      id
+      leg {
+        number
+        races
+      }
+      oddsNodes {
+        oddsValue
+        combString
+        hotFavourite
+      }
+    }
+    changeHistories {
+      type
+      time
+      raceNo
+      runnerNo
+      horseName_ch
+      horseName_en
+      jockeyName_ch
+      jockeyName_en
+      scratchHorseName_ch
+      scratchHorseName_en
+      handicapWeight
+      scrResvIndicator
+      horseCode
+      dueToPromotion
+    }
+    isActive
+  }
+  jockeyStat {
+    code
+    name_en
+    name_ch
+    ssnStat {
+      numStarts
+      numFirst
+      numSecond
+      numThird
+      numFourth
+      numFifth
+      ven
+      trk
+      dist
+      stakeWon
+    }
+    dhStat {
+      numStarts
+      numFirst
+      numSecond
+      numThird
+      numFourth
+      numFifth
+      ven
+      trk
+      dist
+      stakeWon
+    }
+  }
+}
+
+# operation rw_TrainersEntries
+query rw_TrainersEntries ($dates: [String!]) {
+  commonMeetings(dates: $dates, venueCodes: ["ST", "HV"], active: true) {
+    date
+    venueCode
+    status
+    totalNumberOfRace
+    raNoPlCount
+    races {
+      no
+      status
+      claCode
+      distance
+      raceTrack {
+        code
+        description_ch
+        description_en
+      }
+      runners {
+        horse {
+          code
+          name_ch
+          name_en
+          id
+        }
+        trainer {
+          name_en
+          name_ch
+          code
+        }
+        trainerPreference
+        id
+        no
+        winOdds
+        status
+        trumpCard
+        priority
+      }
+    }
+    pmPools(oddsTypes: [WIN]) {
+      status
+      sellStatus
+      id
+      leg {
+        number
+        races
+      }
+      oddsNodes {
+        oddsValue
+        combString
+        hotFavourite
+      }
+    }
+    isActive
+  }
+  trainerStat {
+    code
+    name_en
+    name_ch
+    ssnStat {
+      numStarts
+      numFirst
+      numSecond
+      numThird
+      numFourth
+      numFifth
+      ven
+      trk
+      dist
+      stakeWon
+    }
+    dhStat {
+      numStarts
+      numFirst
+      numSecond
+      numThird
+      numFourth
+      numFifth
+      ven
+      trk
+      dist
+      stakeWon
+    }
+  }
+}
+
+# operation rw_Summary
+query rw_Summary ($dates: [String!]) {
+  commonMeetings(dates: $dates, venueCodes: ["ST", "HV", "S1", "S2", "S3", "S4", "S5", "S6", "S7", "S8", "S9"]) {
+    date
+    venueCode
+    startTime
+    totalNumberOfRace
+    pmPools(oddsTypes: [WIN,PLA,QIN,QPL,CWA,CWB,CWC,IWN,FCT,TCE,TRI,FF,QTT,DBL,TBL,DT,TT,SixUP]) {
+      id
+      jackpot
+      leg {
+        number
+        races
+      }
+      dividends {
+        winComb
+        type
+        seq
+        partialUnit
+        guarantee
+        div
+        partial
+        status
+      }
+      oddsType
+      hasCombs
+      estimatedDividend
+      comingleStatus
+      rebateRate
+      sellStatus
+      mergedPoolId
+      futureJackpot {
+        venCode
+        meetingDate
+        meetingID
+        firstLegRaceNo
+        mergedBetType
+        poolOrder
+        includeResFund
+        jackpot
+      }
+    }
+    isActive
+    jkSuspensions {
+      commencedOn
+      desc {
+        code
+        english
+        chinese
+      }
+      jockeyId
+      jockeyNms {
+        chinese
+        code
+        english
+      }
+      resumedOn
+      spsnTyp
+    }
+    foPools {
+      oddsType
+      oddsTypeDes {
+        chinese
+        english
+      }
+      instNo
+    }
+    stewards {
+      name_ch
+      name_en
+      role {
+        english
+        chinese
+        code
+      }
+      sequenceNumber
+    }
+    venueDes {
+      chinese
+      english
+      code
+    }
+    country {
+      namech
+      nameen
+      seq
+    }
+    penetrometerReadings {
+      reading
+      readingTime
+    }
+    hammerReadings {
+      readingTime
+      reading
+    }
+    meetingTrack_ch
+    meetingTrack_en
+    meetingType
+    meetingTrackCode
+    status
+    isSeasonLastMeeting
+    course {
+      chinese
+      code
+      english
+    }
+    races {
+      no
+      raceCourse {
+        code
+        displayCode
+        description_en
+        description_ch
+      }
+      raceTrack {
+        code
+        description_en
+        description_ch
+      }
+      go_ch
+      go_en
+      goCode
+      venueCode
+    }
+  }
+}
