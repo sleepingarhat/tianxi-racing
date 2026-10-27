@@ -1,6 +1,8 @@
 /**
  * 特徵矩陣載入同 backtest_results D1 快取。
  * R2 binding 未開：優先 D1 lab_feature_matrix_meta／demo fixture；PR 寫明 R2 待開。
+ * R2／夜間 dump-features 未接前一律 demo-fixture（version demo-v1）；回測引擎會
+ * 標 demo=true 並強制隱藏 ROI／盈虧，避免示範數字被當成真賽。
  */
 import type { Env } from '../types';
 import {

@@ -8,10 +8,12 @@ import {
   LIVE_FROM_DATE,
   MIN_ROI_SAMPLE,
   buildDemoMatrix,
+  isDemoMatrix,
   maxLosingStreakDays,
   runCompare,
   seriesPhase,
   validateCompareParams,
+  type FeatureMatrix,
 } from '../src/lib/lab-backtest';
 
 async function main(): Promise<void> {
@@ -88,6 +90,47 @@ async function main(): Promise<void> {
   assert.ok(cmp.strategies[0]!.series.every((p) => p.phase === 'live' || p.phase === 'backtest'));
   assert.ok(cmp.limitations.some((l) => l.includes('研究層') || l.includes('公開戰績')));
   assert.ok(typeof cmp.strategies[0]!.summary.maxLosingStreakDays === 'number');
+
+  // demo-fixture compare：同回測 scrub 合約——命中可留，ROI／盈虧必須隱藏
+  assert.equal(matrix.source, 'demo-fixture');
+  assert.equal(cmp.demo, true);
+  assert.ok(
+    cmp.limitations.some((l) => l.includes('示範合成數據') || l.includes('demo-fixture')),
+    'DEMO_MATRIX_WARNING missing from compare limitations',
+  );
+  for (const s of cmp.strategies) {
+    assert.equal(s.summary.showRoi, false, `${s.key} showRoi`);
+    assert.equal(s.summary.roiPct, null, `${s.key} roiPct`);
+    assert.equal(s.summary.net, null, `${s.key} net`);
+    assert.equal(s.summary.cost, null, `${s.key} cost`);
+    assert.equal(s.summary.payout, null, `${s.key} payout`);
+    assert.equal(s.summary.maxDrawdown, null, `${s.key} maxDrawdown`);
+  }
+  // note: series / dayDiff money fields intentionally not scrubbed in this PR
+
+  // 真矩陣路徑：行為不變——大樣本＋派彩可出 ROI
+  const realMatrix: FeatureMatrix = {
+    version: 'r2-fixture-v1',
+    source: 'r2',
+    races: matrix.races,
+  };
+  assert.equal(isDemoMatrix(realMatrix), false);
+  const realCmp = runCompare(realMatrix, {
+    from,
+    to,
+    pools: ALL_POOLS,
+    strategies: [
+      { key: 'official', label: '官方四揀', kind: 'official' },
+      { key: 'elo', label: '純 Elo', kind: 'elo' },
+    ],
+  });
+  assert.equal(realCmp.demo, false);
+  assert.ok(!realCmp.limitations.some((l) => l.includes('示範合成數據')));
+  for (const s of realCmp.strategies) {
+    assert.equal(s.summary.showRoi, true, `${s.key} real showRoi`);
+    assert.ok(s.summary.roiPct != null, `${s.key} real roiPct`);
+    assert.ok(s.summary.net != null, `${s.key} real net`);
+  }
 
   const streak = maxLosingStreakDays([
     { date: 'a', races: 1, avgTop4Hits: 0, cost: 10, payout: 0, net: -10, cum: -10 },

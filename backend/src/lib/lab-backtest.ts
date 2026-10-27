@@ -2,6 +2,7 @@
  * Pro 研究室：自訂特徵組合回測引擎（研究層）。
  * 權重綜合分、strategy-pnl $10／注箱形規則、訓練／驗證分段、樣本<200 唔出 ROI。
  * 唔入公開戰績；矩陣來源可係 demo fixture／D1 快取（R2 binding 待開）。
+ * R2／dump-features 未接前 loadFeatureMatrix 一律 demo-fixture：命中可留，ROI／盈虧必須隱藏。
  */
 export const LAB_FEATURE_IDS = [
   'h2h',
@@ -43,6 +44,33 @@ export const RESEARCH_LAYER_NOTE =
   '研究層結果：唔入公開戰績、對帳、Telegram 公開頻道。';
 
 export const MIN_ROI_SAMPLE = 200;
+
+/** demo-fixture／demo-v1：頁面與 API 必須標示範，唔好當真賽 ROI */
+export const DEMO_MATRIX_WARNING =
+  '【示範合成數據】矩陣＝demo-fixture／demo-v1：命中／ROI／盈虧唔代表真賽，勿作投注依據。';
+
+export function isDemoMatrix(
+  matrix: Pick<FeatureMatrix, 'source' | 'version'>,
+): boolean {
+  return (
+    matrix.source === 'demo-fixture' ||
+    matrix.version === 'demo-v1' ||
+    matrix.version.startsWith('demo-')
+  );
+}
+
+/** 示範矩陣：強制唔出 ROI／盈虧／回撤（命中數字可留，由 UI 標示範） */
+export function scrubDemoSummary(summary: StrategySummary): StrategySummary {
+  return {
+    ...summary,
+    cost: null,
+    payout: null,
+    net: null,
+    roiPct: null,
+    maxDrawdown: null,
+    showRoi: false,
+  };
+}
 
 export type FeatureWeight = {
   id: LabFeatureId;
@@ -157,6 +185,8 @@ export type CompareResult = {
   matrixSource: FeatureMatrix['source'];
   limitations: string[];
   liveFrom: typeof LIVE_FROM_DATE;
+  /** true＝示範合成矩陣；前端必顯示橫幅並隱藏 ROI */
+  demo?: boolean;
 };
 
 export type BacktestResult = {
@@ -177,6 +207,8 @@ export type BacktestResult = {
   bySeason: { season: string; summary: StrategySummary }[];
   computedAt: string;
   limitations: string[];
+  /** true＝示範合成矩陣；前端必顯示橫幅並隱藏 ROI */
+  demo?: boolean;
 };
 
 function clampWeight(w: number): number {
@@ -607,10 +639,15 @@ export function runBacktest(
     summary: evaluateRaces(bySeasonMap.get(season)!, weights, pools, pickCustom).summary,
   }));
 
-  const limitations: string[] = [
+  const demo = isDemoMatrix(matrix);
+  const limitations: string[] = [];
+  if (demo) {
+    limitations.push(DEMO_MATRIX_WARNING);
+  }
+  limitations.push(
     RESEARCH_LAYER_NOTE,
     '只用 as-of 特徵；訓練段同驗證段分開顯示，防過擬合。',
-  ];
+  );
   if (matrix.source !== 'r2') {
     limitations.push(
       `特徵矩陣來源＝${matrix.source}（production R2 binding 尚未開通；夜間 dump-features→R2 待接）。`,
@@ -619,10 +656,13 @@ export function runBacktest(
   if (!races.some((r) => r.boxDividends && Object.keys(r.boxDividends).length)) {
     limitations.push('呢批矩陣冇箱形派彩：只出命中，唔出 ROI／盈虧。');
   }
-  if (overall.summary.raceCount < MIN_ROI_SAMPLE) {
+  if (!demo && overall.summary.raceCount < MIN_ROI_SAMPLE) {
     limitations.push(`樣本 ${overall.summary.raceCount} 場 < ${MIN_ROI_SAMPLE}：唔顯示 ROI。`);
   }
   limitations.push(eloBaselineLimitation(measureEloBaselineUsage(races, opts?.eloBaselinePicks)));
+
+  const scrub = <T extends StrategySummary | null>(s: T): T =>
+    (demo && s ? (scrubDemoSummary(s) as T) : s);
 
   return {
     status: 'ready',
@@ -630,14 +670,18 @@ export function runBacktest(
     matrixVersion: matrix.version,
     matrixSource: matrix.source,
     researchNote: RESEARCH_LAYER_NOTE,
-    train: train.summary,
-    validation: validation.summary,
-    overall: overall.summary,
-    officialBaseline,
-    eloBaseline,
+    train: scrub(train.summary),
+    validation: scrub(validation.summary),
+    overall: scrub(overall.summary),
+    officialBaseline: scrub(officialBaseline),
+    eloBaseline: scrub(eloBaseline),
     series: overall.series,
-    bySeason,
+    bySeason: bySeason.map((row) => ({
+      season: row.season,
+      summary: scrub(row.summary),
+    })),
     limitations,
+    demo,
   };
 }
 
@@ -771,7 +815,7 @@ export function buildDemoMatrix(opts?: {
     version: 'demo-v1',
     source: 'demo-fixture',
     races,
-    note: '合成 as-of 風格矩陣；production 應改用 dump-features → R2／Actions artifact。',
+    note: '合成 as-of 風格矩陣（示範）；R2／dump-features 未接前一律用呢個。runBacktest 會強制 showRoi=false。',
   };
 }
 
@@ -959,10 +1003,15 @@ export function runCompare(
   };
 
   const results: CompareStrategyResult[] = [];
-  const limitations: string[] = [
+  const demo = isDemoMatrix(matrix);
+  const limitations: string[] = [];
+  if (demo) {
+    limitations.push(DEMO_MATRIX_WARNING);
+  }
+  limitations.push(
     RESEARCH_LAYER_NOTE,
     `實盤標記由 ${LIVE_FROM_DATE} 起；之前系列標「回測」。研究層結果永遠唔入公開戰績。`,
-  ];
+  );
 
   for (const slot of opts.strategies) {
     let evaluated: { summary: StrategySummary; series: StrategySeriesPoint[] };
@@ -979,11 +1028,12 @@ export function runCompare(
       );
       evaluated.summary.label = slot.label;
     }
+    const summary = demo ? scrubDemoSummary(evaluated.summary) : evaluated.summary;
     results.push({
       key: slot.key,
       label: slot.label,
       kind: slot.kind,
-      summary: evaluated.summary,
+      summary,
       series: evaluated.series.map((p) => ({ ...p, phase: seriesPhase(p.date) })),
       liveFrom: LIVE_FROM_DATE,
     });
@@ -998,7 +1048,7 @@ export function runCompare(
     limitations.push('呢批矩陣冇箱形派彩：只出命中，唔出 ROI／盈虧。');
   }
   const minRaces = Math.min(...results.map((r) => r.summary.raceCount));
-  if (minRaces < MIN_ROI_SAMPLE) {
+  if (!demo && minRaces < MIN_ROI_SAMPLE) {
     limitations.push(`樣本最少 ${minRaces} 場 < ${MIN_ROI_SAMPLE}：唔顯示 ROI（同回測規則）。`);
   }
   limitations.push(eloBaselineLimitation(measureEloBaselineUsage(races, opts.eloBaselinePicks)));
@@ -1016,5 +1066,6 @@ export function runCompare(
     matrixSource: matrix.source,
     limitations,
     liveFrom: LIVE_FROM_DATE,
+    demo,
   };
 }
