@@ -13,3 +13,9 @@
 {"rows": 30, "scraped_at": "2026-10-28T08:19:44+00:00", "sha256": "5b9cbb1526087d25ad6395f308ecf1637a415b8b6a18ae68e67a60c8b5ff28cb", "surface": "overoar"}
 {"rows": 35, "scraped_at": "2026-10-28T08:19:44+00:00", "sha256": "dc8f1f717a04db02a9315c9421bbe2740c2986ab8c9bc0d354c62445dc96b24b", "surface": "pool-result"}
 {"rows": 487, "scraped_at": "2026-10-28T08:19:44+00:00", "sha256": "c629503ae4266f772dbc23bf50688696480f20ddcb28b55fc2e396e5bd28c5eb", "surface": "draw-adv"}
+{"rows": 1455, "scraped_at": "2026-10-28T11:07:35+00:00", "sha256": "5e0e433270295c1fff84229e11e23e9f491f0791ab6f97d0d3226c0d2a0c9c26", "surface": "rating-weight"}
+{"rows": 1892, "scraped_at": "2026-10-28T11:07:35+00:00", "sha256": "0be4561ed0705c3725a864c7a66df5f39626929190a395955ae1538bc7e07ad7", "surface": "performance"}
+{"rows": 1909, "scraped_at": "2026-10-28T11:07:35+00:00", "sha256": "826d88b29217f8f09c2ad341d26a33877c23aa89bdeeaf26b0f20482bfdd32d0", "surface": "movement"}
+{"rows": 30, "scraped_at": "2026-10-28T11:07:35+00:00", "sha256": "5b9cbb1526087d25ad6395f308ecf1637a415b8b6a18ae68e67a60c8b5ff28cb", "surface": "overoar"}
+{"rows": 35, "scraped_at": "2026-10-28T11:07:35+00:00", "sha256": "24f8d55118d48b5ef61b0b72ba3dd0b364ac61024b493117a453c3716e821725", "surface": "pool-result"}
+{"rows": 487, "scraped_at": "2026-10-28T11:07:35+00:00", "sha256": "c629503ae4266f772dbc23bf50688696480f20ddcb28b55fc2e396e5bd28c5eb", "surface": "draw-adv"}
