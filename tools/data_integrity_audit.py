@@ -31,6 +31,7 @@ from collections import Counter, defaultdict
 from dataclasses import asdict, dataclass, field
 from datetime import date, datetime, timedelta
 from pathlib import Path
+import importlib.util
 from typing import Dict, List, Set
 
 # ---------- CONSTANTS ----------
@@ -135,6 +136,14 @@ def _iter_result_rows(data_dir: Path, since: date):
 
 # ---------- AUDITS ----------
 
+def _pending_deadline(today):
+    spec = importlib.util.spec_from_file_location('results_readiness', Path(__file__).resolve().parents[1] / 'scripts/results_readiness.py')
+    timing = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(timing)
+    now = datetime.now(timing.HKT)
+    return timing.read_pending(today.isoformat(), now) if today == now.date() else None
+
+
 def audit_race_artefacts(repo: Path, fixtures: Set[date], today: date) -> CategoryResult:
     """Each race day in fixtures should have all 5 artefact files (up to today)."""
     r = CategoryResult(name="race_artefacts")
@@ -143,6 +152,7 @@ def audit_race_artefacts(repo: Path, fixtures: Set[date], today: date) -> Catego
     r.expected = len(past_fixtures) * len(ARTEFACT_TYPES)
     seen = 0
     missing_days = Counter()
+    deadline = _pending_deadline(today)
     for d in past_fixtures:
         year_dir = data / str(d.year)
         for t in ARTEFACT_TYPES:
@@ -150,9 +160,15 @@ def audit_race_artefacts(repo: Path, fixtures: Set[date], today: date) -> Catego
             if f.exists() and f.stat().st_size > 0:
                 seen += 1
             else:
-                r.missing.append(f"{t}_{d.isoformat()}")
-                missing_days[d.isoformat()] += 1
+                if d == today and deadline:
+                    r.pending.append(f"{t}_{d.isoformat()}")
+                else:
+                    r.missing.append(f"{t}_{d.isoformat()}")
+                    missing_days[d.isoformat()] += 1
     r.present = seen
+    if r.pending:
+        r.notes.append(f"same-day artefacts pending until verified final start +30m: {deadline.isoformat()}")
+        r.severity = 'warn'
     if r.missing:
         r.severity = "critical" if len(r.missing) > 5 else "warn"
         r.notes.append(f"days with any missing artefact: {len(missing_days)}")

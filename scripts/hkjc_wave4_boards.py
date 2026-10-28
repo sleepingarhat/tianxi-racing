@@ -642,7 +642,7 @@ def append_manifest(root: Path, surface: str, digest: str, scraped_at: str, row_
 
 
 def sql_literal(value) -> str:
-    if value is None or value == '':
+    if value is None:
         return 'NULL'
     if isinstance(value, bool):
         raise IdentityError('refusing boolean SQL value')
@@ -669,7 +669,7 @@ def emit_sql(root: Path) -> str:
             values = []
             for column in columns:
                 raw = row.get(column, '')
-                if raw == '':
+                if raw == '' and column in integer_columns:
                     values.append('NULL')
                 elif column in integer_columns:
                     if not re.fullmatch(r'-?\d+', raw):

@@ -157,6 +157,11 @@ jobs:
             TODAY=$(echo "$DATE_IN" | cut -d, -f1 | tr -d ' ')
             YEAR=$(echo "$TODAY" | cut -d- -f1)
           fi
+          PENDING=$(python3 scripts/results_readiness.py --day "$TODAY")
+          if [ "$PENDING" = "true" ]; then
+            echo "::notice::Results pending until verified final race start +30 minutes"
+            exit 0
+          fi
           FOUND=0
           ROWS=0
           for kind_glob in "results_${TODAY}.csv" "results_${TODAY}_*.csv"; do
