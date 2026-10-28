@@ -4,7 +4,7 @@
     "venue": "HV",
     "url": "https://racingnews.hkjc.com/english/2025/09/21/cancellation-of-happy-valley-race-meeting-wednesday-24-september-2025/",
     "raw_path": "data/cancellations/2025-09-24.html",
-    "sha256": "3322655d4e8c8af4d0d3e5ac252c3170b3cb089f7177b2cafc174df3021987f6",
+    "sha256": "5d29f70923e9cdd3fd9d88a7d13c71cce1911e0260a6073b93526dc917516d9d",
     "verified_phrase": "scheduled for Wednesday, 24 September 2025, will be cancelled"
   },
   {
@@ -12,7 +12,7 @@
     "venue": "ST",
     "url": "https://racingnews.hkjc.com/english/2026/09/16/cancellation-of-race-meeting-on-20-september/",
     "raw_path": "data/cancellations/2026-09-20.html",
-    "sha256": "73b7ec58fb433402f0616f5cc675d74b3fcfa4d2a11bd51a57b3ad803fdaea75",
+    "sha256": "45075fed7d23fac4b22655152098ee656aa069759eae0700e115d31779358335",
     "verified_phrase": "scheduled for 20 September at Sha Tin Racecourse will be cancelled"
   }
 ]
