@@ -1,8 +1,8 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-10-28T15:15:59+00:00",
+  "generated_at": "2026-10-28T15:16:32+00:00",
   "generator": "tools/build_manifest.py",
-  "git_head": "67ad29d3403248ece5b9175ac0b270d709178789",
+  "git_head": "3f09140c94902afdd13f5e2d746ec07aade5e62f",
   "repo": "sleepingarhat/tianxi-database",
   "branch": "main",
   "base_url": {
