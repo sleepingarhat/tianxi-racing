@@ -1,8 +1,8 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-10-28T10:56:17+00:00",
+  "generated_at": "2026-10-28T13:15:56+00:00",
   "generator": "tools/build_manifest.py",
-  "git_head": "9cf42c1bc213435c97c681d1d4d08d292a70253f",
+  "git_head": "6b2a1f0da85dfd0141e40c9dadc854974ba1532b",
   "repo": "sleepingarhat/tianxi-database",
   "branch": "main",
   "base_url": {
@@ -15,8 +15,8 @@
     "readme": "README.md"
   },
   "summary": {
-    "race_days": 951,
-    "race_artefact_files": 4749,
+    "race_days": 952,
+    "race_artefact_files": 4754,
     "fixtures_rows": 232,
     "horse_form_files": 6129,
     "horse_profile_rows": 6129,
@@ -49,16 +49,16 @@
       "path_template": "data/{year}/{kind}_{date}.csv",
       "raw_url_template": "https://raw.githubusercontent.com/sleepingarhat/tianxi-database/main/data/{year}/{kind}_{date}.csv",
       "count_by_kind": {
-        "results": 945,
-        "commentary": 951,
-        "dividends": 951,
-        "sectional": 951,
-        "video": 951
+        "results": 946,
+        "commentary": 952,
+        "dividends": 952,
+        "sectional": 952,
+        "video": 952
       },
-      "distinct_race_days": 951,
+      "distinct_race_days": 952,
       "date_range": {
         "start": "2016-01-01",
-        "end": "2026-10-25"
+        "end": "2026-10-28"
       },
       "season_years": [
         2016,
@@ -74,7 +74,7 @@
         2026
       ],
       "example": {
-        "results": "data/2026/results_2026-10-25.csv"
+        "results": "data/2026/results_2026-10-28.csv"
       }
     },
     "fixtures": {
@@ -176,10 +176,10 @@
     "latest_report": "audit_reports/integrity_latest.json",
     "raw_url": "https://raw.githubusercontent.com/sleepingarhat/tianxi-database/main/audit_reports/integrity_latest.json",
     "scan_date": "2026-10-28",
-    "overall_severity": "critical",
-    "critical_gap_count": 15,
-    "warn_gap_count": 2,
-    "recommendation": "gha_next_delta_will_fix"
+    "overall_severity": "warn",
+    "critical_gap_count": 0,
+    "warn_gap_count": 7,
+    "recommendation": "monitor_no_block"
   },
   "policy": {
     "odds_weighting": "disabled (beta=0 hardcoded in win-probability model)",
