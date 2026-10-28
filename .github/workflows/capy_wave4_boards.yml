@@ -128,7 +128,18 @@ jobs:
           done
           if [ -n "$(git diff --cached --name-only --diff-filter=D)" ]; then echo 'wave4 board deletion refused'; exit 1; fi
           git commit -m '[data][skip ci] official HKJC wave4 horse, pool and draw boards'
-          git push origin HEAD:main
+          # Retry only after a clean rebase; conflicting evidence remains a hard failure.
+          for attempt in 1 2 3; do
+            if git push origin HEAD:main; then exit 0; fi
+            git fetch origin main
+            if ! git rebase origin/main; then
+              git rebase --abort
+              echo 'Concurrent data conflict; original evidence preserved, refusing overwrite'
+              exit 1
+            fi
+          done
+          echo 'Push failed after three safe retries'
+          exit 1
 
       - name: Require Cloudflare token on a schedule
         if: github.event_name == 'schedule'
