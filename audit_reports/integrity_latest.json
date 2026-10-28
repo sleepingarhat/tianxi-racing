@@ -1,38 +1,48 @@
 {
-  "scan_date": "2026-10-27",
+  "scan_date": "2026-10-28",
   "repo_root": "/home/runner/work/tianxi-racing/tianxi-racing",
-  "overall_severity": "warn",
-  "critical_gap_count": 0,
-  "warn_gap_count": 6,
-  "recommendation": "monitor_no_block",
+  "overall_severity": "critical",
+  "critical_gap_count": 15,
+  "warn_gap_count": 2,
+  "recommendation": "gha_next_delta_will_fix",
   "categories": {
     "race_artefacts": {
       "name": "race_artefacts",
-      "expected": 790,
+      "expected": 800,
       "present": 785,
       "missing": [
+        "results_2025-09-24",
+        "commentary_2025-09-24",
+        "dividends_2025-09-24",
+        "sectional_times_2025-09-24",
+        "video_links_2025-09-24",
         "results_2026-09-20",
         "commentary_2026-09-20",
         "dividends_2026-09-20",
         "sectional_times_2026-09-20",
-        "video_links_2026-09-20"
+        "video_links_2026-09-20",
+        "results_2026-10-28",
+        "commentary_2026-10-28",
+        "dividends_2026-10-28",
+        "sectional_times_2026-10-28",
+        "video_links_2026-10-28"
       ],
       "stale": [],
       "pending": [],
       "notes": [
-        "days with any missing artefact: 1"
+        "days with any missing artefact: 3"
       ],
-      "severity": "warn"
+      "severity": "critical"
     },
     "fixtures_cache": {
       "name": "fixtures_cache",
       "expected": 1,
-      "present": 231,
+      "present": 232,
       "missing": [],
       "stale": [],
       "pending": [],
       "notes": [
-        "total cached race days: 231"
+        "total cached race days: 232"
       ],
       "severity": "ok"
     },
@@ -112,21 +122,22 @@
       "stale": [],
       "pending": [],
       "notes": [
-        "trial rows: 9735"
+        "trial rows: 9775"
       ],
       "severity": "ok"
     },
     "entries_upcoming": {
       "name": "entries_upcoming",
-      "expected": 2,
+      "expected": 3,
       "present": 1,
       "missing": [
-        "2026-11-01"
+        "2026-11-01",
+        "2026-11-04"
       ],
       "stale": [],
       "pending": [],
       "notes": [
-        "1 upcoming race days lack entries file"
+        "2 upcoming race days lack entries file"
       ],
       "severity": "warn"
     }
