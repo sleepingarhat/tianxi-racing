@@ -31,6 +31,9 @@ from collections import Counter, defaultdict
 from dataclasses import asdict, dataclass, field
 from datetime import date, datetime, timedelta
 from pathlib import Path
+import importlib.util
+import hashlib
+import re
 from typing import Dict, List, Set
 
 # ---------- CONSTANTS ----------
@@ -135,14 +138,47 @@ def _iter_result_rows(data_dir: Path, since: date):
 
 # ---------- AUDITS ----------
 
+def _pending_deadline(today):
+    spec = importlib.util.spec_from_file_location('results_readiness', Path(__file__).resolve().parents[1] / 'scripts/results_readiness.py')
+    timing = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(timing)
+    now = datetime.now(timing.HKT)
+    return timing.read_pending(today.isoformat(), now) if today == now.date() else None
+
+
+def verified_cancelled_dates(repo):
+    """Only archived official notices with intact SHA and dated wording exempt artefacts."""
+    path = repo / 'data/cancellations/verified.json'
+    if not path.exists():
+        return set()
+    rows = json.loads(path.read_text())
+    cancelled = set()
+    for row in rows:
+        raw_path = Path(row['raw_path'])
+        if raw_path.is_absolute() or '..' in raw_path.parts or not row['url'].startswith('https://racingnews.hkjc.com/'):
+            raise ValueError('Invalid cancellation evidence path or source')
+        raw = (repo / raw_path).read_bytes()
+        if hashlib.sha256(raw).hexdigest() != row['sha256']:
+            raise ValueError('Cancellation evidence SHA mismatch')
+        text = re.sub(r'\s+', ' ', re.sub(r'<[^>]*>', ' ', raw.decode('utf-8')))
+        if row['verified_phrase'] not in text or row['venue'] not in ('ST', 'HV'):
+            raise ValueError('Cancellation notice identity not verified')
+        cancelled.add(date.fromisoformat(row['date']))
+    return cancelled
+
+
 def audit_race_artefacts(repo: Path, fixtures: Set[date], today: date) -> CategoryResult:
     """Each race day in fixtures should have all 5 artefact files (up to today)."""
     r = CategoryResult(name="race_artefacts")
     data = repo / "data"
-    past_fixtures = sorted(d for d in fixtures if d <= today)
+    cancelled = verified_cancelled_dates(repo)
+    past_fixtures = sorted(d for d in fixtures if d <= today and d not in cancelled)
+    if cancelled & fixtures:
+        r.notes.append('Official cancellation notices verified: ' + ', '.join(sorted(d.isoformat() for d in cancelled & fixtures)))
     r.expected = len(past_fixtures) * len(ARTEFACT_TYPES)
     seen = 0
     missing_days = Counter()
+    deadline = _pending_deadline(today)
     for d in past_fixtures:
         year_dir = data / str(d.year)
         for t in ARTEFACT_TYPES:
@@ -150,9 +186,15 @@ def audit_race_artefacts(repo: Path, fixtures: Set[date], today: date) -> Catego
             if f.exists() and f.stat().st_size > 0:
                 seen += 1
             else:
-                r.missing.append(f"{t}_{d.isoformat()}")
-                missing_days[d.isoformat()] += 1
+                if d == today and deadline:
+                    r.pending.append(f"{t}_{d.isoformat()}")
+                else:
+                    r.missing.append(f"{t}_{d.isoformat()}")
+                    missing_days[d.isoformat()] += 1
     r.present = seen
+    if r.pending:
+        r.notes.append(f"same-day artefacts pending until verified final start +30m: {deadline.isoformat()}")
+        r.severity = 'warn'
     if r.missing:
         r.severity = "critical" if len(r.missing) > 5 else "warn"
         r.notes.append(f"days with any missing artefact: {len(missing_days)}")

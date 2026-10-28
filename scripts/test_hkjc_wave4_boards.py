@@ -380,6 +380,16 @@ class StoreTests(unittest.TestCase):
         finally:
             connection.close()
 
+    def test_empty_official_text_survives_database_write(self):
+        wave4.store_surface(self.root, 'movement', wave4.parse_movement(
+            horse_page('添喜運', 'J218', '0-0-0-0', MOVE_ROWS), HORSE, TODAY, 'abc', SCRAPED))
+        wave4.store_surface(self.root, 'pool_result', wave4.parse_pool_result(JKC_HTML, 'jkc', date(2026, 10, 25), 'abc', SCRAPED))
+        db = self.root / 'empty-text.db'
+        wave4.apply_sql(db, wave4.emit_sql(self.root))
+        with sqlite3.connect(db) as connection:
+            self.assertEqual(connection.execute("SELECT from_loc FROM official_movement WHERE arrive_date='2026-03-24'").fetchone(), ('',))
+            self.assertEqual(connection.execute("SELECT remark FROM official_pool_result WHERE person_name='袁幸堯'").fetchone(), ('',))
+
     def test_apply_sql_creates_all_six_tables(self):
         db = self.root / 'empty.db'
         wave4.apply_sql(db, '-- nothing\n')

@@ -142,47 +142,13 @@ jobs:
           echo "::error::race-day scraper failed after 3 attempts"
           exit 1
 
-      # 2026-10-26: schema + heartbeat (adopted from jeffincn poll_ticks /
-      # pandera-style CSV guards). Fail closed on truncated dumps; record
-      # data/job_ticks so automation_watchdog can dead-man the content path.
-      - name: Assert results CSV schema + record job tick
+      - name: Assert every candidate date + record verified job ticks
         if: steps.guard.outputs.no_race != 'true'
+        env:
+          DATE_INPUT: ${{ github.event.inputs.date }}
         run: |
           set -eu
-          TODAY=$(TZ=Asia/Hong_Kong date +%Y-%m-%d)
-          YEAR=$(TZ=Asia/Hong_Kong date +%Y)
-          # Prefer explicit --date input when provided (first token).
-          DATE_IN="${{ github.event.inputs.date }}"
-          if [ -n "$DATE_IN" ]; then
-            TODAY=$(echo "$DATE_IN" | cut -d, -f1 | tr -d ' ')
-            YEAR=$(echo "$TODAY" | cut -d- -f1)
-          fi
-          FOUND=0
-          ROWS=0
-          for kind_glob in "results_${TODAY}.csv" "results_${TODAY}_*.csv"; do
-            for f in data/${YEAR}/${kind_glob} data/${TODAY:0:4}/${kind_glob}; do
-              [ -f "$f" ] || continue
-              FOUND=1
-              R=$(python3 -c "import csv; print(sum(1 for _ in csv.DictReader(open('$f',encoding='utf-8-sig'))))")
-              ROWS=$((ROWS + R))
-              python3 scripts/ci/assert_csv_schema.py --csv "$f" --kind results --min-rows 40 --min-races 1
-            done
-          done
-          for kind_glob in "dividends_${TODAY}.csv" "dividends_${TODAY}_*.csv"; do
-            for f in data/${YEAR}/${kind_glob} data/${TODAY:0:4}/${kind_glob}; do
-              [ -f "$f" ] || continue
-              FOUND=1
-              python3 scripts/ci/assert_csv_schema.py --csv "$f" --kind dividends --min-rows 20 --min-races 1 || {
-                echo "::warning::dividends schema soft-fail for $f (results remain hard gate)"
-              }
-            done
-          done
-          bash scripts/ci/assert_collected_rows.sh "$ROWS" "$TODAY"
-          if [ "$FOUND" -eq 0 ]; then
-            echo "::error::No results CSV found for $TODAY under data/${YEAR}/ after scraper"
-            exit 1
-          fi
-          python3 scripts/ci/job_ticks.py record --job capy_race_daily --status ok --meta date="$TODAY" --meta rows="$ROWS"
+          python3 scripts/assert_results_candidates.py "$DATE_INPUT"
 
       - name: Push results to main
         if: steps.guard.outputs.no_race != 'true'
