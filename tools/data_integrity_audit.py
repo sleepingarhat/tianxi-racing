@@ -32,6 +32,8 @@ from dataclasses import asdict, dataclass, field
 from datetime import date, datetime, timedelta
 from pathlib import Path
 import importlib.util
+import hashlib
+import re
 from typing import Dict, List, Set
 
 # ---------- CONSTANTS ----------
@@ -144,11 +146,35 @@ def _pending_deadline(today):
     return timing.read_pending(today.isoformat(), now) if today == now.date() else None
 
 
+def verified_cancelled_dates(repo):
+    """Only archived official notices with intact SHA and dated wording exempt artefacts."""
+    path = repo / 'data/cancellations/verified.json'
+    if not path.exists():
+        return set()
+    rows = json.loads(path.read_text())
+    cancelled = set()
+    for row in rows:
+        raw_path = Path(row['raw_path'])
+        if raw_path.is_absolute() or '..' in raw_path.parts or not row['url'].startswith('https://racingnews.hkjc.com/'):
+            raise ValueError('Invalid cancellation evidence path or source')
+        raw = (repo / raw_path).read_bytes()
+        if hashlib.sha256(raw).hexdigest() != row['sha256']:
+            raise ValueError('Cancellation evidence SHA mismatch')
+        text = re.sub(r'\s+', ' ', re.sub(r'<[^>]*>', ' ', raw.decode('utf-8')))
+        if row['verified_phrase'] not in text or row['venue'] not in ('ST', 'HV'):
+            raise ValueError('Cancellation notice identity not verified')
+        cancelled.add(date.fromisoformat(row['date']))
+    return cancelled
+
+
 def audit_race_artefacts(repo: Path, fixtures: Set[date], today: date) -> CategoryResult:
     """Each race day in fixtures should have all 5 artefact files (up to today)."""
     r = CategoryResult(name="race_artefacts")
     data = repo / "data"
-    past_fixtures = sorted(d for d in fixtures if d <= today)
+    cancelled = verified_cancelled_dates(repo)
+    past_fixtures = sorted(d for d in fixtures if d <= today and d not in cancelled)
+    if cancelled & fixtures:
+        r.notes.append('Official cancellation notices verified: ' + ', '.join(sorted(d.isoformat() for d in cancelled & fixtures)))
     r.expected = len(past_fixtures) * len(ARTEFACT_TYPES)
     seen = 0
     missing_days = Counter()
