@@ -1,0 +1,179 @@
+name: Capy Wave4 — horse curves, movements, overoar, pool results, draw search
+on:
+  workflow_dispatch:
+    inputs:
+      surfaces:
+        description: 'rating-weight,performance,movement,overoar,pool-result,draw-adv'
+        required: false
+        default: 'rating-weight,performance,movement,overoar,pool-result,draw-adv'
+      racecard:
+        description: 'YYYY-MM-DD_ST for per-horse surfaces; blank uses the latest snapshot'
+        required: false
+        default: ''
+      date:
+        description: 'YYYY-MM-DD racedate for pool-result; blank follows the page'
+        required: false
+        default: ''
+      all_active:
+        description: 'true = per-horse surfaces cover every active profile horse'
+        required: false
+        default: 'false'
+      seasons:
+        description: 'draw-adv: current or all'
+        required: false
+        default: 'current'
+  schedule:
+    # 07:47 HKT daily. Per-horse surfaces follow the latest racecard snapshot.
+    - cron: '47 23 * * *'
+    # Monday 04:40 HKT. All active horses plus every season on the draw form.
+    - cron: '40 20 * * 0'
+permissions:
+  contents: write
+concurrency:
+  group: capy-wave4-boards
+  cancel-in-progress: false
+jobs:
+  season_gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      skip: ${{ steps.chk.outputs.skip }}
+    steps:
+      - id: chk
+        name: Season gate (off-season auto-pause)
+        run: |
+          SKIP=false
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            STATUS=$(curl -sf --max-time 20 "https://tianxi-backend.tianxi-entertainment.workers.dev/api/season" | grep -o '"status":"[a-z_]*"' | head -1 | cut -d'"' -f4 || true)
+            echo "season status: ${STATUS:-unknown (fail-open)}"
+            if [ "$STATUS" = "off_season" ]; then
+              SKIP=true
+              echo "::notice::休季中 off-season — skipping scheduled wave4 boards"
+            fi
+          fi
+          echo "skip=$SKIP" >> "$GITHUB_OUTPUT"
+
+  collect:
+    needs: season_gate
+    if: needs.season_gate.outputs.skip != 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: main, fetch-depth: 1 }
+
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+
+      - name: Install parser dependency
+        run: pip install beautifulsoup4==4.14.2
+
+      - name: Test wave4 board identity rules
+        run: python3 -m unittest discover -s scripts -p test_hkjc_wave4_boards.py
+
+      - name: Choose plan
+        id: plan
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "surfaces=${{ github.event.inputs.surfaces }}" >> "$GITHUB_OUTPUT"
+            echo "racecard=${{ github.event.inputs.racecard }}" >> "$GITHUB_OUTPUT"
+            echo "date=${{ github.event.inputs.date }}" >> "$GITHUB_OUTPUT"
+            echo "all_active=${{ github.event.inputs.all_active }}" >> "$GITHUB_OUTPUT"
+            echo "seasons=${{ github.event.inputs.seasons }}" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event.schedule }}" = "40 20 * * 0" ]; then
+            echo "surfaces=rating-weight,performance,movement,overoar,pool-result,draw-adv" >> "$GITHUB_OUTPUT"
+            echo "racecard=" >> "$GITHUB_OUTPUT"
+            echo "date=" >> "$GITHUB_OUTPUT"
+            echo "all_active=true" >> "$GITHUB_OUTPUT"
+            echo "seasons=all" >> "$GITHUB_OUTPUT"
+          else
+            echo "surfaces=rating-weight,performance,movement,overoar,pool-result,draw-adv" >> "$GITHUB_OUTPUT"
+            echo "racecard=" >> "$GITHUB_OUTPUT"
+            echo "date=" >> "$GITHUB_OUTPUT"
+            echo "all_active=false" >> "$GITHUB_OUTPUT"
+            echo "seasons=current" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Scrape wave4 boards
+        env:
+          SURFACES: ${{ steps.plan.outputs.surfaces }}
+          RACECARD: ${{ steps.plan.outputs.racecard }}
+          RACE_DATE: ${{ steps.plan.outputs.date }}
+          ALL_ACTIVE: ${{ steps.plan.outputs.all_active }}
+          SEASONS: ${{ steps.plan.outputs.seasons }}
+        run: |
+          set -eu
+          args=(--root=. --surfaces="$SURFACES" --seasons="$SEASONS" --workers=8)
+          if [ -n "$RACECARD" ]; then args+=(--racecard="$RACECARD"); fi
+          if [ -n "$RACE_DATE" ]; then args+=(--date="$RACE_DATE"); fi
+          if [ "$ALL_ACTIVE" = "true" ]; then args+=(--all-active); fi
+          python3 scripts/hkjc_wave4_boards.py "${args[@]}"
+
+      - name: Commit projection and append-only manifest
+        run: |
+          set -eu
+          [ -d data/official_wave4 ] || exit 0
+          git config user.name 'tianxi-bot'
+          git config user.email 'tianxi-bot@users.noreply.github.com'
+          git add data/official_wave4
+          git diff --cached --quiet && exit 0
+          for f in $(git diff --cached --name-only --diff-filter=M); do
+            case "$f" in
+              data/official_wave4/manifest.jsonl)
+                if git diff --cached "$f" | grep -qE '^-[^-]'; then echo 'manifest rewrite refused'; exit 1; fi
+                ;;
+              data/official_wave4/*.csv) ;;
+              *) echo "unexpected official_wave4 change: $f"; exit 1 ;;
+            esac
+          done
+          if [ -n "$(git diff --cached --name-only --diff-filter=D)" ]; then echo 'wave4 board deletion refused'; exit 1; fi
+          git commit -m '[data][skip ci] official HKJC wave4 horse, pool and draw boards'
+          git push origin HEAD:main
+
+      - name: Require Cloudflare token on a schedule
+        if: github.event_name == 'schedule'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+        run: |
+          set -eu
+          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
+            echo 'CF_API_TOKEN missing; scheduled wave4 ingest cannot write D1'
+            exit 1
+          fi
+
+      - name: Install wrangler
+        run: npm install -g wrangler@4
+
+      - name: Upsert wave4 boards into D1
+        working-directory: backend
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+        run: |
+          set -eu
+          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
+            echo 'CF_API_TOKEN missing; leaving the CSV projection unsent'
+            exit 0
+          fi
+          wrangler d1 execute tianxi-db --remote --file=src/db/migrations/20261027_wave4_boards.sql --yes
+          python3 ../scripts/hkjc_wave4_boards.py --root=.. --emit-sql /tmp/official_wave4.sql
+          python3 - << 'PY'
+          from pathlib import Path
+          text = Path('/tmp/official_wave4.sql').read_text(encoding='utf-8')
+          parts = [part.strip() for part in text.split(';\n') if part.strip() and not part.strip().startswith('--')]
+          out = Path('/tmp/official_wave4_chunks')
+          out.mkdir(exist_ok=True)
+          size = 250
+          for index in range(0, len(parts), size):
+              chunk = ';\n'.join(parts[index:index + size]) + ';\n'
+              (out / f'{index:05d}.sql').write_text(chunk, encoding='utf-8')
+          print(f'chunks={(len(parts) + size - 1) // size if parts else 0} statements={len(parts)}')
+          PY
+          if ! ls /tmp/official_wave4_chunks/*.sql >/dev/null 2>&1; then
+            echo 'no wave4 statements to apply'
+            exit 0
+          fi
+          for f in $(ls /tmp/official_wave4_chunks/*.sql | sort); do
+            echo "--> $f"
+            wrangler d1 execute tianxi-db --remote --file="$f" --yes
+          done
