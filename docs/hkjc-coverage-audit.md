@@ -1,14 +1,14 @@
 # 香港賽馬會官方資料覆蓋審計（2026-10-27）
 
-只讀調查。沒有改收料、沒有改 D1、沒有動 production secret。
+本文件記錄2026-10-27的只讀審計，保留當時觀察；後續修復狀態以2026-10-28補充及官方資料地圖為準。
 
 對照時點：2026-10-27。10 月 28 日沙田場以馬會公開頁同生產 Worker `GET /api/meetings/2026-10-28` 實讀。Git 排位快照是 `entries/racecard_snapshots/2026-10-28_ST/20261026T121013Z.csv`（2026-10-26 20:10 HKT）。
 
-## 給老闆的一句
+## 審計摘要
 
 **而家唔係 100% 官方底。** 賽果、排位馬匹、檔位、騎練、評分、班次、開跑時間有官方來源；賽事名稱、獎金、評分區間，以及全天候場的途程／跑道／地況，未寫入即將開跑的賽事。網站因此顯示「第 N 場」，看不到「畫眉山讓賽」這類場名。
 
-目標仍然係：官方頁做底，自有評分／預測做上層。日期錯誤要繼續靠頁面身份核對，唔好靠「我哋請求咗邊日」。
+目標仍然係：官方頁做底，自有評分／預測做上層。日期錯誤要繼續靠頁面身份核對，不能只依請求日期判定。
 
 ## 三層
 
@@ -22,7 +22,7 @@
 
 官方（`racereportext` 同經典排位頁同一段）：
 
-- 第 1 場「畫眉山讓賽」18:45，全天候跑道 1650 米，好地，獎金 $875,000，評分 40-0，第五班。11 匹正選，同我哋 API 馬匹名單一致。
+- 第 1 場「畫眉山讓賽」18:45，全天候跑道 1650 米，好地，獎金 $875,000，評分 40-0，第五班。11 匹正選，同網站 API 馬匹名單一致。
 - 第 7 場「石屋山讓賽」21:45，全天候跑道 1200 米，好地，獎金 $1,170,000，評分 60-40，第四班。官方頁多兩匹後備（L104、H108）；快照標 `Standby`，API 按設計唔顯示後備。
 
 生產 `GET /api/meetings/2026-10-28`（`2026-10-28_ST`，9 場）：
@@ -64,7 +64,7 @@
 | [競賽事件報告](https://racing.hkjc.com/zh-hk/local/information/racereportfull) | 已有（研究） | `scripts/IncidentReport_Scraper.py` → `data/incidents/`。要核對標題日期、馬場、場題、馬匹連結。唔入模型、唔入凍結 | `capy_incident_reports`：HKT 02:23／08:23／14:23／20:23，加賽果工作完成後。同日報告不可當賽前特徵 |
 | [賽期表](https://racing.hkjc.com/zh-hk/local/information/fixture?calyear=2026&calmonth=12) | 部分 | `FixtureCalendar_Scraper.py` → `data/fixtures/fixtures.csv`。只有日期、星期、抓取時間。冇馬場、場數、開跑時間。2026-12 已在檔內；10 月 28 日在冊。最近抓取 2026-10-25 | `capy_fixture_weekly`：逢星期一 05:00 HKT。快取超過 21 日會當每日都係賽日（寧願多跑）。馬會空月份會回當月，程式對月份標題，唔收錯月 |
 | [初出馬介紹](https://racing.hkjc.com/zh-hk/local/page/new-horse) | 冇 | 介紹文冇收。新馬血統另由 `HorsePedigree_Scraper.py` 跟排位馬號補 | 血統：一／二／六 21:30 HKT 排位模式；星期三 05:00 全池補 |
-| [騎師策騎／分場](https://racing.hkjc.com/zh-hk/local/info/jockeys-rides) | 部分 | 沒有獨立分場表。當日騎師在 `entries_upcoming.jockey_name` | 跟排位工作。頁面本身係前端殼，我哋唔爬該頁 |
+| [騎師策騎／分場](https://racing.hkjc.com/zh-hk/local/info/jockeys-rides) | 部分 | 沒有獨立分場表。當日騎師在 `entries_upcoming.jockey_name` | 跟排位工作。頁面本身係前端殼，目前未收錄該頁 |
 | [練馬師榜](https://racing.hkjc.com/zh-hk/local/info/trainer-ranking?season=Current&view=Numbers&racecourse=ALL) | 冇 | `trainers/trainer_profiles.csv` 只有代碼同姓名（68 行）。冠亞季殿、出馬總數冇收。逐場往績在 `trainers/records/`（`trainerpastrec`，`capy_trainer_fix` 每日 01:00 HKT） | 榜可以日後由往績加總，而家唔係官方榜副本 |
 | [練馬師資料](https://racing.hkjc.com/zh-hk/local/information/trainerprofile?trainerid=HDA&season=Current) | 部分 | 姓名有。簡介頁季績冇整頁收。往績走 `trainerpastrec` | 每日 01:00 HKT，近兩日有賽先跑 |
 | [賽果](https://racing.hkjc.com/zh-hk/local/information/localresults) | 已有 | `RacingData_Scraper.py` → `data/<year>/results_*.csv` 等五份檔 → `import-csv.ts` → `race_meetings`／`races`／`race_results`／分段／評述／派彩。寫入前核對頁面「賽事日期」 | 賽日 23:30 HKT，後備 01:30／04:30／09:30。D1 同步 00:23，後備 06:23／10:23。賽果未出，馬會會顯示上一場，必須拒絕寫入 |
@@ -72,7 +72,7 @@
 | [馬匹資料](https://racing.hkjc.com/zh-hk/local/information/horse?horseid=HK_2025_L457) | 已有 | `HorseData_Scraper.py` → `horses/profiles`、`form_records`；D1 `horses`、`horse_profile_extra`、`horse_form_records`。晨操、傷患同池。馬主係檔案一欄 | `capy_pool_a` 每日 04:00 HKT；D1 05:17。非賽日可跳過 |
 | 馬主搜尋 | 部分 | 馬主名字在馬匹檔案 `馬主`／`horse_profile_extra.owner`。冇馬主索引，搜尋頁冇爬 | 跟馬匹檔案 |
 | [試閘](https://racing.hkjc.com/zh-hk/local/information/btresult) | 已有 | `TrialResults_Scraper.py` → `trials/` → `trial_sessions`、`trial_runners` | 每日 02:00 HKT 抓、05:17 入 D1。馬會只留約 176 個試閘日，更早補不回 |
-| 排位表／賽事報告延伸（場名、時間、班次、獎金、評分區間、跑道、途程、地況） | 部分 | 馬匹層：`capy_racecard` → `entries_upcoming`；研究快照 `entries/racecard_snapshots/`。場次層只持久化班次、開跑時間；場名同獎金讀完即丟；全天候途程／跑道／地況解析失敗 | 排位：一／三／五／六 09:00 HKT，每日 06:15 HKT，以及排位馬號工作成功之後。快照每 3 小時，內容不變就跳過。賽前缺欄會一路綠到開跑 |
+| 排位表／賽事報告延伸（場名、時間、班次、獎金、評分區間、跑道、途程、地況） | 部分 | 馬匹層：`capy_racecard` → `entries_upcoming`；研究快照 `entries/racecard_snapshots/`。場次層只持久化班次、開跑時間；場名同獎金讀完即丟；全天候途程／跑道／地況解析失敗 | 排位：一／三／五／六 09:00 HKT，每日 06:15 HKT，以及排位馬號工作成功之後。快照每 3 小時，內容不變就跳過。賽前缺欄會缺少驗證仍顯示成功 |
 
 草地探針（天氣及跑道狀況，唔係練馬師王統計）係 `capy_track_conditions`，每小時 47 分，研究檔，不寫 D1。未公布讀數保持空白。
 
