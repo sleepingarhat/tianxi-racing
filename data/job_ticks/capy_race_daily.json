@@ -1,11 +1,11 @@
 {
   "job": "capy_race_daily",
   "status": "ok",
-  "at": "2026-10-28T17:32:08Z",
+  "at": "2026-10-28T20:27:40Z",
   "meta": {
     "date": "2026-10-28",
     "rows": "111"
   },
-  "run_id": "40736466926",
-  "sha": "ae9e95fa2d1a79d95d2a7a8ac99d440c19f46ff5"
+  "run_id": "40763320283",
+  "sha": "fad4e940dc80b70a0901654e61908cfd5dc64d87"
 }
