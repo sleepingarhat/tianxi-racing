@@ -1,38 +1,29 @@
 {
   "scan_date": "2026-10-28",
   "repo_root": "/home/runner/work/tianxi-racing/tianxi-racing",
-  "overall_severity": "critical",
-  "critical_gap_count": 15,
-  "warn_gap_count": 2,
-  "recommendation": "gha_next_delta_will_fix",
+  "overall_severity": "warn",
+  "critical_gap_count": 0,
+  "warn_gap_count": 7,
+  "recommendation": "monitor_no_block",
   "categories": {
     "race_artefacts": {
       "name": "race_artefacts",
-      "expected": 800,
+      "expected": 790,
       "present": 785,
-      "missing": [
-        "results_2025-09-24",
-        "commentary_2025-09-24",
-        "dividends_2025-09-24",
-        "sectional_times_2025-09-24",
-        "video_links_2025-09-24",
-        "results_2026-09-20",
-        "commentary_2026-09-20",
-        "dividends_2026-09-20",
-        "sectional_times_2026-09-20",
-        "video_links_2026-09-20",
+      "missing": [],
+      "stale": [],
+      "pending": [
         "results_2026-10-28",
         "commentary_2026-10-28",
         "dividends_2026-10-28",
         "sectional_times_2026-10-28",
         "video_links_2026-10-28"
       ],
-      "stale": [],
-      "pending": [],
       "notes": [
-        "days with any missing artefact: 3"
+        "Official cancellation notices verified: 2025-09-24, 2026-09-20",
+        "same-day artefacts pending until verified final start +30m: 2026-10-28T23:20:00+08:00"
       ],
-      "severity": "critical"
+      "severity": "warn"
     },
     "fixtures_cache": {
       "name": "fixtures_cache",
