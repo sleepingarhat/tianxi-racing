@@ -1,29 +1,22 @@
 {
-  "scan_date": "2026-10-28",
+  "scan_date": "2026-10-29",
   "repo_root": "/home/runner/work/tianxi-racing/tianxi-racing",
   "overall_severity": "warn",
   "critical_gap_count": 0,
-  "warn_gap_count": 7,
+  "warn_gap_count": 2,
   "recommendation": "monitor_no_block",
   "categories": {
     "race_artefacts": {
       "name": "race_artefacts",
       "expected": 790,
-      "present": 785,
+      "present": 790,
       "missing": [],
       "stale": [],
-      "pending": [
-        "results_2026-10-28",
-        "commentary_2026-10-28",
-        "dividends_2026-10-28",
-        "sectional_times_2026-10-28",
-        "video_links_2026-10-28"
-      ],
+      "pending": [],
       "notes": [
-        "Official cancellation notices verified: 2025-09-24, 2026-09-20",
-        "same-day artefacts pending until verified final start +30m: 2026-10-28T23:20:00+08:00"
+        "Official cancellation notices verified: 2025-09-24, 2026-09-20"
       ],
-      "severity": "warn"
+      "severity": "ok"
     },
     "fixtures_cache": {
       "name": "fixtures_cache",
@@ -39,25 +32,25 @@
     },
     "horse_profiles": {
       "name": "horse_profiles",
-      "expected": 1191,
-      "present": 1191,
+      "expected": 1195,
+      "present": 1195,
       "missing": [],
       "stale": [],
       "pending": [],
       "notes": [
-        "total profiles in DB: 6129"
+        "total profiles in DB: 6131"
       ],
       "severity": "ok"
     },
     "horse_form_records": {
       "name": "horse_form_records",
-      "expected": 1191,
-      "present": 1191,
+      "expected": 1195,
+      "present": 1195,
       "missing": [],
       "stale": [],
       "pending": [],
       "notes": [
-        "total form_records files: 6129"
+        "total form_records files: 6131"
       ],
       "severity": "ok"
     },
@@ -119,8 +112,8 @@
     },
     "entries_upcoming": {
       "name": "entries_upcoming",
-      "expected": 3,
-      "present": 1,
+      "expected": 2,
+      "present": 0,
       "missing": [
         "2026-11-01",
         "2026-11-04"
