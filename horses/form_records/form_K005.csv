@@ -1,4 +1,5 @@
 ﻿horse_no,race_index,place,date,racecourse,track,course,distance_m,going,race_class,draw,rating,trainer,jockey,lbw,win_odds,actual_wt_lbs,running_position,finish_time,declared_wt_lbs,gear
+K005,144,10,28/10/26,沙田全天候,,,1650,好,4,14,56,葉楚航,何澤堯,4-1/4,12,131,13 14 12 10,1.39.14,1081,CP
 K005,072,06,04/10/26,沙田全天候,,,1650,封,4,11,57,葉楚航,何澤堯,1-1/4,12,132,9 9 13 6,1.39.70,1077,CP
 K005,008,06,06/09/26,沙田,草地,A,1400,好/快,4,6,59,葉楚航,田泰安,4-1/2,13,134,9 9 8 6,1.21.83,1079,CP
 K005,825,10,01/07/26,沙田,草地,C,1600,好/快,3,14,62,葉楚航,黃寶妮,3-1/4,110,110,1 1 2 10,1.34.62,1085,CP

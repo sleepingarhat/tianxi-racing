@@ -1,4 +1,5 @@
 ﻿horse_no,race_index,place,date,racecourse,track,course,distance_m,going,race_class,draw,rating,trainer,jockey,lbw,win_odds,actual_wt_lbs,running_position,finish_time,declared_wt_lbs,gear
+H165,142,06,28/10/26,沙田全天候,,,1800,好,4,2,59,丁冠豪,梁家俊,2-1/4,10,135,3 5 6 6 6,1.48.14,1166,PC
 H165,076,05,04/10/26,沙田全天候,,,1650,好,3,2,60,丁冠豪,楊明綸,1-1/2,12,120,9 10 10 5,1.39.40,1149,PC
 H165,813,03,27/06/26,沙田全天候,,,1650,好,3,4,62,丁冠豪,楊明綸,2-1/2,12,115,9 8 8 3,1.38.23,1144,PC
 H165,672,06,06/05/26,沙田全天候,,,1650,好,3,1,63,丁冠豪,楊明綸,2,19,115,8 9 9 6,1.40.23,1142,PC/TT-

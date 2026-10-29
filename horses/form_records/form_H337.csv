@@ -1,4 +1,5 @@
 ﻿horse_no,race_index,place,date,racecourse,track,course,distance_m,going,race_class,draw,rating,trainer,jockey,lbw,win_odds,actual_wt_lbs,running_position,finish_time,declared_wt_lbs,gear
+H337,146,08,28/10/26,沙田全天候,,,1200,好,3,2,84,文家良,黃寶妮,8-1/4,36,128,11 11 8,1.08.90,1105,B/TT
 H337,098,10,11/10/26,沙田,草地,C,1200,好,2,2,87,文家良,巫顯東,5,118,124,7 6 10,1.09.69,1104,B/TT
 H337,604,12,12/04/26,沙田,草地,C,1200,好,2,2,95,文家良,黃寶妮,9,59,123,6 9 12,1.10.30,1114,B/TT
 H337,242,08,07/12/25,沙田全天候,,,1200,好,2,4,97,文家良,周俊樂,4-3/4,20,131,4 2 8,1.08.82,1128,B/TT
