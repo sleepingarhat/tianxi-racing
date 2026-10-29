@@ -1,15 +1,15 @@
 {
   "schemaVersion": 3,
-  "generatedHKT": "2026-10-28 15:52 HKT",
+  "generatedHKT": "2026-10-29 15:57 HKT",
   "engine": "TX-Oracle v3.2",
   "season": {
     "status": "in_season",
     "mode": "auto",
-    "today": "2026-10-28",
-    "lastMeeting": "2026-10-25",
-    "nextMeeting": "2026-10-28",
-    "gapDays": 3,
-    "reason": "next HK meeting known (2026-10-28)",
+    "today": "2026-10-29",
+    "lastMeeting": "2026-10-28",
+    "nextMeeting": null,
+    "gapDays": 1,
+    "reason": "no future meeting yet but gap within normal in-season range (fail-open)",
     "label": "賽季進行中"
   },
   "overall": "PASS",
@@ -86,7 +86,7 @@
       "id": "season",
       "label": "季節自動感應",
       "status": "PASS",
-      "detail": "賽季進行中（mode=auto）· 上仗 2026-10-25 · 下場 2026-10-28 · gap 3 日。"
+      "detail": "賽季進行中（mode=auto）· 上仗 2026-10-28 · 下場 — · gap 1 日。"
     },
     {
       "id": "elo_v12",
@@ -140,7 +140,7 @@
       "id": "display_odds_freshness",
       "label": "賽日市場盤口時效",
       "status": "PASS",
-      "detail": "未開跑場次盤口均在20分鐘內；五分鐘自動收料。"
+      "detail": "非本地賽日投注窗口或已全日開跑，不按舊盤口誤報。"
     }
   ]
 }
