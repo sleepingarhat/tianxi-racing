@@ -12,6 +12,7 @@
  * (COALESCE) rather than overwrite with null. If the accepted header still
  * shows 米 plus 全天候/草地 and distance or track is empty, that is a parse
  * miss (`trackLineUnparsed`) and the racecard job must exit non-zero.
+ * Going is optional: HKJC omits it from early cards until it is announced.
  */
 
 export interface RaceMeta {
@@ -126,7 +127,7 @@ export function parseRaceMeta(html: string, date: string, venue: string, raceNo:
   out.postTime = dateLine[1] ?? null;
 
   const turf = new RegExp(
-    `(草地|泥地|沙地)[^<]*?"([^"]+)"\\s*賽道[^<]*?(\\d{3,4})\\s*米[^<]*?(${GOING})`,
+    `(草地|泥地|沙地)[^<]*?"([^"]+)"\\s*賽道[^<]*?(\\d{3,4})\\s*米(?:[^<]*?(${GOING}))?`,
   ).exec(header);
   if (turf) {
     out.track = turf[1] ?? null;
@@ -134,7 +135,7 @@ export function parseRaceMeta(html: string, date: string, venue: string, raceNo:
     out.distance = Number(turf[3]);
     out.going = turf[4] ?? null;
   } else {
-    const awt = new RegExp(`(全天候)跑道?[^<]*?(\\d{3,4})\\s*米[^<]*?(${GOING})`).exec(header);
+    const awt = new RegExp(`(全天候)跑道?[^<]*?(\\d{3,4})\\s*米(?:[^<]*?(${GOING}))?`).exec(header);
     if (awt) {
       out.track = awt[1] ?? null;
       out.course = null;
