@@ -252,6 +252,23 @@ assert.equal(
   'https://racing.hkjc.com/racing/information/Chinese/racing/RaceCard.aspx?RaceDate=2026/10/25&Racecourse=ST&RaceNo=1',
 );
 
+// Early cards omit the going until HKJC announces it (2026-11-01 HV card).
+const NO_GOING = `
+<div class="f_fs13"><span class="font_wb">第 1 場 - 東莞讓賽</span><br>2026年11月1日, 星期日, 跑馬地, 12:45<br>草地, "C+3" 賽道, 1200米<br>獎金: $875,000, 評分: 40-0, 第五班</div>
+`;
+{
+  const m = parseRaceMeta(NO_GOING, '2026-11-01', 'HV', 1);
+  assert.equal(m.track, '草地');
+  assert.equal(m.course, 'C+3');
+  assert.equal(m.distance, 1200);
+  assert.equal(m.going, null);
+  assert.equal(trackLineUnparsed(NO_GOING, m), false, 'missing going is not a header miss');
+  const awt = parseRaceMeta(NO_GOING.replace('草地, "C+3" 賽道, 1200米', '全天候跑道, 1650米'), '2026-11-01', 'HV', 1);
+  assert.equal(awt.track, '全天候');
+  assert.equal(awt.distance, 1650);
+  assert.equal(awt.going, null);
+}
+
 assertLegacyFallback().then(() => {
   console.log('test-racecard-meta: all assertions passed');
 }).catch((err) => {
