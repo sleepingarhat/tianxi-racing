@@ -10,3 +10,10 @@
 {"rows": 4873, "scraped_at": "2026-10-28T05:59:29+00:00", "sha256": "7c636d3953c7bf48b06f527834194b0e1d16611aa9bc33c4ab362ab31f7c2f47", "surface": "trackwork"}
 {"rows": 246, "scraped_at": "2026-10-28T05:59:29+00:00", "sha256": "3c166d4011534ba8ee39171f293f7a2bb6eff7e160468a682e154b4a606a3e5c", "surface": "rides"}
 {"rows": 1, "scraped_at": "2026-10-28T05:59:29+00:00", "sha256": "8d90e87ac6cf9651273e2a3517da00342f41797c235b6d6a2ad4a887dbbeb115", "surface": "summary"}
+{"rows": 135, "scraped_at": "2026-10-31T06:02:14+00:00", "sha256": "0388850047dc5d7f9baceeef207d4cfde4da943e67b970a279acb575ce9c4d4b", "surface": "report"}
+{"rows": 155, "scraped_at": "2026-10-31T06:02:14+00:00", "sha256": "d4d7b1d97e89433c7c33a1f0c30f263b63f31ba0e1637459378c9a5e06f79dc6", "surface": "formline"}
+{"rows": 61, "scraped_at": "2026-10-31T06:02:14+00:00", "sha256": "fa218e1357f2b6b414409bec3d15ceda9e5961a83b0acdf87474f673aab59a1c", "surface": "exceptional"}
+{"rows": 166, "scraped_at": "2026-10-31T06:02:14+00:00", "sha256": "b8812aed38b2137dddf8dfadc5b70af35833c540c8d78db3b4f57ad779b277cf", "surface": "veterinary"}
+{"rows": 4964, "scraped_at": "2026-10-31T06:02:14+00:00", "sha256": "6277584595fa96acef272044b06bb7bccc77ce4a19fff4a185911e1f6691e323", "surface": "trackwork"}
+{"rows": 270, "scraped_at": "2026-10-31T06:02:14+00:00", "sha256": "7436552b2cdf2f1121a25de14362b4cbac46e3f782a3d9d4f36fefedabf4736a", "surface": "rides"}
+{"rows": 1, "scraped_at": "2026-10-31T06:02:14+00:00", "sha256": "e266216732cc80b1ce9a6f4ec043f419a68acef6e3a2cad93305cc0de8721612", "surface": "summary"}
