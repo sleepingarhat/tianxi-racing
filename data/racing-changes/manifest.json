@@ -234,6 +234,14 @@
       "date": "2026-11-01",
       "kind": "racing-changes",
       "venue": "HV"
+    },
+    {
+      "path": "data/racing-changes/2026-11-01/HV-e1cfb573d34c90f440e546bac275c4c15c365c61b582049a2e10d2417110edbc.html",
+      "sha256": "e1cfb573d34c90f440e546bac275c4c15c365c61b582049a2e10d2417110edbc",
+      "sourceUrl": "https://racing.hkjc.com/zh-hk/local/information/changes",
+      "date": "2026-11-01",
+      "kind": "racing-changes",
+      "venue": "HV"
     }
   ]
 }
