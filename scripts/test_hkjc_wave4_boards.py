@@ -1,4 +1,5 @@
 import importlib.util
+import json
 import sqlite3
 import tempfile
 import unittest
@@ -402,6 +403,7 @@ class StoreTests(unittest.TestCase):
         self.assertEqual(tables, {
             'official_rating_weight', 'official_performance', 'official_movement',
             'official_overoar', 'official_pool_result', 'official_draw_adv_stat',
+            'official_horse_record',
         })
 
     def test_not_race_result_constraint_holds(self):
@@ -450,6 +452,195 @@ class RacecardTests(unittest.TestCase):
         (folder / 'snap.csv').write_text('horse_id,horse_name_ch,horse_code\nBAD,馬,X001\n', encoding='utf-8')
         with self.assertRaises(wave4.IdentityError):
             wave4.load_racecard_horses(self.root, '2026-10-29_ST')
+
+
+
+RECORD_HEADER = ['場次', '名次', '日期', '馬場/跑道/ 賽道', '途程', '場地 狀況', '賽事 班次', '檔位',
+                 '評分', '練馬師', '騎師', '頭馬 距離', '獨贏 賠率', '實際 負磅', '沿途 走位', '完成 時間']
+RECORD_SEASON = ['25/26 馬季']
+RECORD_ROW = ['721', '01', '24/05/2026', '沙田草地"A"', '2400', '好/快', 'G1', '4', '139', '沈集成',
+              '麥道朗', '1/2', '1.1', '126', '3 4 4 4 3 1', '2.26.67']
+RECORD_BLANK = ['690', '02', '20/10/2021', '美丹 / 草地', '1800', '---', 'G1', '9', '---', '沈集成',
+                '麥道朗', '鼻位', '1.3', '126', '--', '--']
+E486 = {'horse_id': 'HK_2020_E486', 'horse_name': '浪漫勇士', 'brand_no': 'E486'}
+
+
+def legacy_page(name, brand, retired, starts_line, rows, horse_id='HK_2020_E486'):
+    suffix = ' (已退役)' if retired else ''
+    body = ''.join('<tr>' + ''.join(f'<td>{cell}</td>' for cell in row) + '</tr>' for row in rows)
+    return (
+        f'<html><body>'
+        f'<div class="horse_name">{name} ({brand}){suffix} 往績紀錄 來港前賽績記錄</div>'
+        f'<div>冠-亞-季-總出賽次數* : {starts_line}</div>'
+        f'<input value="{horse_id}">'
+        f'<table><tr><td>shell</td></tr></table>'
+        f'<table>{body}</table>'
+        f'</body></html>'
+    ).encode('utf-8')
+
+
+class OfficialIdTests(unittest.TestCase):
+    def test_single_official_id_is_accepted(self):
+        raw = legacy_page('浪漫勇士', 'E486', True, '15-4-3-31', [RECORD_HEADER, RECORD_ROW])
+        self.assertEqual(wave4.resolve_official_id('E486', raw), 'HK_2020_E486')
+
+    def test_other_brands_ids_are_ignored(self):
+        raw = legacy_page('浪漫勇士', 'E486', True, '15-4-3-31', [RECORD_HEADER, RECORD_ROW]) + b'HK_2023_J062'
+        self.assertEqual(wave4.resolve_official_id('E486', raw), 'HK_2020_E486')
+
+    def test_missing_official_id_is_refused(self):
+        raw = legacy_page('勝利攻略', 'N143', True, '2-1-0-15', [RECORD_HEADER, RECORD_ROW], horse_id='HK_2016_J062')
+        with self.assertRaises(wave4.IdentityError):
+            wave4.resolve_official_id('N143', raw)
+
+    def test_several_official_ids_are_refused(self):
+        raw = legacy_page('浪漫勇士', 'E486', True, '15-4-3-31', [RECORD_HEADER, RECORD_ROW]) + b'HK_2019_E486'
+        with self.assertRaises(wave4.IdentityError):
+            wave4.resolve_official_id('E486', raw)
+
+    def test_bad_brand_is_refused(self):
+        with self.assertRaises(wave4.IdentityError):
+            wave4.resolve_official_id('E48', b'HK_2020_E486')
+
+
+class LegacyRecordTests(unittest.TestCase):
+    def test_record_keeps_the_pages_own_numbers(self):
+        raw = legacy_page('浪漫勇士', 'E486', True, '15-4-3-31',
+                          [RECORD_HEADER, RECORD_SEASON, RECORD_ROW, [''], RECORD_BLANK])
+        rows = wave4.parse_legacy_record(raw, E486, TODAY, 'sha', SCRAPED)
+        self.assertEqual(len(rows), 2)
+        first = rows[0]
+        self.assertEqual(first['race_date'], '2026-05-24')
+        self.assertEqual(first['season_label'], '25/26 馬季')
+        self.assertEqual(first['place_text'], '01')
+        self.assertEqual(first['venue_text'], '沙田草地"A"')
+        self.assertEqual(first['distance_m'], '2400')
+        self.assertEqual(first['rating'], '139')
+        self.assertEqual(first['actual_weight_lbs'], '126')
+        self.assertEqual(first['not_race_result'], 1)
+        self.assertEqual(rows[1]['race_date'], '2021-10-20')
+        self.assertEqual(rows[1]['rating'], '')
+        self.assertEqual(rows[1]['running_position'], '--')
+
+    def test_record_refuses_a_future_start(self):
+        row = list(RECORD_ROW)
+        row[2] = '31/12/2026'
+        raw = legacy_page('浪漫勇士', 'E486', True, '15-4-3-31', [RECORD_HEADER, row])
+        with self.assertRaises(wave4.IdentityError):
+            wave4.parse_legacy_record(raw, E486, TODAY, 'sha', SCRAPED)
+
+    def test_record_refuses_another_horse(self):
+        raw = legacy_page('嘉應高昇', 'J062', False, '1-1-1-25', [RECORD_HEADER, RECORD_ROW])
+        with self.assertRaises(wave4.IdentityError):
+            wave4.parse_legacy_record(raw, E486, TODAY, 'sha', SCRAPED)
+
+    def test_record_refuses_a_missing_table(self):
+        raw = legacy_page('浪漫勇士', 'E486', True, '15-4-3-31', [])
+        with self.assertRaises(wave4.IdentityError):
+            wave4.parse_legacy_record(raw, E486, TODAY, 'sha', SCRAPED)
+
+    def test_record_refuses_a_changed_official_id(self):
+        raw = legacy_page('浪漫勇士', 'E486', True, '15-4-3-31', [RECORD_HEADER, RECORD_ROW],
+                          horse_id='HK_2019_E486')
+        with self.assertRaises(wave4.IdentityError):
+            wave4.parse_legacy_record(raw, E486, TODAY, 'sha', SCRAPED)
+
+    def test_record_accepts_a_two_digit_year(self):
+        row = list(RECORD_ROW)
+        row[2] = '21/06/26'
+        raw = legacy_page('浪漫勇士', 'E486', True, '15-4-3-31', [RECORD_HEADER, row])
+        rows = wave4.parse_legacy_record(raw, E486, TODAY, 'sha', SCRAPED)
+        self.assertEqual(rows[0]['race_date'], '2026-06-21')
+
+    def test_record_refuses_an_unparsable_date(self):
+        row = list(RECORD_ROW)
+        row[2] = '2026-10-28'
+        raw = legacy_page('浪漫勇士', 'E486', True, '15-4-3-31', [RECORD_HEADER, row])
+        with self.assertRaises(wave4.IdentityError):
+            wave4.parse_legacy_record(raw, E486, TODAY, 'sha', SCRAPED)
+
+    def test_empty_record_is_allowed_for_a_horse_with_no_starts(self):
+        raw = legacy_page('浪漫勇士', 'E486', True, '0-0-0-0', [RECORD_HEADER])
+        self.assertEqual(wave4.parse_legacy_record(raw, E486, TODAY, 'sha', SCRAPED), [])
+
+
+class ProfileRegisterTests(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.root = Path(self.tmp.name)
+        (self.root / 'horses' / 'profiles').mkdir(parents=True)
+        (self.root / 'horses' / 'profiles' / 'horse_profiles.csv').write_text(
+            'horse_no,name,status\n'
+            'E486,浪漫勇士 (E486) (已退役),retired\n'
+            'J062,嘉應高昇 (J062),active\n', encoding='utf-8')
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def test_retired_horses_are_included_and_names_cleaned(self):
+        horses = wave4.profile_horses(self.root)
+        self.assertEqual([item['brand_no'] for item in horses], ['E486', 'J062'])
+        self.assertEqual(horses[0]['horse_name'], '浪漫勇士')
+        self.assertEqual(horses[0]['status'], 'retired')
+
+    def test_bad_brand_is_refused(self):
+        (self.root / 'horses' / 'profiles' / 'horse_profiles.csv').write_text(
+            'horse_no,name,status\nBAD,怪馬,active\n', encoding='utf-8')
+        with self.assertRaises(wave4.IdentityError):
+            wave4.profile_horses(self.root)
+
+
+class ShellTests(unittest.TestCase):
+    def test_shell_detected_on_a_horse_page(self):
+        raw = legacy_page('浪漫勇士', 'E486', True, '15-4-3-31', [RECORD_HEADER, RECORD_ROW])
+        self.assertTrue(wave4.page_has_horse_shell(raw))
+
+    def test_shell_absent_on_an_empty_page(self):
+        self.assertFalse(wave4.page_has_horse_shell(b'<html><body>The Hong Kong Jockey Club</body></html>'))
+
+
+class CoverageAndSqlTests(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.root = Path(self.tmp.name)
+        wave4.write_csv(self.root / 'data' / 'official_wave4' / 'horse_record.csv',
+                        wave4.RECORD_COLUMNS,
+                        [dict(E486, season_label='25/26 馬季', race_no_text='721', place_text='01',
+                              race_date='2026-05-24', venue_text='沙田草地"A"', distance_m='2400',
+                              going='好/快', race_class='G1', draw='4', rating='', trainer='沈集成',
+                              jockey='麥道朗', winning_margin='1/2', win_odds='1.1',
+                              actual_weight_lbs='126', running_position='3 4 4 4 3 1',
+                              finish_time='2.26.67', not_race_result=1, source_sha256='sha',
+                              scraped_at=SCRAPED)])
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def test_emit_sql_writes_the_record_table(self):
+        sql = wave4.emit_sql(self.root)
+        self.assertIn('INSERT OR REPLACE INTO official_horse_record', sql)
+        self.assertIn('NULL', sql)
+        self.assertIn("'2.26.67'", sql)
+
+    def test_apply_sql_creates_the_record_table(self):
+        db = self.root / 'd1.sqlite'
+        wave4.apply_sql(db, wave4.emit_sql(self.root))
+        connection = sqlite3.connect(db)
+        try:
+            count = connection.execute('SELECT COUNT(*) FROM official_horse_record').fetchone()[0]
+            rating = connection.execute('SELECT rating FROM official_horse_record').fetchone()[0]
+        finally:
+            connection.close()
+        self.assertEqual(count, 1)
+        self.assertIsNone(rating)
+
+    def test_coverage_records_skipped_horses(self):
+        wave4.append_coverage(self.root, ['horse-record'], [{'brand_no': 'E486'}],
+                              [{'brand_no': 'N143', 'horse_id': '', 'reason': 'no official horse id'}], SCRAPED)
+        line = json.loads((self.root / 'data' / 'official_wave4' / 'coverage.jsonl').read_text(encoding='utf-8'))
+        self.assertEqual(line['horses_requested'], 1)
+        self.assertEqual(line['horses_skipped'], 1)
+        self.assertEqual(line['skipped'][0]['brand_no'], 'N143')
 
 
 if __name__ == '__main__':
