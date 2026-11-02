@@ -1,0 +1,3 @@
+﻿meeting_date,venue,odds_type,inst_no,label_ch,pool_status,is_concluded,include_races,inplay_up_to,other_sel_no,last_update_time,not_race_result,source_sha256,scraped_at
+2026-11-01,HV,JKC,1,騎師王,PAYOUTSTARTED,,"1,2,3,4,5,6,7,8,9,10",9,14,,1,0ac76da4c1551985de7f3db19fa545b67dfe8998d23c6349732a1dfe196e5e6b,2026-11-02T21:18:32+00:00
+2026-11-01,HV,TNC,1,練馬師王,PAYOUTSTARTED,,"1,2,3,4,5,6,7,8,9,10",9,21,2026-11-01T18:02:29.921+08:00,1,ba798d3946d23f2bf83de46c4216f4284438512d221a95252d847b44030c3209,2026-11-02T21:18:32+00:00

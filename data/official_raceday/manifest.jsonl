@@ -34,3 +34,6 @@
 {"rows": 60, "scraped_at": "2026-11-01T15:21:33+00:00", "sha256": "ad61b52ce1bcf2a4017a3075588c7c6075e94c5cbef1dfa92b1eb1372f6aaefd", "surface": "exceptional"}
 {"rows": 158, "scraped_at": "2026-11-01T15:21:33+00:00", "sha256": "6305c72b817fbef671e07b98ca1030a1feb1b5ae5e0bdc65deefcc1d60e05558", "surface": "veterinary"}
 {"rows": 5063, "scraped_at": "2026-11-01T15:21:33+00:00", "sha256": "a91afa96fd58c3cb2c0dc814dc4fb3379461d047f7af0962210340b13a59dd13", "surface": "trackwork"}
+{"rows": 1, "scraped_at": "2026-11-02T21:18:31+00:00", "sha256": "84400e360de01ecef19dff3413689401071b15632ac78132cc62af539c5e9bcb", "surface": "summary"}
+{"rows": 20, "scraped_at": "2026-11-02T21:18:32+00:00", "sha256": "0ac76da4c1551985de7f3db19fa545b67dfe8998d23c6349732a1dfe196e5e6b", "surface": "challenge_jkc"}
+{"rows": 24, "scraped_at": "2026-11-02T21:18:32+00:00", "sha256": "ba798d3946d23f2bf83de46c4216f4284438512d221a95252d847b44030c3209", "surface": "challenge_tnc"}
