@@ -305,15 +305,17 @@ async function main() {
   for (const p of parsed) {
     const raceId = `race_${a.date}_${a.venue}_${p.header.race_number}`;
     sql.push(
-      `INSERT INTO races (id, meeting_id, race_number, title, class, distance, going, track, course, prize, rating_range) ` +
+      `INSERT INTO races (id, meeting_id, race_number, title, class, distance, going, track, course, prize, rating_range, start_time) ` +
       `SELECT ${esc(raceId)}, ${esc(meetingId)}, ${p.header.race_number}, ${esc(p.header.title)}, ` +
       `${esc(p.header.klass)}, ${p.header.distance ?? 'NULL'}, ${esc(p.header.going)}, ` +
-      `${esc(p.header.track)}, ${esc(p.header.course)}, ${esc(p.header.prize)}, ${esc(p.header.rating_range)} ` +
+      `${esc(p.header.track)}, ${esc(p.header.course)}, ${esc(p.header.prize)}, ${esc(p.header.rating_range)}, ` +
+      `(SELECT MIN(post_time) FROM entries_upcoming WHERE race_date = ${esc(a.date)} AND venue = ${esc(a.venue)} AND race_number = ${p.header.race_number} AND post_time IS NOT NULL) ` +
       `WHERE EXISTS (SELECT 1 FROM race_meetings WHERE id = ${esc(meetingId)}) ` +
       `ON CONFLICT(id) DO UPDATE SET title = excluded.title, class = excluded.class, ` +
       `distance = excluded.distance, going = excluded.going, track = excluded.track, ` +
       `course = excluded.course, prize = excluded.prize, ` +
-      `rating_range = COALESCE(excluded.rating_range, races.rating_range);`
+      `rating_range = COALESCE(excluded.rating_range, races.rating_range), ` +
+      `start_time = COALESCE(races.start_time, excluded.start_time);`
     );
   }
 
