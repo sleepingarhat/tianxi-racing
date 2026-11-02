@@ -179,6 +179,25 @@ class PoolAndFavouriteTests(unittest.TestCase):
         self.assertIsNone(other[0]['rank_no'])
         self.assertEqual(other[0]['column_label'], '25/26 季度')
 
+    def listed_html(self, mixed=False):
+        dates = ['25/10', '21/10', '19/10', '14/10', '11/10', '7/10', '4/10', '1/10', '27/9', '23/9']
+        head = ''.join(f'<td>{item}</td>' for item in dates) + '<td>今季</td><td>25/26 季度</td>'
+        row = lambda name: f'<tr><td>{name}</td>' + '<td>-</td><td>24</td>' + '<td>1</td>' * 8 + '<td>34.1</td><td></td><td>34.5</td><td>30.9</td></tr>'
+        first = '<tr><td>1</td><td>田泰安</td>' + '<td>26</td>' * 10 + '<td>17.1</td><td></td><td>15.4</td><td>14.0</td></tr>' if mixed else row('田泰安')
+        return f'<table class="table_bd"><tr><td>騎師</td></tr><tr><td></td></tr><tr>{head}</tr>{first}{row("潘頓")}</table>'.encode()
+
+    def test_unranked_official_layout_keeps_rank_empty(self):
+        rows = boards.parse_pool(self.listed_html(), 'jkc', TODAY, 'sha', SCRAPED)
+        names = {row['person_name'] for row in rows}
+        self.assertEqual(names, {'田泰安', '潘頓'})
+        self.assertTrue(all(row['rank_no'] is None and row['section'] == 'ranked' for row in rows))
+        dash = [row for row in rows if row['person_name'] == '潘頓' and row['kind'] == 'meeting'][0]
+        self.assertIsNone(dash['points_value'])
+
+    def test_mixed_ranked_and_unranked_rejected(self):
+        with self.assertRaises(boards.IdentityError):
+            boards.parse_pool(self.listed_html(mixed=True), 'jkc', TODAY, 'x', SCRAPED)
+
     def test_future_column_rejected(self):
         html = self.pool_html().replace(b'25/10', b'28/10')
         with self.assertRaises(boards.IdentityError):
