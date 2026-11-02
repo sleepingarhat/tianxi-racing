@@ -601,7 +601,13 @@ def parse_pool(raw: bytes, pool: str, today: date, digest: str, scraped_at: str)
                 raise IdentityError('pool section row is not the official other-group label')
             section = 'other'
             continue
-        if section == 'ranked':
+        if section == 'ranked' and len(values) == 15 and not values[0].isdigit():
+            # 2026-11 起馬會改版：無名次欄、無「其他」分段，只按官方次序列出。
+            # 不自行編排名，rank_no 留空（D1 section 只容 ranked/other）；與舊版有名次列混雜即拒收。
+            if any(row['rank_no'] is not None for row in rows):
+                raise IdentityError('pool board mixes ranked and unranked layouts')
+            rank, name, numbers = None, values[0], values[1:]
+        elif section == 'ranked':
             if len(values) != 16 or not values[0].isdigit():
                 raise IdentityError('ranked pool row has an unexpected shape')
             rank, name, numbers = int(values[0]), values[1], values[2:]
