@@ -1,5 +1,5 @@
 {
-  "scan_date": "2026-11-01",
+  "scan_date": "2026-11-02",
   "repo_root": "/home/runner/work/tianxi-racing/tianxi-racing",
   "overall_severity": "warn",
   "critical_gap_count": 0,
@@ -32,25 +32,25 @@
     },
     "horse_profiles": {
       "name": "horse_profiles",
-      "expected": 1189,
-      "present": 1189,
+      "expected": 1191,
+      "present": 1191,
       "missing": [],
       "stale": [],
       "pending": [],
       "notes": [
-        "total profiles in DB: 6131"
+        "total profiles in DB: 6133"
       ],
       "severity": "ok"
     },
     "horse_form_records": {
       "name": "horse_form_records",
-      "expected": 1189,
-      "present": 1189,
+      "expected": 1191,
+      "present": 1191,
       "missing": [],
       "stale": [],
       "pending": [],
       "notes": [
-        "total form_records files: 6131"
+        "total form_records files: 6133"
       ],
       "severity": "ok"
     },
@@ -112,8 +112,8 @@
     },
     "entries_upcoming": {
       "name": "entries_upcoming",
-      "expected": 3,
-      "present": 1,
+      "expected": 2,
+      "present": 0,
       "missing": [
         "2026-11-04",
         "2026-11-08"
