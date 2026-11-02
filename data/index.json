@@ -1,8 +1,8 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-11-02T11:16:29+00:00",
+  "generated_at": "2026-11-02T12:15:58+00:00",
   "generator": "tools/build_manifest.py",
-  "git_head": "c6df8ab56718f7b235dc44d171844c9d1898d4ec",
+  "git_head": "cd51554f5634a1bbf7108ef790a7af489a99ccbe",
   "repo": "sleepingarhat/tianxi-database",
   "branch": "main",
   "base_url": {
@@ -145,8 +145,8 @@
       "format": "txt",
       "path_template": "entries/entries_{date}.txt",
       "today_pointer": "entries/today_entries.txt",
-      "count": 30,
-      "latest": "entries_2026-11-01.txt",
+      "count": 31,
+      "latest": "entries_2026-11-04.txt",
       "note": "TXT (not CSV); space-delimited; race_number=0 means meeting-level batch"
     },
     "news": {
