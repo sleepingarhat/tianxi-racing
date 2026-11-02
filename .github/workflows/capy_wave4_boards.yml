@@ -3,9 +3,9 @@ on:
   workflow_dispatch:
     inputs:
       surfaces:
-        description: 'rating-weight,performance,movement,overoar,pool-result,draw-adv'
+        description: 'rating-weight,performance,movement,overoar,pool-result,draw-adv,horse-record'
         required: false
-        default: 'rating-weight,performance,movement,overoar,pool-result,draw-adv'
+        default: 'rating-weight,performance,movement,overoar,pool-result,draw-adv,horse-record'
       racecard:
         description: 'YYYY-MM-DD_ST for per-horse surfaces; blank uses the latest snapshot'
         required: false
@@ -18,6 +18,10 @@ on:
         description: 'true = per-horse surfaces cover every active profile horse'
         required: false
         default: 'false'
+      all_known:
+        description: 'true = per-horse surfaces cover every registered horse, retired included'
+        required: false
+        default: 'false'
       seasons:
         description: 'draw-adv: current or all'
         required: false
@@ -27,6 +31,8 @@ on:
     - cron: '47 23 * * *'
     # Monday 04:40 HKT. All active horses plus every season on the draw form.
     - cron: '40 20 * * 0'
+    # Saturday 05:20 HKT. Race records for every registered horse, retired included.
+    - cron: '20 21 * * 5'
 permissions:
   contents: write
 concurrency:
@@ -57,7 +63,7 @@ jobs:
     needs: season_gate
     if: needs.season_gate.outputs.skip != 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
         with: { ref: main, fetch-depth: 1 }
@@ -79,18 +85,28 @@ jobs:
             echo "racecard=${{ github.event.inputs.racecard }}" >> "$GITHUB_OUTPUT"
             echo "date=${{ github.event.inputs.date }}" >> "$GITHUB_OUTPUT"
             echo "all_active=${{ github.event.inputs.all_active }}" >> "$GITHUB_OUTPUT"
+            echo "all_known=${{ github.event.inputs.all_known }}" >> "$GITHUB_OUTPUT"
             echo "seasons=${{ github.event.inputs.seasons }}" >> "$GITHUB_OUTPUT"
           elif [ "${{ github.event.schedule }}" = "40 20 * * 0" ]; then
-            echo "surfaces=rating-weight,performance,movement,overoar,pool-result,draw-adv" >> "$GITHUB_OUTPUT"
+            echo "surfaces=rating-weight,performance,movement,overoar,pool-result,draw-adv,horse-record" >> "$GITHUB_OUTPUT"
             echo "racecard=" >> "$GITHUB_OUTPUT"
             echo "date=" >> "$GITHUB_OUTPUT"
             echo "all_active=true" >> "$GITHUB_OUTPUT"
+            echo "all_known=false" >> "$GITHUB_OUTPUT"
             echo "seasons=all" >> "$GITHUB_OUTPUT"
-          else
-            echo "surfaces=rating-weight,performance,movement,overoar,pool-result,draw-adv" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event.schedule }}" = "20 21 * * 5" ]; then
+            echo "surfaces=horse-record" >> "$GITHUB_OUTPUT"
             echo "racecard=" >> "$GITHUB_OUTPUT"
             echo "date=" >> "$GITHUB_OUTPUT"
             echo "all_active=false" >> "$GITHUB_OUTPUT"
+            echo "all_known=true" >> "$GITHUB_OUTPUT"
+            echo "seasons=current" >> "$GITHUB_OUTPUT"
+          else
+            echo "surfaces=rating-weight,performance,movement,overoar,pool-result,draw-adv,horse-record" >> "$GITHUB_OUTPUT"
+            echo "racecard=" >> "$GITHUB_OUTPUT"
+            echo "date=" >> "$GITHUB_OUTPUT"
+            echo "all_active=false" >> "$GITHUB_OUTPUT"
+            echo "all_known=false" >> "$GITHUB_OUTPUT"
             echo "seasons=current" >> "$GITHUB_OUTPUT"
           fi
 
@@ -100,6 +116,7 @@ jobs:
           RACECARD: ${{ steps.plan.outputs.racecard }}
           RACE_DATE: ${{ steps.plan.outputs.date }}
           ALL_ACTIVE: ${{ steps.plan.outputs.all_active }}
+          ALL_KNOWN: ${{ steps.plan.outputs.all_known }}
           SEASONS: ${{ steps.plan.outputs.seasons }}
         run: |
           set -eu
@@ -107,6 +124,7 @@ jobs:
           if [ -n "$RACECARD" ]; then args+=(--racecard="$RACECARD"); fi
           if [ -n "$RACE_DATE" ]; then args+=(--date="$RACE_DATE"); fi
           if [ "$ALL_ACTIVE" = "true" ]; then args+=(--all-active); fi
+          if [ "$ALL_KNOWN" = "true" ]; then args+=(--all-known); fi
           python3 scripts/hkjc_wave4_boards.py "${args[@]}"
 
       - name: Commit projection and append-only manifest
@@ -119,8 +137,8 @@ jobs:
           git diff --cached --quiet && exit 0
           for f in $(git diff --cached --name-only --diff-filter=M); do
             case "$f" in
-              data/official_wave4/manifest.jsonl)
-                if git diff --cached "$f" | grep -qE '^-[^-]'; then echo 'manifest rewrite refused'; exit 1; fi
+              data/official_wave4/manifest.jsonl|data/official_wave4/coverage.jsonl)
+                if git diff --cached "$f" | grep -qE '^-[^-]'; then echo 'append-only log rewrite refused'; exit 1; fi
                 ;;
               data/official_wave4/*.csv) ;;
               *) echo "unexpected official_wave4 change: $f"; exit 1 ;;
@@ -167,6 +185,7 @@ jobs:
             exit 0
           fi
           wrangler d1 execute tianxi-db --remote --file=src/db/migrations/20261027_wave4_boards.sql --yes
+          wrangler d1 execute tianxi-db --remote --file=src/db/migrations/20261103_official_horse_record.sql --yes
           python3 ../scripts/hkjc_wave4_boards.py --root=.. --emit-sql /tmp/official_wave4.sql
           python3 - << 'PY'
           from pathlib import Path

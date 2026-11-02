@@ -3,7 +3,8 @@
 overoar list, JKC/TNC meeting results, draw advanced search.
 
 Parsers keep the page's own numbers. Per-horse pages are fetched for the horses
-on a racecard snapshot (or every active profile with --all-active); the page
+on a racecard snapshot (every active profile with --all-active, every registered
+horse including retired ones with --all-known); the page
 title must echo the snapshot's name and brand or the read fails. The draw
 advanced search echoes season / racecourse / distance / course in its title row;
 a missing grid is only acceptable for a racecourse with no races in that season
@@ -37,6 +38,7 @@ UA = (
     '(KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36'
 )
 MIGRATION = Path(__file__).resolve().parents[1] / 'backend/src/db/migrations/20261027_wave4_boards.sql'
+RECORD_MIGRATION = Path(__file__).resolve().parents[1] / 'backend/src/db/migrations/20261103_official_horse_record.sql'
 HORSE_ID = re.compile(r'^HK_\d{4}_[A-Z]\d{3}$')
 BRAND = re.compile(r'^[A-Z]\d{3}$')
 ISO_DATE = re.compile(r'^\d{4}-\d{2}-\d{2}$')
@@ -72,7 +74,13 @@ DRAW_ADV_COLUMNS = [
     'seconds', 'thirds', 'fourths', 'win_pct', 'quinella_pct', 'place_pct', 'top4_pct',
     'not_race_result', 'source_sha256', 'scraped_at',
 ]
-SURFACES = ('rating-weight', 'performance', 'movement', 'overoar', 'pool-result', 'draw-adv')
+RECORD_COLUMNS = [
+    'horse_id', 'horse_name', 'brand_no', 'season_label', 'race_no_text', 'place_text', 'race_date',
+    'venue_text', 'distance_m', 'going', 'race_class', 'draw', 'rating', 'trainer', 'jockey',
+    'winning_margin', 'win_odds', 'actual_weight_lbs', 'running_position', 'finish_time',
+    'not_race_result', 'source_sha256', 'scraped_at',
+]
+SURFACES = ('rating-weight', 'performance', 'movement', 'overoar', 'pool-result', 'draw-adv', 'horse-record')
 FILES = {
     'rating_weight': ('rating_weight.csv', RATING_WEIGHT_COLUMNS),
     'performance': ('performance.csv', PERFORMANCE_COLUMNS),
@@ -80,6 +88,7 @@ FILES = {
     'overoar': ('overoar.csv', OVEROAR_COLUMNS),
     'pool_result': ('pool_result.csv', POOL_RESULT_COLUMNS),
     'draw_adv_stat': ('draw_adv_stat.csv', DRAW_ADV_COLUMNS),
+    'horse_record': ('horse_record.csv', RECORD_COLUMNS),
 }
 REPLACE_KEYS = {
     'rating_weight': ('horse_id',),
@@ -88,6 +97,7 @@ REPLACE_KEYS = {
     'overoar': ('brand_no',),
     'pool_result': ('pool', 'meeting_date'),
     'draw_adv_stat': ('season_code', 'racecourse'),
+    'horse_record': ('horse_id',),
 }
 
 
@@ -597,6 +607,183 @@ def load_active_horses(root: Path) -> list[dict]:
     return sorted(horses, key=lambda item: item['horse_id'])
 
 
+def legacy_profile_url(brand: str) -> str:
+    if not BRAND.fullmatch(brand):
+        raise IdentityError(f'brand {brand!r} is not an official horse number')
+    return f'{SITE}/racing/information/Chinese/Horse/Horse.aspx?' + urlencode({'HorseNo': brand})
+
+
+def resolve_official_id(brand: str, raw: bytes) -> str:
+    """Official horse id (HK_YYYY_BNNN) as printed on the horse's own profile page.
+    Only an id whose brand suffix equals the requested brand counts, and exactly one
+    such id must appear; anything else fails closed instead of guessing."""
+    if not BRAND.fullmatch(brand):
+        raise IdentityError(f'brand {brand!r} is not an official horse number')
+    text = raw.decode('utf-8', 'replace')
+    ids = {value for value in re.findall(r'HK_\d{4}_[A-Z]\d{3}', text) if value.endswith('_' + brand)}
+    if not ids:
+        raise IdentityError(f'{brand}: no official horse id on the profile page')
+    if len(ids) > 1:
+        raise IdentityError(f'{brand}: profile page prints several official ids {sorted(ids)}')
+    return ids.pop()
+
+
+def legacy_display_name(soup) -> tuple[str, str]:
+    """Legacy profile shell reads '馬名 (烙號)', optionally '(已退役)', before 往績紀錄."""
+    text = soup.get_text(' ', strip=True).replace('\xa0', ' ')
+    match = re.search(
+        r'([^\s（()]{1,30}?)\s*[（(]([A-Z]\d{3})[）)](?:\s*[（(]\s*已退役\s*[）)])?\s*往績紀錄', text)
+    if not match:
+        raise IdentityError('legacy profile page is not name(brand) 往績紀錄')
+    return match.group(1).strip(), match.group(2)
+
+
+def profile_horses(root: Path) -> list[dict]:
+    """Every horse in the official profile register, retired included. The register's own
+    name column carries '(烙號)' and '(已退役)'; both are stripped so a page can be checked
+    against the plain official name."""
+    path = root / 'horses' / 'profiles' / 'horse_profiles.csv'
+    if not path.exists():
+        raise IdentityError('official horse profile register is missing')
+    horses = {}
+    with path.open(encoding='utf-8-sig', newline='') as handle:
+        for row in csv.DictReader(handle):
+            brand = (row.get('horse_no') or '').strip()
+            if not BRAND.fullmatch(brand):
+                raise IdentityError(f'profile register brand {brand!r} is not official')
+            raw_name = (row.get('name') or '').strip()
+            name = re.sub(r'\s*[（(]\s*已退役\s*[）)]\s*$', '', raw_name)
+            name = re.sub(r'\s*[（(][A-Z]\d{3}[）)]\s*$', '', name).strip()
+            if not name:
+                raise IdentityError(f'profile register {brand} has no official name')
+            horses[brand] = {'brand_no': brand, 'horse_name': name, 'status': (row.get('status') or '').strip()}
+    if not horses:
+        raise IdentityError('official horse profile register is empty')
+    return sorted(horses.values(), key=lambda item: item['brand_no'])
+
+
+def load_known_horses(root: Path, workers: int = 4) -> tuple[list[dict], list[dict]]:
+    """Official id for every registered horse, retired included. A horse is kept only when
+    its own profile page prints exactly one official id for that brand; the rest come back
+    as explicit skips so coverage is never guessed."""
+    horses = profile_horses(root)
+
+    def one(entry: dict):
+        raw = fetch_bytes(legacy_profile_url(entry['brand_no']))
+        return resolve_official_id(entry['brand_no'], raw)
+
+    known = []
+    skipped = []
+    with ThreadPoolExecutor(max_workers=max(1, workers)) as pool:
+        futures = {pool.submit(one, entry): entry for entry in horses}
+        for future in as_completed(futures):
+            entry = futures[future]
+            try:
+                horse_id = future.result()
+            except IdentityError as exc:
+                skipped.append({'brand_no': entry['brand_no'], 'status': entry['status'],
+                                'reason': str(exc)[:200]})
+                continue
+            known.append({'horse_id': horse_id, 'horse_name': entry['horse_name'],
+                          'brand_no': entry['brand_no']})
+    if not known:
+        raise IdentityError('no registered horse has an official id')
+    known.sort(key=lambda item: item['horse_id'])
+    skipped.sort(key=lambda item: item['brand_no'])
+    return known, skipped
+
+
+RECORD_HEADER = ['場次', '名次', '日期', '馬場/跑道/賽道', '途程', '場地狀況', '賽事班次', '檔位',
+                 '評分', '練馬師', '騎師', '頭馬距離', '獨贏賠率', '實際負磅', '沿途走位', '完成時間']
+RECORD_FIELDS = ['race_no_text', 'place_text', 'race_date', 'venue_text', 'distance_m', 'going',
+                 'race_class', 'draw', 'rating', 'trainer', 'jockey', 'winning_margin', 'win_odds',
+                 'actual_weight_lbs', 'running_position', 'finish_time']
+SEASON_LABEL = re.compile(r'^\d{2}/\d{2}馬季$')
+
+
+def record_table(soup) -> list[list[str]]:
+    """The first table whose header is the official race record (場次/名次/日期...)."""
+    for table in soup.find_all('table'):
+        rows = [cells(row) for row in table.find_all('tr')]
+        if not rows:
+            continue
+        header = [re.sub(r'\s+', '', cell) for cell in rows[0]]
+        if header[:len(RECORD_HEADER)] == RECORD_HEADER:
+            return rows
+    raise IdentityError('official race record table missing')
+
+
+def parse_record_date(text: str, today: date) -> date:
+    """The record table prints DD/MM/YYYY for some horses and DD/MM/YY for others; both
+    are the official page's own date, a two digit year always meaning 20YY. Anything else
+    fails closed."""
+    match = SLASH_DATE.fullmatch(text)
+    if match:
+        day, month, year = (int(part) for part in match.groups())
+    else:
+        short = re.fullmatch(r'(\d{2})/(\d{2})/(\d{2})', text)
+        if not short:
+            raise IdentityError(f'record race date {text!r} is not a DD/MM/YYYY or DD/MM/YY date')
+        day, month, year = (int(part) for part in short.groups())
+        year += 2000
+    try:
+        race_date = date(year, month, day)
+    except ValueError as exc:
+        raise IdentityError(f'record race date {text!r} is an impossible date') from exc
+    if race_date > today:
+        raise IdentityError('record row date is in the future')
+    return race_date
+
+
+def parse_legacy_record(raw: bytes, horse: dict, today: date, digest: str, scraped_at: str) -> list[dict]:
+    """Race record as the official profile page prints it: one row per start, the page's own
+    place, weight carried, margin and odds. Weight carried is not body weight, so this table
+    never feeds official_rating_weight."""
+    soup = BeautifulSoup(raw, 'html.parser')
+    name, brand = legacy_display_name(soup)
+    want_name = re.sub(r'\s*[（(][A-Z]\d{3}[）)]\s*$', '', horse['horse_name']).strip()
+    if name != want_name or brand != horse['brand_no']:
+        raise IdentityError(f"legacy profile is {name} ({brand}), not {want_name} ({horse['brand_no']})")
+    if horse.get('horse_id') and resolve_official_id(brand, raw) != horse['horse_id']:
+        raise IdentityError(f'{brand}: official id changed on the profile page')
+    rows = record_table(soup)
+    out = []
+    season = ''
+    for row in rows[1:]:
+        if not row or (len(row) == 1 and not row[0]):
+            continue
+        if len(row) == 1 and SEASON_LABEL.fullmatch(row[0].replace(' ', '')):
+            season = row[0]
+            continue
+        if len(row) < len(RECORD_HEADER):
+            continue
+        values = dict(zip(RECORD_FIELDS, row[:len(RECORD_HEADER)]))
+        race_date = parse_record_date(values['race_date'], today)
+        if race_date > today:
+            raise IdentityError('record row date is in the future')
+
+        def number(field: str, label: str) -> str:
+            text = values[field]
+            return '' if text in ('', '---', '--') else str(whole(text, label))
+
+        out.append({
+            'horse_id': horse['horse_id'], 'horse_name': name, 'brand_no': brand,
+            'season_label': season, 'race_no_text': values['race_no_text'],
+            'place_text': values['place_text'], 'race_date': iso(race_date),
+            'venue_text': values['venue_text'], 'distance_m': number('distance_m', 'record distance'),
+            'going': values['going'], 'race_class': values['race_class'],
+            'draw': number('draw', 'record draw'), 'rating': number('rating', 'record rating'),
+            'trainer': values['trainer'], 'jockey': values['jockey'],
+            'winning_margin': values['winning_margin'], 'win_odds': values['win_odds'],
+            'actual_weight_lbs': number('actual_weight_lbs', 'record actual weight'),
+            'running_position': values['running_position'], 'finish_time': values['finish_time'],
+            'not_race_result': 1, 'source_sha256': digest, 'scraped_at': scraped_at,
+        })
+    if not out and starts_on_page(soup) > 0:
+        raise IdentityError('official race record empty for a horse with starts')
+    return out
+
+
 def read_csv(path: Path, columns: list[str]) -> list[dict]:
     if not path.exists():
         return []
@@ -660,7 +847,7 @@ def emit_sql(root: Path) -> str:
     integer_columns = {
         'rating', 'body_weight', 'starts', 'wins', 'seconds', 'thirds', 'losses', 'fourths',
         'not_race_result', 'rank_no', 'points', 'distance_m', 'draw', 'win_pct', 'quinella_pct',
-        'place_pct', 'top4_pct',
+        'place_pct', 'top4_pct', 'actual_weight_lbs',
     }
     for table, (filename, columns) in FILES.items():
         rows = read_csv(base / filename, columns)
@@ -687,6 +874,7 @@ def apply_sql(db_path: Path, sql_text: str) -> None:
     connection = sqlite3.connect(db_path)
     try:
         connection.executescript(MIGRATION.read_text(encoding='utf-8'))
+        connection.executescript(RECORD_MIGRATION.read_text(encoding='utf-8'))
         connection.executescript(sql_text)
         connection.commit()
     finally:
@@ -697,14 +885,26 @@ def scraped_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
 
 
+def page_has_horse_shell(raw: bytes) -> bool:
+    """True when the official per-horse page renders the horse's own name(brand) 往績紀錄
+    shell. A retired horse's page comes back as an empty shell: that is a coverage gap to
+    record, not a horse to guess about."""
+    soup = BeautifulSoup(raw, 'html.parser')
+    text = soup.get_text(' ', strip=True).replace('\xa0', ' ')
+    return re.search(r'[（(][A-Z]\d{3}[）)](?:\s*[（(]\s*已退役\s*[）)])?\s*往績紀錄', text) is not None
+
+
 def fetch_horse_surface(path: str, horses: list[dict], parser, today: date, scraped_at: str,
-                        workers: int) -> tuple[list[dict], str]:
+                        workers: int, soft: bool = False) -> tuple[list[dict], str, list[dict]]:
     rows = []
     digests = []
+    skipped = []
 
     def one(horse: dict):
         raw = fetch_bytes(f'{SITE}/zh-hk/local/information/{path}?' + urlencode({'horseid': horse['horse_id']}))
         digest = sha256(raw)
+        if soft and not page_has_horse_shell(raw):
+            return None, digest
         return parser(raw, horse, today, digest, scraped_at), digest
 
     with ThreadPoolExecutor(max_workers=max(1, workers)) as pool:
@@ -715,38 +915,121 @@ def fetch_horse_surface(path: str, horses: list[dict], parser, today: date, scra
                 parsed, digest = future.result()
             except IdentityError as exc:
                 raise IdentityError(f"{horse['brand_no']} {horse['horse_id']}: {exc}") from exc
+            if parsed is None:
+                skipped.append({'brand_no': horse['brand_no'], 'horse_id': horse['horse_id'],
+                                'reason': 'official page has no content for this horse'})
+                continue
             rows.extend(parsed)
             digests.append(digest)
     combined = hashlib.sha256(''.join(sorted(digests)).encode()).hexdigest()
-    return rows, combined
+    return rows, combined, skipped
+
+
+def fetch_horse_record(horses: list[dict], today: date, scraped_at: str, workers: int,
+                       soft: bool = False) -> tuple[list[dict], str, list[dict]]:
+    """Race records from each horse's own official profile page. The page must open with
+    name(brand) 往績紀錄; a page that does not is a skip when sweeping the whole register
+    and a failure when a racecard was asked for."""
+    rows = []
+    digests = []
+    skipped = []
+
+    def one(horse: dict):
+        raw = fetch_bytes(legacy_profile_url(horse['brand_no']))
+        digest = sha256(raw)
+        try:
+            legacy_display_name(BeautifulSoup(raw, 'html.parser'))
+        except IdentityError as exc:
+            if not soft:
+                raise
+            return None, str(exc), digest
+        return parse_legacy_record(raw, horse, today, digest, scraped_at), '', digest
+
+    with ThreadPoolExecutor(max_workers=max(1, workers)) as pool:
+        futures = {pool.submit(one, horse): horse for horse in horses}
+        for future in as_completed(futures):
+            horse = futures[future]
+            try:
+                parsed, reason, digest = future.result()
+            except IdentityError as exc:
+                raise IdentityError(f"{horse['brand_no']} {horse.get('horse_id', '')}: {exc}") from exc
+            if parsed is None:
+                skipped.append({'brand_no': horse['brand_no'], 'horse_id': horse.get('horse_id', ''),
+                                'reason': reason[:200]})
+                continue
+            rows.extend(parsed)
+            digests.append(digest)
+    combined = hashlib.sha256(''.join(sorted(digests)).encode()).hexdigest()
+    return rows, combined, skipped
+
+
+def append_coverage(root: Path, surfaces: list[str], horses: list[dict] | None,
+                    skipped: list[dict], scraped_at: str) -> None:
+    """One line per run: the surfaces that ran, how many horses were asked for and every
+    horse that was not collected, with the official reason. Coverage claims read this."""
+    path = root / 'data' / 'official_wave4' / 'coverage.jsonl'
+    path.parent.mkdir(parents=True, exist_ok=True)
+    line = json.dumps({
+        'surfaces': sorted(surfaces),
+        'horses_requested': len(horses) if horses else 0,
+        'horses_skipped': len(skipped),
+        'skipped': sorted(skipped, key=lambda item: item['brand_no'])[:500],
+        'scraped_at': scraped_at,
+    }, ensure_ascii=False, sort_keys=True)
+    with path.open('a', encoding='utf-8') as handle:
+        handle.write(line + '\n')
 
 
 def run(root: Path, surfaces: list[str], today: date, racecard: str = '', requested_date: str = '',
-        all_active: bool = False, seasons: str = 'current', workers: int = 4) -> dict:
+        all_active: bool = False, seasons: str = 'current', workers: int = 4,
+        all_known: bool = False) -> dict:
     unknown = [name for name in surfaces if name not in SURFACES]
     if unknown:
         raise IdentityError(f'unknown surfaces {unknown}')
+    if all_known and all_active:
+        raise IdentityError('choose either --all-known or --all-active, not both')
     scraped_at = scraped_now()
     summary = {}
-    horse_surfaces = [name for name in surfaces if name in ('rating-weight', 'performance', 'movement')]
+    horse_surfaces = [name for name in surfaces
+                      if name in ('rating-weight', 'performance', 'movement', 'horse-record')]
     horses = None
+    skipped: list[dict] = []
     if horse_surfaces:
-        horses = load_active_horses(root) if all_active else load_racecard_horses(root, racecard)
+        if all_known:
+            horses, skipped = load_known_horses(root, workers)
+        elif all_active:
+            horses = load_active_horses(root)
+        else:
+            horses = load_racecard_horses(root, racecard)
     if 'rating-weight' in surfaces:
-        rows, digest = fetch_horse_surface('ratingresultweight', horses, parse_rating_weight, today, scraped_at, workers)
+        rows, digest, missing = fetch_horse_surface('ratingresultweight', horses, parse_rating_weight,
+                                                    today, scraped_at, workers, soft=all_known)
         store_surface(root, 'rating_weight', rows)
         append_manifest(root, 'rating-weight', digest, scraped_at, len(rows))
+        skipped = skipped + missing
         summary['rating-weight'] = len(rows)
     if 'performance' in surfaces:
-        rows, digest = fetch_horse_surface('performance', horses, parse_performance, today, scraped_at, workers)
+        rows, digest, missing = fetch_horse_surface('performance', horses, parse_performance,
+                                                    today, scraped_at, workers, soft=all_known)
         store_surface(root, 'performance', rows)
         append_manifest(root, 'performance', digest, scraped_at, len(rows))
+        skipped = skipped + missing
         summary['performance'] = len(rows)
     if 'movement' in surfaces:
-        rows, digest = fetch_horse_surface('movementrecords', horses, parse_movement, today, scraped_at, workers)
+        rows, digest, missing = fetch_horse_surface('movementrecords', horses, parse_movement,
+                                                    today, scraped_at, workers, soft=all_known)
         store_surface(root, 'movement', rows)
         append_manifest(root, 'movement', digest, scraped_at, len(rows))
+        skipped = skipped + missing
         summary['movement'] = len(rows)
+    if 'horse-record' in surfaces:
+        rows, digest, missing = fetch_horse_record(horses, today, scraped_at, workers, soft=all_known)
+        store_surface(root, 'horse_record', rows)
+        append_manifest(root, 'horse-record', digest, scraped_at, len(rows))
+        skipped = skipped + missing
+        summary['horse-record'] = len(rows)
+    if horse_surfaces:
+        append_coverage(root, horse_surfaces, horses, skipped, scraped_at)
     if 'overoar' in surfaces:
         raw = fetch_bytes(SITE + '/zh-hk/local/information/overoar')
         rows = parse_overoar(raw, today, sha256(raw), scraped_at)
@@ -802,6 +1085,9 @@ def main() -> None:
     parser.add_argument('--racecard', default='', help='YYYY-MM-DD_ST or "YYYY-MM-DD ST"; blank uses the latest snapshot')
     parser.add_argument('--date', default='', help='YYYY-MM-DD racedate for pool-result; blank follows the page')
     parser.add_argument('--all-active', action='store_true', help='Per-horse surfaces cover every active profile horse')
+    parser.add_argument('--all-known', action='store_true',
+                        help='Per-horse surfaces cover every registered horse, retired included; '
+                             'a horse is only collected when its own page prints one official id')
     parser.add_argument('--seasons', default='current', choices=['current', 'all'],
                         help='draw-adv: current season only, or every season on the form')
     parser.add_argument('--emit-sql', default='', help='Write D1 upsert SQL from CSV and exit')
@@ -814,7 +1100,8 @@ def main() -> None:
     if args.date:
         parse_iso(args.date)
     surfaces = [part.strip() for part in args.surfaces.split(',') if part.strip()]
-    summary = run(root, surfaces, today_hkt(), args.racecard, args.date, args.all_active, args.seasons, args.workers)
+    summary = run(root, surfaces, today_hkt(), args.racecard, args.date, args.all_active, args.seasons,
+                  args.workers, args.all_known)
     print(json.dumps(summary, ensure_ascii=False, sort_keys=True))
 
 
