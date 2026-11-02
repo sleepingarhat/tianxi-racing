@@ -2,7 +2,8 @@ name: Capy Race-day Companions
 
 # Last-start comments, form lines, exceptional factors, the day's veterinary
 # list, meeting trackwork, jockey/trainer rides, and the summary going sentence,
-# pool list and suspensions. Rows are the public board, not race results.
+# pool list and suspensions, plus the jockey / trainer challenge boards.
+# Rows are the public board, not race results.
 #
 # Schedule (UTC → HKT): 00:25→08:25, 04:25→12:25, 08:25→16:25, 11:25→19:25.
 # A scheduled run covers today and tomorrow when either is on the fixture calendar.
@@ -69,7 +70,9 @@ jobs:
         run: python3 -m pip install beautifulsoup4==4.14.2
 
       - name: Test race-day companion identity rules
-        run: python3 -m unittest discover -s scripts -p test_hkjc_raceday_companions.py
+        run: |
+          python3 -m unittest discover -s scripts -p test_hkjc_raceday_companions.py
+          python3 -m unittest discover -s scripts -p test_hkjc_challenge_boards.py
 
       - name: Pre-flight — today or tomorrow HK
         id: guard
@@ -139,6 +142,37 @@ jobs:
             python3 scripts/hkjc_raceday_companions.py "${args[@]}"
           done < /tmp/raceday-meetings.txt
 
+      - name: Scrape jockey / trainer challenge boards
+        id: challenge
+        if: github.event_name != 'schedule' || steps.guard.outputs.no_race != 'true'
+        continue-on-error: true
+        run: |
+          set -eu
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            printf '%s %s\n' "${{ github.event.inputs.date }}" "${{ github.event.inputs.venue }}" > /tmp/challenge-meetings.txt
+          else
+            python3 - << 'PY'
+          import csv
+          from datetime import datetime, timedelta, timezone
+          from pathlib import Path
+          hk = (datetime.now(timezone.utc) + timedelta(hours=8)).date()
+          # Yesterday too, so the morning run stores the final official points sheet.
+          wanted = {(hk + timedelta(days=d)).isoformat() for d in (-1, 0, 1)}
+          seen = []
+          for row in csv.DictReader(Path('data/fixtures/fixtures.csv').open(encoding='utf-8-sig')):
+              if row.get('date') in wanted and row.get('venue') in ('ST', 'HV'):
+                  item = f"{row['date']} {row['venue']}"
+                  if item not in seen:
+                      seen.append(item)
+          Path('/tmp/challenge-meetings.txt').write_text(''.join(s + '\n' for s in seen), encoding='utf-8')
+          print('challenge meetings', seen)
+          PY
+          fi
+          while read -r day venue; do
+            [ -n "${day:-}" ] && [ -n "${venue:-}" ] || continue
+            python3 scripts/hkjc_challenge_boards.py --root=. --date="$day" --venue="$venue"
+          done < /tmp/challenge-meetings.txt
+
       - name: Commit projection and append-only manifest
         if: always() && (github.event_name != 'schedule' || steps.guard.outputs.no_race != 'true')
         run: |
@@ -162,7 +196,7 @@ jobs:
           git push origin HEAD:main
 
       - name: Fail closed on an unparsed board
-        if: steps.scrape.outcome == 'failure'
+        if: steps.scrape.outcome == 'failure' || steps.challenge.outcome == 'failure'
         run: exit 1
 
       - name: Require Cloudflare token on a schedule
@@ -193,7 +227,12 @@ jobs:
             exit 0
           fi
           wrangler d1 execute tianxi-db --remote --file=src/db/migrations/20261027_raceday_companions.sql --yes
+          wrangler d1 execute tianxi-db --remote --file=src/db/migrations/20261103_official_challenge_boards.sql --yes
           python3 ../scripts/hkjc_raceday_companions.py --root=.. --emit-sql /tmp/raceday_companions.sql
+          if [ "${{ steps.challenge.outcome }}" = "success" ]; then
+            python3 ../scripts/hkjc_challenge_boards.py --root=.. --emit-sql /tmp/challenge.sql
+            cat /tmp/challenge.sql >> /tmp/raceday_companions.sql
+          fi
           python3 - << 'PY'
           from pathlib import Path
           text = Path('/tmp/raceday_companions.sql').read_text(encoding='utf-8')

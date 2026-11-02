@@ -1,0 +1,281 @@
+# operation rw_JKCScheduledRides
+query rw_JKCScheduledRides($dates: [String!], $active: Boolean){
+  commonMeetings(dates: $dates, venueCodes: ["ST", "HV"], active: $active) {
+    id
+    date
+    venueCode
+    venueDes {
+      english
+      chinese
+    }
+    status
+    totalNumberOfRace
+    raNoPlCount
+    races {
+      no
+      claCode
+      distance
+      status
+      raceTrack {
+        description_ch
+        description_en
+      }
+      raceTrack2 {
+        description_ch
+        description_en
+      }
+      raceResults {
+        status
+      }
+      runners {
+        no
+        standbyNo
+        status
+        jockey {
+          name_ch
+          name_en
+          code
+        }
+        horse {
+          name_ch
+          name_en
+          code
+          id
+        }
+      }
+    }
+    foPools(oddsTypes: [JKC]) {
+      status
+      instNo
+      includeRaces
+      inplayUpTo
+      otherSelNo
+      oddsTypeDes {
+        english
+        chinese
+      }
+      selections {
+        currentOdds
+        combId
+        currentOddsValue
+      }
+      resultSheet {
+        result {
+          raIncidents {
+            points
+            horseId
+            raceNo
+            raIncidentType
+          }
+          refId
+          selOdrNo
+          accumulatedPoints
+        }
+        selStr
+      }
+      otherResultSheet {
+        otherResult {
+          orderNo
+          accumulatedPoints
+          raIncidents {
+            points
+            raceNo
+            horseId
+            raIncidentType
+          }
+          refId 
+        }
+        selStr
+      }  
+    }
+    pmPools(oddsTypes:[WIN]) {
+      status
+      leg {
+        number
+        races
+      }
+      oddsNodes {
+        combString
+        oddsValue
+      }
+    }
+    changeHistories {
+      type
+      runnerNo
+      raceNo
+      horseCode
+      scratchHorseId
+      dueToPromotion
+    }
+  }
+
+  jockeyStat {
+    code
+    name_en
+    name_ch 
+    dhStat {
+      numFirst
+      numSecond
+      numThird
+      numFourth
+      numFifth
+      numStarts
+      stakeWon
+      trk
+      ven
+    }
+    ssnStat { 
+      numFirst
+      numSecond
+      numThird
+      numFourth
+      numFifth
+      numStarts
+      stakeWon
+      trk
+      ven
+    } 
+  }
+}
+
+# operation rw_TNCTRAINERSENTRIES
+query rw_TNCTRAINERSENTRIES ($dates: [String!]) {
+  commonMeetings(dates: $dates, venueCodes: ["ST", "HV"]) {
+    date
+    venueCode
+    status
+    raNoPlCount
+    races {
+      no
+      status
+      claCode
+      distance 
+      raceTrack {
+        code
+        description_ch
+        description_en
+      }
+      runners {
+        horse {
+          id
+          code
+          name_ch
+          name_en
+        }
+        trainer {
+          id
+          name_en
+          name_ch
+          code
+        }
+        trainerPreference
+        id
+        no
+        winOdds
+        status
+        trumpCard
+      }
+    }
+    pmPools(oddsTypes: [WIN]) {
+      id
+      status
+      leg {
+        number
+        races
+      }
+      oddsNodes {
+        combString
+        oddsValue
+      }
+    }
+    foPools(oddsTypes: TNC){
+      includeRaces
+      status
+      lastUpdateTime
+      otherSelNo
+      resultSheet{
+        result{
+          refId
+          selOdrNo
+          accumulatedPoints
+          raIncidents{
+            raIncidentType
+            raceNo
+            horseId
+            points
+          }
+        }
+        selStr
+        id
+      }
+      instNo
+      oddsTypeDes {
+        code
+        chinese
+        english
+        mandarin
+      }
+      inplayUpTo
+      selections {
+        currentOdds
+        currentOddsValue
+        combId
+        openOdds
+        code
+        name_ch
+        name_en
+        points
+        scheduleRides
+    
+        order
+        number
+      }
+      otherResultSheet{
+        otherResult{
+          refId
+          orderNo
+          raIncidents{
+            raceNo
+            horseId
+            raIncidentType
+            points
+          }
+          accumulatedPoints
+        }
+        selStr
+        id
+      }
+      otherSelections {
+        currentOdds
+        currentOddsValue
+        combId
+        openOdds
+        code
+        name_ch
+        name_en
+        points
+        scheduleRides
+    
+        order
+        number
+      }
+    }
+    isActive
+    currentNumberOfRace
+  }
+  trainerStat {
+    code
+    name_en
+    name_ch
+    dhStat {
+      numFirst
+      numSecond
+      numThird
+      numFourth
+      numFifth
+      numStarts
+      stakeWon 
+    }
+  }
+}
+
