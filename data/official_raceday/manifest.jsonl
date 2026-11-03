@@ -47,3 +47,8 @@
 {"rows": 252, "scraped_at": "2026-11-03T10:06:46+00:00", "sha256": "a0e6445b6c12118ef7b133225b157c82d39eda3ec64644653e93c5653f4f2901", "surface": "rides"}
 {"rows": 1, "scraped_at": "2026-11-03T10:06:48+00:00", "sha256": "85d59d9b16167bba4012886a08033854514ae5a9464feb8e950f8bea3ef14563", "surface": "raceday_focus"}
 {"rows": 15, "scraped_at": "2026-11-03T10:06:48+00:00", "sha256": "34b77b146e9b91b147cfafe20b88fe919134cae7a9cbce1527a22f291cb37363", "surface": "last_run_reminder"}
+{"rows": 252, "scraped_at": "2026-11-03T10:10:59+00:00", "sha256": "17d7db19fdee38dcfcc0f8f9e778a61a18da8c9732928b5e0876be31c17942e6", "surface": "rides"}
+{"rows": 21, "scraped_at": "2026-11-03T10:11:01+00:00", "sha256": "442a1260a42acc670f8b271cbb043b2a17001b39f187767d99f6f62e5ac78fd3", "surface": "challenge_jkc"}
+{"rows": 23, "scraped_at": "2026-11-03T10:11:01+00:00", "sha256": "1118a42da804a1eaac608cefe9e64df310c05a29adf9abbda77addbeb431723d", "surface": "challenge_tnc"}
+{"rows": 1, "scraped_at": "2026-11-03T10:11:01+00:00", "sha256": "a7acfb9b1d9741f471eee1575f7096a75dce74dc6b667c7487b18d74034fa6b7", "surface": "raceday_focus"}
+{"rows": 15, "scraped_at": "2026-11-03T10:11:01+00:00", "sha256": "9bf61fbd418f8a427f020ee90375f63bd36760b97d2a36b5afe0309500a322a9", "surface": "last_run_reminder"}
