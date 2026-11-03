@@ -44,3 +44,6 @@
 {"rows": 4764, "scraped_at": "2026-11-03T07:04:15+00:00", "sha256": "59fb9dbd3667d9161e8c2db1fd9ff01b0efbe8eb953d98fc3bf319729388cfb8", "surface": "trackwork"}
 {"rows": 252, "scraped_at": "2026-11-03T07:04:15+00:00", "sha256": "d45bc469ba081819df5415f388150d11b50cd5a14924e80157a7ab3649ff2c2c", "surface": "rides"}
 {"rows": 1, "scraped_at": "2026-11-03T07:04:15+00:00", "sha256": "6075df8a8cdcc6e2884a7efb82b71fe0344867002004552298bbd73688e3c921", "surface": "summary"}
+{"rows": 252, "scraped_at": "2026-11-03T10:06:46+00:00", "sha256": "a0e6445b6c12118ef7b133225b157c82d39eda3ec64644653e93c5653f4f2901", "surface": "rides"}
+{"rows": 1, "scraped_at": "2026-11-03T10:06:48+00:00", "sha256": "85d59d9b16167bba4012886a08033854514ae5a9464feb8e950f8bea3ef14563", "surface": "raceday_focus"}
+{"rows": 15, "scraped_at": "2026-11-03T10:06:48+00:00", "sha256": "34b77b146e9b91b147cfafe20b88fe919134cae7a9cbce1527a22f291cb37363", "surface": "last_run_reminder"}
