@@ -3,7 +3,8 @@ name: Capy Race-day Companions
 # Last-start comments, form lines, exceptional factors, the day's veterinary
 # list, meeting trackwork, jockey/trainer rides, and the summary going sentence,
 # pool list and suspensions, plus the jockey / trainer challenge boards, the
-# race-day focus article headline and the last-run reminder.
+# race-day focus article headline and the last-run reminder, plus every
+# pari-mutuel pool, official dividends, jackpots and the going probe readings.
 # Rows are the public board, not race results.
 #
 # Schedule (UTC → HKT): 00:25→08:25, 04:25→12:25, 08:25→16:25, 11:25→19:25.
@@ -75,6 +76,7 @@ jobs:
           python3 -m unittest discover -s scripts -p test_hkjc_raceday_companions.py
           python3 -m unittest discover -s scripts -p test_hkjc_challenge_boards.py
           python3 -m unittest discover -s scripts -p test_hkjc_raceday_articles.py
+          python3 -m unittest discover -s scripts -p test_hkjc_raceday_pools.py
 
       - name: Pre-flight — today or tomorrow HK
         id: guard
@@ -186,6 +188,18 @@ jobs:
             python3 scripts/hkjc_raceday_articles.py --root=. --date="$day" --venue="$venue"
           done < /tmp/raceday-meetings.txt
 
+      - name: Scrape pool board / official dividends / going probe
+        id: pools
+        if: github.event_name != 'schedule' || steps.guard.outputs.no_race != 'true'
+        continue-on-error: true
+        run: |
+          set -eu
+          # Yesterday's meeting too, so the morning run stores the final dividends.
+          while read -r day venue; do
+            [ -n "${day:-}" ] && [ -n "${venue:-}" ] || continue
+            python3 scripts/hkjc_raceday_pools.py --root=. --date="$day" --venue="$venue"
+          done < /tmp/challenge-meetings.txt
+
       - name: Commit projection and append-only manifest
         if: always() && (github.event_name != 'schedule' || steps.guard.outputs.no_race != 'true')
         run: |
@@ -220,7 +234,7 @@ jobs:
           exit 1
 
       - name: Fail closed on an unparsed board
-        if: steps.scrape.outcome == 'failure' || steps.challenge.outcome == 'failure' || steps.articles.outcome == 'failure'
+        if: steps.scrape.outcome == 'failure' || steps.challenge.outcome == 'failure' || steps.articles.outcome == 'failure' || steps.pools.outcome == 'failure'
         run: exit 1
 
       - name: Require Cloudflare token on a schedule
@@ -253,6 +267,7 @@ jobs:
           wrangler d1 execute tianxi-db --remote --file=src/db/migrations/20261027_raceday_companions.sql --yes
           wrangler d1 execute tianxi-db --remote --file=src/db/migrations/20261103_official_challenge_boards.sql --yes
           wrangler d1 execute tianxi-db --remote --file=src/db/migrations/20261103_official_raceday_articles.sql --yes
+          wrangler d1 execute tianxi-db --remote --file=src/db/migrations/20261104_official_raceday_pools.sql --yes
           python3 ../scripts/hkjc_raceday_companions.py --root=.. --emit-sql /tmp/raceday_companions.sql
           if [ "${{ steps.challenge.outcome }}" = "success" ]; then
             python3 ../scripts/hkjc_challenge_boards.py --root=.. --emit-sql /tmp/challenge.sql
@@ -261,6 +276,10 @@ jobs:
           if [ "${{ steps.articles.outcome }}" = "success" ]; then
             python3 ../scripts/hkjc_raceday_articles.py --root=.. --emit-sql /tmp/articles.sql
             cat /tmp/articles.sql >> /tmp/raceday_companions.sql
+          fi
+          if [ "${{ steps.pools.outcome }}" = "success" ]; then
+            python3 ../scripts/hkjc_raceday_pools.py --root=.. --emit-sql /tmp/pools.sql
+            cat /tmp/pools.sql >> /tmp/raceday_companions.sql
           fi
           python3 - << 'PY'
           from pathlib import Path
