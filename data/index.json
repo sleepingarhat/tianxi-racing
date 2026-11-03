@@ -1,8 +1,8 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-11-03T18:17:52+00:00",
+  "generated_at": "2026-11-03T23:15:57+00:00",
   "generator": "tools/build_manifest.py",
-  "git_head": "1c09c716692af435d9e860ad2e6de20dc70f4434",
+  "git_head": "940931b6d6f647f16ccc49ae9e9c975ebb47760f",
   "repo": "sleepingarhat/tianxi-database",
   "branch": "main",
   "base_url": {
@@ -133,11 +133,11 @@
     "trials": {
       "results": {
         "path": "trials/trial_results.csv",
-        "row_count": 9960
+        "row_count": 9988
       },
       "sessions": {
         "path": "trials/trial_sessions.csv",
-        "row_count": 1230
+        "row_count": 1234
       },
       "note": "HKJC retains ~176 days only; pre-2025-03-13 irrecoverable"
     },
