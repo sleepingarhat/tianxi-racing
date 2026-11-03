@@ -254,6 +254,9 @@ jobs:
           python3 - << 'PY'
           from pathlib import Path
           text = Path('/tmp/raceday_companions.sql').read_text(encoding='utf-8')
+          # Drop whole-line comments first; a header comment glued to the first DELETE
+          # used to discard that DELETE and re-insert existing rows.
+          text = '\n'.join(line for line in text.split('\n') if not line.lstrip().startswith('--'))
           parts = [part.strip() for part in text.split(';\n') if part.strip() and not part.strip().startswith('--')]
           out = Path('/tmp/raceday_chunks')
           out.mkdir(exist_ok=True)
