@@ -190,6 +190,7 @@ jobs:
           python3 - << 'PY'
           from pathlib import Path
           text = Path('/tmp/official_wave4.sql').read_text(encoding='utf-8')
+          text = '\n'.join(line for line in text.split('\n') if not line.lstrip().startswith('--'))
           parts = [part.strip() for part in text.split(';\n') if part.strip() and not part.strip().startswith('--')]
           out = Path('/tmp/official_wave4_chunks')
           out.mkdir(exist_ok=True)
