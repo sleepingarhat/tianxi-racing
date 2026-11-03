@@ -89,6 +89,9 @@ def points_text(value, label: str) -> str | None:
     if value is None or str(value).strip() == '':
         return None
     text = str(value).strip()
+    # Before the first leg is run the board reports -1 as "no points yet".
+    if re.fullmatch(r'-1(\.0+)?', text):
+        return None
     if not re.fullmatch(r'\d+(\.\d+)?', text):
         raise ParseMiss(f'{label} points {text!r} are not official')
     return text

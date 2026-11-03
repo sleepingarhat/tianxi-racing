@@ -17,6 +17,12 @@ def load(name):
 
 
 class ChallengeBoards(unittest.TestCase):
+    def test_pre_race_minus_one_points_mean_none(self):
+        self.assertIsNone(ch.points_text(-1.0, 'JKC 1'))
+        self.assertIsNone(ch.points_text('-1', 'JKC 1'))
+        with self.assertRaises(ch.ParseMiss):
+            ch.points_text('-2.0', 'JKC 1')
+
     def test_queries_are_page_bundles(self):
         queries = ch.load_queries()
         self.assertEqual(set(queries), {'rw_JKCScheduledRides', 'rw_TNCTRAINERSENTRIES'})
