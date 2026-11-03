@@ -37,3 +37,10 @@
 {"rows": 1, "scraped_at": "2026-11-02T21:18:31+00:00", "sha256": "84400e360de01ecef19dff3413689401071b15632ac78132cc62af539c5e9bcb", "surface": "summary"}
 {"rows": 20, "scraped_at": "2026-11-02T21:18:32+00:00", "sha256": "0ac76da4c1551985de7f3db19fa545b67dfe8998d23c6349732a1dfe196e5e6b", "surface": "challenge_jkc"}
 {"rows": 24, "scraped_at": "2026-11-02T21:18:32+00:00", "sha256": "ba798d3946d23f2bf83de46c4216f4284438512d221a95252d847b44030c3209", "surface": "challenge_tnc"}
+{"rows": 126, "scraped_at": "2026-11-03T07:04:15+00:00", "sha256": "cf64ac1b39f716eccd3ff57b8243bfcd2a46fe9906b93303a2293d612af52f08", "surface": "report"}
+{"rows": 116, "scraped_at": "2026-11-03T07:04:15+00:00", "sha256": "e9ec52979b973f9019ba40830a52a1602908e5ef61e0248f3077e77ff55f84e8", "surface": "formline"}
+{"rows": 53, "scraped_at": "2026-11-03T07:04:15+00:00", "sha256": "ff6ebb4102ae987190644d6f9f6aa067e91781de625b2c660cb08f80e6505ba8", "surface": "exceptional"}
+{"rows": 137, "scraped_at": "2026-11-03T07:04:15+00:00", "sha256": "87f0c266d1561b681cfa01a1970de6c56ce9ca6838a51f2f6bcec6b98bf71173", "surface": "veterinary"}
+{"rows": 4764, "scraped_at": "2026-11-03T07:04:15+00:00", "sha256": "59fb9dbd3667d9161e8c2db1fd9ff01b0efbe8eb953d98fc3bf319729388cfb8", "surface": "trackwork"}
+{"rows": 252, "scraped_at": "2026-11-03T07:04:15+00:00", "sha256": "d45bc469ba081819df5415f388150d11b50cd5a14924e80157a7ab3649ff2c2c", "surface": "rides"}
+{"rows": 1, "scraped_at": "2026-11-03T07:04:15+00:00", "sha256": "6075df8a8cdcc6e2884a7efb82b71fe0344867002004552298bbd73688e3c921", "surface": "summary"}
