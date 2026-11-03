@@ -206,7 +206,18 @@ jobs:
           done
           if [ -n "$(git diff --cached --name-only --diff-filter=D)" ]; then echo 'race-day companion deletion refused'; exit 1; fi
           git commit -m '[data][skip ci] official HKJC race-day companion boards'
-          git push origin HEAD:main
+          # Retry only after a clean rebase; conflicting evidence remains a hard failure.
+          for attempt in 1 2 3; do
+            if git push origin HEAD:main; then exit 0; fi
+            git fetch origin main
+            if ! git rebase origin/main; then
+              git rebase --abort
+              echo 'Concurrent data conflict; original evidence preserved, refusing overwrite'
+              exit 1
+            fi
+          done
+          echo 'Push failed after three safe retries'
+          exit 1
 
       - name: Fail closed on an unparsed board
         if: steps.scrape.outcome == 'failure' || steps.challenge.outcome == 'failure' || steps.articles.outcome == 'failure'
