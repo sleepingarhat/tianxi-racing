@@ -28,3 +28,9 @@
 {"rows": 45, "scraped_at": "2026-11-03T03:57:26+00:00", "sha256": "4850e827e0c3d040a2677a7f239d0eab54ed82bf24e989a949b940b57b7134c8", "surface": "favourites"}
 {"rows": 11, "scraped_at": "2026-11-03T03:57:26+00:00", "sha256": "ba2bf377d825bdd659314ea108e42ab2dac5cebcdc634e950a4a79fed884162d", "surface": "allowance"}
 {"rows": 35, "scraped_at": "2026-11-03T03:57:26+00:00", "sha256": "2f0d69b83652f72b63b3b679ef8e96f7135d002ddf77340ace09b0e57177c983", "surface": "new-horse"}
+{"rows": 466, "scraped_at": "2026-11-04T03:02:30+00:00", "sha256": "f9cfcb1d1622d07965fea7f83317c7f2200e78b6d889e051549498af9a7d6de5", "surface": "rankings"}
+{"rows": 108, "scraped_at": "2026-11-04T03:02:30+00:00", "sha256": "eeb643c264e92e4e4b4d3ba7ae4d833c3680aa748f29b0770daf711913084f23", "surface": "draw"}
+{"rows": 546, "scraped_at": "2026-11-04T03:02:30+00:00", "sha256": "e8ae6e07409f22c181c825ffaf4049cbe0dbf8678f68a0dab6d6c80cc579a6af", "surface": "pools"}
+{"rows": 45, "scraped_at": "2026-11-04T03:02:30+00:00", "sha256": "4850e827e0c3d040a2677a7f239d0eab54ed82bf24e989a949b940b57b7134c8", "surface": "favourites"}
+{"rows": 11, "scraped_at": "2026-11-04T03:02:30+00:00", "sha256": "ba2bf377d825bdd659314ea108e42ab2dac5cebcdc634e950a4a79fed884162d", "surface": "allowance"}
+{"rows": 35, "scraped_at": "2026-11-04T03:02:30+00:00", "sha256": "2f0d69b83652f72b63b3b679ef8e96f7135d002ddf77340ace09b0e57177c983", "surface": "new-horse"}
