@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import Database from 'better-sqlite3';
 import { Hono } from 'hono';
 import { alertHookSecret, watchFeedSecrets } from '../src/lib/shared-secret';
-import { parseWatchQuery, watchRoutes, MAX_HORSE_IDS } from '../src/routes/watch';
+import { parseWatchQuery, watchRoutes, MAX_HORSE_IDS, hkToday } from '../src/routes/watch';
 import type { Env } from '../src/types';
 
 class Stmt {
@@ -17,6 +17,20 @@ class Stmt {
   async first<T>() { return (this.db.prepare(this.sql).get(...this.params) as T | undefined) ?? null; }
 }
 class D1 { constructor(private readonly db: Database.Database) {} prepare(sql: string) { return new Stmt(this.db, sql); } }
+
+// 測試日期一律依「執行當日」推算：/api/watch/events 用真實時鐘把 since 收緊至最近
+// MAX_SINCE_DAYS 日，寫死日期嘅 fixture 會隨日子推進悄悄滑出視窗（2026-11-05 就因此
+// 喺 main 上自己失敗過），所以呢度全部用相對日期。
+const RUN_TODAY = hkToday(new Date());
+function dayOff(daysAgo: number): string {
+  const d = new Date(`${RUN_TODAY}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() - daysAgo);
+  return d.toISOString().slice(0, 10);
+}
+const RECENT = dayOff(2); // 喺 14 日視窗內
+const SINCE = dayOff(3); // 請求起點，唔會被收緊
+const OUTSIDE = dayOff(20); // 比視窗更早
+const LONG_AGO = dayOff(400);
 
 const db = new Database(':memory:');
 db.exec(`
@@ -39,15 +53,15 @@ db.exec(`
     ('e_old','2026-10-19','ST',1,'4',1200,'horse_J062',1,1,'x','y',120,60,'正選','2026-10-17T12:43:00Z'),
     ('e_other','2026-10-25','ST',1,'4',1200,'horse_Z999',1,1,'x','y',120,60,'正選','2026-10-22T12:43:00Z');
   INSERT INTO horse_trackwork (id,horse_id,trackwork_date,venue,work_type,track,details) VALUES
-    ('tw1','horse_J062','2026-10-21','沙田','快操','草地','快操 800m'),
-    ('tw2','horse_J062','2026-10-21','沙田','踱步','內圈','快踱一圈'),
-    ('tw_old','horse_J062','2026-10-01','沙田','快操','草地','old');
-  INSERT INTO trial_sessions VALUES ('ts1','2026-10-21','沙田',2,1050,'好','全天候',10);
+    ('tw1','horse_J062','${RECENT}','沙田','快操','草地','快操 800m'),
+    ('tw2','horse_J062','${RECENT}','沙田','踱步','內圈','快踱一圈'),
+    ('tw_old','horse_J062','${OUTSIDE}','沙田','快操','草地','old');
+  INSERT INTO trial_sessions VALUES ('ts1','${RECENT}','沙田',2,1050,'好','全天候',10);
   INSERT INTO trial_runners VALUES ('tr1','ts1','horse_H117',3,2,'0.58.9',58.9,'布文','1-1/4','B','走勢暢順');
   INSERT INTO horse_injury VALUES
-    ('inj1','horse_H117','2026-10-20','右前腿不良於行',NULL,NULL,NULL),
-    ('inj2','horse_J062','2026-09-01','流鼻血','2026-10-22',51,NULL),
-    ('inj_old','horse_J062','2025-01-01','舊傷','2025-03-01',59,NULL);
+    ('inj1','horse_H117','${RECENT}','右前腿不良於行',NULL,NULL,NULL),
+    ('inj2','horse_J062','${LONG_AGO}','流鼻血','${RECENT}',51,NULL),
+    ('inj_old','horse_J062','${LONG_AGO}','舊傷','${LONG_AGO}',59,NULL);
 `);
 
 const env = { DB: new D1(db) as unknown as D1Database, WEATHER_CRON_SECRET: 'test-secret' } as Env;
@@ -91,7 +105,7 @@ async function main(): Promise<void> {
   assert.deepEqual(watchFeedSecrets({ WEATHER_CRON_SECRET: 'legacy' }), ['legacy']);
   assert.deepEqual(watchFeedSecrets({ WEATHER_CRON_SECRET: 'legacy', LEGACY_CRON_SECRET_FALLBACK: 'off' }), []);
 
-  const res = await app.request('/api/watch/events?horse_ids=horse_J062,horse_H117&since=2026-10-20', { headers: { 'x-cron-secret': 'test-secret' } }, env);
+  const res = await app.request(`/api/watch/events?horse_ids=horse_J062,horse_H117&since=${SINCE}`, { headers: { 'x-cron-secret': 'test-secret' } }, env);
   assert.equal(res.status, 200);
   const body = await res.json() as { events: Array<{ event_key: string; type: string }>; freshness: Record<string, string> };
   const keys = body.events.map((e) => e.event_key).sort();
@@ -101,9 +115,9 @@ async function main(): Promise<void> {
   assert.ok(!keys.includes('trackwork:tw_old'));
   assert.ok(!keys.some((k) => k.includes('inj_old') || k.includes('injury:inj2:open')));
   assert.ok(!keys.some((k) => k.includes('horse_Z999')));
-  assert.equal(body.freshness.latestTrialDate, '2026-10-21');
+  assert.equal(body.freshness.latestTrialDate, RECENT);
 
-  const all = await app.request('/api/watch/events?horse_ids=horse_J062&since=2026-10-20&trackwork=all&types=trackwork', { headers: { 'x-cron-secret': 'test-secret' } }, env);
+  const all = await app.request(`/api/watch/events?horse_ids=horse_J062&since=${SINCE}&trackwork=all&types=trackwork`, { headers: { 'x-cron-secret': 'test-secret' } }, env);
   const allBody = await all.json() as { events: Array<{ event_key: string }> };
   assert.deepEqual(allBody.events.map((e) => e.event_key).sort(), ['trackwork:tw1', 'trackwork:tw2']);
 
