@@ -144,7 +144,16 @@ def make_graded_label(df: pd.DataFrame) -> np.ndarray:
     >= 4, this made winner..10th-place all share gain=127, so the model couldn't
     differentiate the top half of the field → 1-tree saturation (best_iter=1).
     Mapping: 1st→4, 2nd→3, 3rd→2, 4th→1, 5th+→0."""
-    pos = df['finishing_position'].astype(int).clip(lower=1, upper=5)
+    raw = pd.to_numeric(df['finishing_position'], errors='coerce')
+    invalid = raw.isna() | (raw < 1) | (raw > 98) | (raw != raw.round())
+    if bool(invalid.any()):
+        # Fail closed: scratched / non-finishers (e.g. 999, blank, WV/PU codes)
+        # must be excluded upstream, never scored as a loss.
+        sample = df.loc[invalid, 'finishing_position'].astype(str).unique()[:5].tolist()
+        raise ValueError(
+            f'make_graded_label: {int(invalid.sum())} rows with invalid finishing_position '
+            f'(expected 1..98, got e.g. {sample}); exclude withdrawals/non-finishers before training')
+    pos = raw.astype(int).clip(lower=1, upper=5)
     return (5 - pos).clip(lower=0).to_numpy()
 
 
