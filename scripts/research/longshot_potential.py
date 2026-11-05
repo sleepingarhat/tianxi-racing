@@ -26,11 +26,14 @@ FEATURES = [
     "log_odds", "days_since", "last_place", "last_lbw", "last3_avg_place", "wt_change", "rating_change",
     "gear_changed", "class_drop", "runs_count", "trial_30d", "trial_best_pos", "trial_pass", "long_rest_with_trial",
 ]
+TW_FEATURES = ["tw_gallops_14d", "tw_fast_jockey_14d", "tw_swims_14d", "tw_days_since_gallop"]
+if os.environ.get("WITH_TRACKWORK") == "1":
+    FEATURES = FEATURES + TW_FEATURES
 
 
 def d(s):
     s = (s or "").strip()
-    for f in ("%d/%m/%Y", "%Y-%m-%d"):
+    for f in ("%d/%m/%Y", "%d/%m/%y", "%Y-%m-%d"):
         try:
             return datetime.strptime(s, f)
         except ValueError:
@@ -77,8 +80,32 @@ def load_trials():
     return by
 
 
+def load_trackwork():
+    by = defaultdict(list)
+    for path in glob.glob(os.path.join(ROOT, "horses", "trackwork", "trackwork_*.csv")):
+        with open(path, encoding="utf-8-sig") as fh:
+            for r in csv.DictReader(fh):
+                dt = d(r.get("date"))
+                if dt and r.get("horse_no"):
+                    by[r["horse_no"]].append((dt, (r.get("work_type") or "").strip(), (r.get("rider") or "").strip()))
+    return by
+
+
+def tw_feats(works, dt):
+    w14 = [w for w in works if w[0] < dt and (dt - w[0]).days <= 14]
+    gal = [w for w in works if w[0] < dt and w[1] == "快操"]
+    return {
+        "tw_gallops_14d": min(sum(1 for w in w14 if w[1] == "快操"), 5) / 5,
+        "tw_fast_jockey_14d": 1.0 if any(w[1] == "快操" and w[2] and "助手" not in w[2] and "練馬師" not in w[2] for w in w14) else 0.0,
+        "tw_swims_14d": min(sum(1 for w in w14 if w[1] == "游水"), 14) / 14,
+        "tw_days_since_gallop": min((dt - gal[-1][0]).days if gal else 60, 60) / 60,
+    }
+
+
 def build_rows():
     trials = load_trials()
+    tw = load_trackwork()
+    tw_start = datetime(2023, 9, 1)
     rows = []
     for path in glob.glob(os.path.join(ROOT, "horses", "form_records", "form_*.csv")):
         with open(path, encoding="utf-8-sig") as fh:
@@ -119,6 +146,8 @@ def build_rows():
                 "trial_best_pos": (min([t[1] for t in tr if t[1]] or [14])) / 14,
                 "trial_pass": 1.0 if any(t[2] for t in tr) else 0.0,
                 "long_rest_with_trial": 1.0 if days >= 90 and tr else 0.0,
+                "tw_ok": dt >= tw_start and r["horse_no"] in tw,
+                **tw_feats(sorted(tw.get(r["horse_no"], [])), dt),
             })
     return rows
 
@@ -139,13 +168,17 @@ def score(w, X):
 
 def evaluate(rows):
     ls = [r for r in rows if r["odds"] >= LONGSHOT]
+    if os.environ.get("WITH_TRACKWORK") == "1" or os.environ.get("TW_FILTER") == "1":
+        ls = [r for r in ls if r["tw_ok"]]
+    min_train = int(os.environ.get("MIN_TRAIN", "2000"))
+    start = int(os.environ.get("TEST_FROM", "0"))
     years = sorted({r["date"].year for r in ls})
     report = {"longshotRows": len(ls), "baseTop4Rate": round(sum(r["top4"] for r in ls) / max(len(ls), 1), 4), "years": []}
     pooled = {"model": [], "market": []}
-    for y in years[3:]:
+    for y in [y for y in years[1:] if y >= start]:
         tr = [r for r in ls if r["date"].year < y]
         te = [r for r in ls if r["date"].year == y]
-        if len(tr) < 2000 or len(te) < 200:
+        if len(tr) < min_train or len(te) < 100:
             continue
         X = np.array([[r[f] for f in FEATURES] for r in tr]); mu, sd = X.mean(0), X.std(0) + 1e-9
         w = fit_logit((X - mu) / sd, np.array([r["top4"] for r in tr], dtype=float))
