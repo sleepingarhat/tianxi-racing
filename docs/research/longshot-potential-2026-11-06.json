@@ -1,0 +1,387 @@
+{
+ "longshotRows": 39655,
+ "baseTop4Rate": 0.1341,
+ "years": [
+  {
+   "year": 2015,
+   "train": 2390,
+   "test": 2860,
+   "modelPick": {
+    "races": 770,
+    "top4Rate": 0.1935,
+    "winRoi": 0.0688
+   },
+   "marketPick": {
+    "races": 770,
+    "top4Rate": 0.1922,
+    "winRoi": -0.1429
+   },
+   "coef": {
+    "log_odds": -0.537,
+    "days_since": 0.119,
+    "last_place": 0.205,
+    "last_lbw": -0.068,
+    "last3_avg_place": -0.208,
+    "wt_change": -0.111,
+    "rating_change": -0.048,
+    "gear_changed": 0.001,
+    "class_drop": -0.138,
+    "runs_count": 0.112,
+    "trial_30d": 0.0,
+    "trial_best_pos": 0.0,
+    "trial_pass": 0.0,
+    "long_rest_with_trial": 0.0
+   }
+  },
+  {
+   "year": 2016,
+   "train": 5250,
+   "test": 3711,
+   "modelPick": {
+    "races": 783,
+    "top4Rate": 0.2107,
+    "winRoi": -0.2401
+   },
+   "marketPick": {
+    "races": 783,
+    "top4Rate": 0.2146,
+    "winRoi": -0.0792
+   },
+   "coef": {
+    "log_odds": -0.625,
+    "days_since": 0.044,
+    "last_place": 0.124,
+    "last_lbw": -0.084,
+    "last3_avg_place": -0.133,
+    "wt_change": -0.065,
+    "rating_change": -0.044,
+    "gear_changed": 0.026,
+    "class_drop": -0.093,
+    "runs_count": 0.004,
+    "trial_30d": 0.0,
+    "trial_best_pos": 0.0,
+    "trial_pass": 0.0,
+    "long_rest_with_trial": 0.0
+   }
+  },
+  {
+   "year": 2017,
+   "train": 8961,
+   "test": 3902,
+   "modelPick": {
+    "races": 809,
+    "top4Rate": 0.178,
+    "winRoi": -0.3115
+   },
+   "marketPick": {
+    "races": 809,
+    "top4Rate": 0.1941,
+    "winRoi": -0.3016
+   },
+   "coef": {
+    "log_odds": -0.684,
+    "days_since": 0.007,
+    "last_place": 0.077,
+    "last_lbw": -0.062,
+    "last3_avg_place": -0.095,
+    "wt_change": -0.021,
+    "rating_change": -0.037,
+    "gear_changed": 0.012,
+    "class_drop": -0.059,
+    "runs_count": 0.001,
+    "trial_30d": 0.0,
+    "trial_best_pos": 0.0,
+    "trial_pass": 0.0,
+    "long_rest_with_trial": 0.0
+   }
+  },
+  {
+   "year": 2018,
+   "train": 12863,
+   "test": 3455,
+   "modelPick": {
+    "races": 785,
+    "top4Rate": 0.2013,
+    "winRoi": -0.1338
+   },
+   "marketPick": {
+    "races": 785,
+    "top4Rate": 0.1975,
+    "winRoi": -0.2535
+   },
+   "coef": {
+    "log_odds": -0.701,
+    "days_since": 0.002,
+    "last_place": 0.041,
+    "last_lbw": -0.037,
+    "last3_avg_place": -0.065,
+    "wt_change": -0.024,
+    "rating_change": -0.045,
+    "gear_changed": 0.007,
+    "class_drop": -0.054,
+    "runs_count": 0.006,
+    "trial_30d": 0.0,
+    "trial_best_pos": 0.0,
+    "trial_pass": 0.0,
+    "long_rest_with_trial": 0.0
+   }
+  },
+  {
+   "year": 2019,
+   "train": 16318,
+   "test": 4087,
+   "modelPick": {
+    "races": 802,
+    "top4Rate": 0.2481,
+    "winRoi": 0.1421
+   },
+   "marketPick": {
+    "races": 802,
+    "top4Rate": 0.2531,
+    "winRoi": 0.2244
+   },
+   "coef": {
+    "log_odds": -0.699,
+    "days_since": -0.006,
+    "last_place": 0.042,
+    "last_lbw": -0.048,
+    "last3_avg_place": -0.073,
+    "wt_change": -0.02,
+    "rating_change": -0.033,
+    "gear_changed": -0.001,
+    "class_drop": -0.031,
+    "runs_count": 0.008,
+    "trial_30d": 0.0,
+    "trial_best_pos": 0.0,
+    "trial_pass": 0.0,
+    "long_rest_with_trial": 0.0
+   }
+  },
+  {
+   "year": 2020,
+   "train": 20405,
+   "test": 4088,
+   "modelPick": {
+    "races": 833,
+    "top4Rate": 0.1909,
+    "winRoi": 0.0324
+   },
+   "marketPick": {
+    "races": 833,
+    "top4Rate": 0.1957,
+    "winRoi": 0.1813
+   },
+   "coef": {
+    "log_odds": -0.717,
+    "days_since": -0.017,
+    "last_place": 0.019,
+    "last_lbw": -0.051,
+    "last3_avg_place": -0.059,
+    "wt_change": -0.028,
+    "rating_change": -0.027,
+    "gear_changed": 0.013,
+    "class_drop": -0.028,
+    "runs_count": 0.014,
+    "trial_30d": 0.0,
+    "trial_best_pos": 0.0,
+    "trial_pass": 0.0,
+    "long_rest_with_trial": 0.0
+   }
+  },
+  {
+   "year": 2021,
+   "train": 24493,
+   "test": 3741,
+   "modelPick": {
+    "races": 820,
+    "top4Rate": 0.1854,
+    "winRoi": -0.2488
+   },
+   "marketPick": {
+    "races": 820,
+    "top4Rate": 0.1841,
+    "winRoi": -0.1524
+   },
+   "coef": {
+    "log_odds": -0.717,
+    "days_since": -0.006,
+    "last_place": 0.008,
+    "last_lbw": -0.045,
+    "last3_avg_place": -0.069,
+    "wt_change": -0.028,
+    "rating_change": -0.041,
+    "gear_changed": 0.01,
+    "class_drop": -0.032,
+    "runs_count": 0.019,
+    "trial_30d": 0.0,
+    "trial_best_pos": 0.0,
+    "trial_pass": 0.0,
+    "long_rest_with_trial": 0.0
+   }
+  },
+  {
+   "year": 2022,
+   "train": 28234,
+   "test": 3562,
+   "modelPick": {
+    "races": 805,
+    "top4Rate": 0.205,
+    "winRoi": -0.3677
+   },
+   "marketPick": {
+    "races": 805,
+    "top4Rate": 0.2075,
+    "winRoi": -0.4882
+   },
+   "coef": {
+    "log_odds": -0.702,
+    "days_since": 0.003,
+    "last_place": 0.015,
+    "last_lbw": -0.041,
+    "last3_avg_place": -0.063,
+    "wt_change": -0.029,
+    "rating_change": -0.031,
+    "gear_changed": -0.004,
+    "class_drop": -0.035,
+    "runs_count": 0.014,
+    "trial_30d": 0.0,
+    "trial_best_pos": 0.0,
+    "trial_pass": 0.0,
+    "long_rest_with_trial": 0.0
+   }
+  },
+  {
+   "year": 2023,
+   "train": 31796,
+   "test": 3330,
+   "modelPick": {
+    "races": 817,
+    "top4Rate": 0.2044,
+    "winRoi": -0.3892
+   },
+   "marketPick": {
+    "races": 817,
+    "top4Rate": 0.2069,
+    "winRoi": -0.3452
+   },
+   "coef": {
+    "log_odds": -0.697,
+    "days_since": 0.004,
+    "last_place": 0.014,
+    "last_lbw": -0.025,
+    "last3_avg_place": -0.058,
+    "wt_change": -0.027,
+    "rating_change": -0.027,
+    "gear_changed": -0.011,
+    "class_drop": -0.039,
+    "runs_count": 0.018,
+    "trial_30d": 0.0,
+    "trial_best_pos": 0.0,
+    "trial_pass": 0.0,
+    "long_rest_with_trial": 0.0
+   }
+  },
+  {
+   "year": 2024,
+   "train": 35126,
+   "test": 2696,
+   "modelPick": {
+    "races": 803,
+    "top4Rate": 0.1445,
+    "winRoi": -0.6127
+   },
+   "marketPick": {
+    "races": 803,
+    "top4Rate": 0.1482,
+    "winRoi": -0.5766
+   },
+   "coef": {
+    "log_odds": -0.693,
+    "days_since": 0.009,
+    "last_place": 0.027,
+    "last_lbw": -0.035,
+    "last3_avg_place": -0.063,
+    "wt_change": -0.028,
+    "rating_change": -0.022,
+    "gear_changed": -0.008,
+    "class_drop": -0.04,
+    "runs_count": 0.013,
+    "trial_30d": 0.0,
+    "trial_best_pos": 0.0,
+    "trial_pass": 0.0,
+    "long_rest_with_trial": 0.0
+   }
+  },
+  {
+   "year": 2025,
+   "train": 37822,
+   "test": 1600,
+   "modelPick": {
+    "races": 700,
+    "top4Rate": 0.1386,
+    "winRoi": -0.6443
+   },
+   "marketPick": {
+    "races": 700,
+    "top4Rate": 0.1357,
+    "winRoi": -0.6443
+   },
+   "coef": {
+    "log_odds": -0.692,
+    "days_since": 0.012,
+    "last_place": 0.035,
+    "last_lbw": -0.044,
+    "last3_avg_place": -0.055,
+    "wt_change": -0.028,
+    "rating_change": -0.014,
+    "gear_changed": -0.007,
+    "class_drop": -0.036,
+    "runs_count": 0.017,
+    "trial_30d": 0.0,
+    "trial_best_pos": 0.0,
+    "trial_pass": 0.0,
+    "long_rest_with_trial": 0.0
+   }
+  },
+  {
+   "year": 2026,
+   "train": 39422,
+   "test": 233,
+   "modelPick": {
+    "races": 165,
+    "top4Rate": 0.0667,
+    "winRoi": -1.0
+   },
+   "marketPick": {
+    "races": 165,
+    "top4Rate": 0.0667,
+    "winRoi": -1.0
+   },
+   "coef": {
+    "log_odds": -0.693,
+    "days_since": 0.017,
+    "last_place": 0.032,
+    "last_lbw": -0.045,
+    "last3_avg_place": -0.061,
+    "wt_change": -0.027,
+    "rating_change": -0.017,
+    "gear_changed": -0.01,
+    "class_drop": -0.04,
+    "runs_count": 0.019,
+    "trial_30d": -0.007,
+    "trial_best_pos": 0.007,
+    "trial_pass": 0.0,
+    "long_rest_with_trial": 0.0
+   }
+  }
+ ],
+ "pairedTop4RateDiff": {
+  "mean": -0.0027,
+  "ci95": [
+   -0.0066,
+   0.0011
+  ],
+  "races": 8892
+ },
+ "note": "研究報告；只用賽前紀錄；位置派彩未收所以只計獨贏回報；不改四揀、凍結或戰績，升唔升由用戶決定。"
+}
