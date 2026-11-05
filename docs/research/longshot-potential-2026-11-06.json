@@ -1,6 +1,6 @@
 {
- "longshotRows": 39655,
- "baseTop4Rate": 0.1341,
+ "longshotRows": 46103,
+ "baseTop4Rate": 0.1371,
  "years": [
   {
    "year": 2015,
@@ -253,16 +253,16 @@
   {
    "year": 2023,
    "train": 31796,
-   "test": 3330,
+   "test": 3388,
    "modelPick": {
-    "races": 817,
-    "top4Rate": 0.2044,
-    "winRoi": -0.3892
+    "races": 819,
+    "top4Rate": 0.2051,
+    "winRoi": -0.3907
    },
    "marketPick": {
-    "races": 817,
-    "top4Rate": 0.2069,
-    "winRoi": -0.3452
+    "races": 819,
+    "top4Rate": 0.2088,
+    "winRoi": -0.3468
    },
    "coef": {
     "log_odds": -0.697,
@@ -283,29 +283,29 @@
   },
   {
    "year": 2024,
-   "train": 35126,
-   "test": 2696,
+   "train": 35184,
+   "test": 3325,
    "modelPick": {
-    "races": 803,
-    "top4Rate": 0.1445,
-    "winRoi": -0.6127
+    "races": 823,
+    "top4Rate": 0.175,
+    "winRoi": -0.5723
    },
    "marketPick": {
-    "races": 803,
-    "top4Rate": 0.1482,
-    "winRoi": -0.5766
+    "races": 823,
+    "top4Rate": 0.1786,
+    "winRoi": -0.548
    },
    "coef": {
-    "log_odds": -0.693,
+    "log_odds": -0.694,
     "days_since": 0.009,
-    "last_place": 0.027,
-    "last_lbw": -0.035,
-    "last3_avg_place": -0.063,
+    "last_place": 0.028,
+    "last_lbw": -0.034,
+    "last3_avg_place": -0.062,
     "wt_change": -0.028,
     "rating_change": -0.022,
-    "gear_changed": -0.008,
-    "class_drop": -0.04,
-    "runs_count": 0.013,
+    "gear_changed": -0.007,
+    "class_drop": -0.041,
+    "runs_count": 0.014,
     "trial_30d": 0.0,
     "trial_best_pos": 0.0,
     "trial_pass": 0.0,
@@ -314,29 +314,29 @@
   },
   {
    "year": 2025,
-   "train": 37822,
-   "test": 1600,
+   "train": 38509,
+   "test": 3968,
    "modelPick": {
-    "races": 700,
-    "top4Rate": 0.1386,
-    "winRoi": -0.6443
+    "races": 835,
+    "top4Rate": 0.2359,
+    "winRoi": -0.1485
    },
    "marketPick": {
-    "races": 700,
-    "top4Rate": 0.1357,
-    "winRoi": -0.6443
+    "races": 835,
+    "top4Rate": 0.2347,
+    "winRoi": -0.1222
    },
    "coef": {
-    "log_odds": -0.692,
-    "days_since": 0.012,
-    "last_place": 0.035,
-    "last_lbw": -0.044,
-    "last3_avg_place": -0.055,
-    "wt_change": -0.028,
-    "rating_change": -0.014,
-    "gear_changed": -0.007,
-    "class_drop": -0.036,
-    "runs_count": 0.017,
+    "log_odds": -0.694,
+    "days_since": 0.014,
+    "last_place": 0.031,
+    "last_lbw": -0.038,
+    "last3_avg_place": -0.049,
+    "wt_change": -0.026,
+    "rating_change": -0.015,
+    "gear_changed": -0.011,
+    "class_drop": -0.038,
+    "runs_count": 0.013,
     "trial_30d": 0.0,
     "trial_best_pos": 0.0,
     "trial_pass": 0.0,
@@ -345,43 +345,43 @@
   },
   {
    "year": 2026,
-   "train": 39422,
-   "test": 233,
+   "train": 42477,
+   "test": 3626,
    "modelPick": {
-    "races": 165,
-    "top4Rate": 0.0667,
-    "winRoi": -1.0
+    "races": 727,
+    "top4Rate": 0.1953,
+    "winRoi": -0.3067
    },
    "marketPick": {
-    "races": 165,
-    "top4Rate": 0.0667,
-    "winRoi": -1.0
+    "races": 727,
+    "top4Rate": 0.2105,
+    "winRoi": -0.4223
    },
    "coef": {
-    "log_odds": -0.693,
+    "log_odds": -0.694,
     "days_since": 0.017,
-    "last_place": 0.032,
-    "last_lbw": -0.045,
-    "last3_avg_place": -0.061,
-    "wt_change": -0.027,
-    "rating_change": -0.017,
-    "gear_changed": -0.01,
-    "class_drop": -0.04,
-    "runs_count": 0.019,
-    "trial_30d": -0.007,
-    "trial_best_pos": 0.007,
-    "trial_pass": 0.0,
+    "last_place": 0.025,
+    "last_lbw": -0.032,
+    "last3_avg_place": -0.052,
+    "wt_change": -0.023,
+    "rating_change": -0.012,
+    "gear_changed": -0.013,
+    "class_drop": -0.039,
+    "runs_count": 0.003,
+    "trial_30d": -0.022,
+    "trial_best_pos": -0.037,
+    "trial_pass": 0.009,
     "long_rest_with_trial": 0.0
    }
   }
  ],
  "pairedTop4RateDiff": {
-  "mean": -0.0027,
+  "mean": -0.0038,
   "ci95": [
-   -0.0066,
-   0.0011
+   -0.0078,
+   0.0002
   ],
-  "races": 8892
+  "races": 9611
  },
  "note": "研究報告；只用賽前紀錄；位置派彩未收所以只計獨贏回報；不改四揀、凍結或戰績，升唔升由用戶決定。"
 }
