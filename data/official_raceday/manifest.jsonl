@@ -86,3 +86,5 @@
 {"rows": 1, "scraped_at": "2026-11-04T06:48:31+00:00", "sha256": "dc5794bcbeb4c62a8dce5bd890f549449788104bea642be318ee94def8e0180a", "surface": "raceday_focus"}
 {"rows": 15, "scraped_at": "2026-11-04T06:48:31+00:00", "sha256": "8a707010f7a1969d7353e095554ba59693a28bd4a7173176d16782b481ad792e", "surface": "last_run_reminder"}
 {"rows": {"pool_dividend": 0, "pool_status": 97, "track_probe": 1}, "scraped_at": "2026-11-04T06:48:35+00:00", "sha256": "1468b238e8e3ad39642913e7b68c35e6a5326d4d5a1f03e4b8196055da281404", "surface": "pools"}
+{"rows": 1, "scraped_at": "2026-11-06T16:04:41+00:00", "sha256": "cc56050d49a2aa730f83b231877d4c62548c250671017b6c6b6d215a896bc241", "surface": "raceday_focus"}
+{"rows": {"pool_dividend": 0, "pool_status": 119, "track_probe": 0}, "scraped_at": "2026-11-06T16:04:45+00:00", "sha256": "5ec06af4109aa5700e76d405a5bca2939bc9f4c41bc226e1c477ac3fe1af068a", "surface": "pools"}
