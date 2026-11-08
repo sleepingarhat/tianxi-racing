@@ -104,3 +104,12 @@
 {"rows": 24, "scraped_at": "2026-11-07T15:01:07+00:00", "sha256": "b31913711f39f46e787b7963b53e1fd9d0fc4fd281bc6559a6a4d4e0cad076e7", "surface": "challenge_tnc"}
 {"rows": 1, "scraped_at": "2026-11-07T15:01:09+00:00", "sha256": "cabb926e01e407c2a914a8b3694abaecac953b6973824e28c6d8ead0776ea934", "surface": "raceday_focus"}
 {"rows": {"pool_dividend": 0, "pool_status": 119, "track_probe": 0}, "scraped_at": "2026-11-07T15:01:13+00:00", "sha256": "9b01fb97d56a125da20e6a7660c14482ee2dceb615fdbe67cdc9ccf0ef0c7618", "surface": "pools"}
+{"rows": 164, "scraped_at": "2026-11-08T06:25:35+00:00", "sha256": "e1b1246660d493ffc8e889a14769f1706feae6d589f2add857ed4033a1934020", "surface": "report"}
+{"rows": 197, "scraped_at": "2026-11-08T06:25:35+00:00", "sha256": "4ac3aa66a441a829a7a6f70a151291057431eaa45a52dc39489762f631e14078", "surface": "formline"}
+{"rows": 85, "scraped_at": "2026-11-08T06:25:35+00:00", "sha256": "375484abd2da9c0e842d6f3287f92a3e59fe8d1a471b1e6bc26150f97c5c92ad", "surface": "exceptional"}
+{"rows": 151, "scraped_at": "2026-11-08T06:25:35+00:00", "sha256": "b2660f33eac7d66d40caed3113a0f3cc4510933f12a83b20250a4825fe47d547", "surface": "veterinary"}
+{"rows": 6615, "scraped_at": "2026-11-08T06:25:35+00:00", "sha256": "5ac51d24fd1a730db1576c451d47446d16d775c87a32fe319ce620a75224af8c", "surface": "trackwork"}
+{"rows": 22, "scraped_at": "2026-11-08T06:26:42+00:00", "sha256": "c2d117b104b789c468af650403f75838b60f20153b00b788de47594cb3589386", "surface": "challenge_jkc"}
+{"rows": 24, "scraped_at": "2026-11-08T06:26:42+00:00", "sha256": "8775639dc0464ebdf8f3898eaa8722858545161589527a396ffcf792ba0d960d", "surface": "challenge_tnc"}
+{"rows": 1, "scraped_at": "2026-11-08T06:26:44+00:00", "sha256": "cabb926e01e407c2a914a8b3694abaecac953b6973824e28c6d8ead0776ea934", "surface": "raceday_focus"}
+{"rows": {"pool_dividend": 59, "pool_status": 119, "track_probe": 4}, "scraped_at": "2026-11-08T06:26:46+00:00", "sha256": "bfc95a766f68a7855ed66bdf62ad09b5e8c4c16cd5eb6fcf2081fddc3a50816e", "surface": "pools"}
