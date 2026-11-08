@@ -31,7 +31,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
 from selenium.webdriver.chrome.service import Service as ChromeService
-from results_header_guard import official_header_miss
+from results_header_guard import official_header_miss, parse_class_distance
 
 # Honor env overrides; fall back to Replit Nix paths, then common Linux/macOS
 # locations so local contributors do not have to set env vars manually.
@@ -187,11 +187,9 @@ def parse_race_header(race_tab):
                 info["race_meeting_no"] = m.group(2)
         if len(rows) > 2:
             row2 = rows[2].text.strip()
-            m = re.match(r"(.+?)\s*-\s*(\d+)米\s*-\s*\(([\d\-]+)\)", row2)
-            if m:
-                info["race_class"] = m.group(1).strip()
-                info["distance_m"] = m.group(2).strip()
-                info["rating_range"] = m.group(3).strip()
+            parsed = parse_class_distance(row2)
+            if parsed:
+                info["race_class"], info["distance_m"], info["rating_range"] = parsed
             m2 = re.search(r"場地狀況\s*:\s*(.+)", row2)
             if m2:
                 info["going"] = m2.group(1).strip()

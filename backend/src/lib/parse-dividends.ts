@@ -15,6 +15,20 @@ export interface HkjcDividendRow {
   dividend: number;     // payout per $10
 }
 
+/**
+ * Official amount → payout per $10. HKJC declares some dividends to a partial
+ * unit, e.g. 2026-11-08 ST R7 四重彩 "235,071.20/$1.0" (each $1 receives
+ * $235,071.20, i.e. $2,350,712 per $10). Unrecognised text returns null.
+ */
+export function dividendPer10(text: string): number | null {
+  const m = /^(\d+(?:\.\d+)?)(?:\/\$(\d+(?:\.\d+)?))?$/.exec(String(text ?? '').replace(/,/g, '').trim());
+  if (!m) return null;
+  const declared = Number(m[1]);
+  const unit = m[2] === undefined ? 10 : Number(m[2]);
+  if (!Number.isFinite(declared) || !Number.isFinite(unit) || unit <= 0 || unit > 10) return null;
+  return Math.round(declared * 10 / unit * 100) / 100;
+}
+
 export function parseHkjcDividends(html: string): HkjcDividendRow[] {
   const out: HkjcDividendRow[] = [];
   const hIdx = html.indexOf('勝出組合');
@@ -50,8 +64,8 @@ export function parseHkjcDividends(html: string): HkjcDividendRow[] {
     } else {
       continue;
     }
-    const dividend = parseFloat(amt.replace(/,/g, ''));
-    if (!isFinite(dividend) || dividend <= 0) continue;
+    const dividend = dividendPer10(amt);
+    if (dividend === null || dividend <= 0) continue;
     out.push({ poolZh: pool, combination: combo, dividend });
   }
   return out;

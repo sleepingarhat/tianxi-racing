@@ -1078,8 +1078,13 @@ def parse_rides(payload: dict, role: str, requested_date: str, requested_venue: 
             preference = runner.get('trainerPreference')
             if role == 'trainer':
                 if preference is not None:
-                    preference = str(preference)
-                    if not re.fullmatch(r'\d+', preference):
+                    preference = str(preference).strip()
+                    # HKJC leaves the field blank for a whole race that has no
+                    # preference order (2026-11-08 ST R8). Store it as absent,
+                    # never as a guessed rank; any other text still fails.
+                    if preference == '':
+                        preference = None
+                    elif not re.fullmatch(r'\d+', preference):
                         raise ParseMiss(f'trainer preference {preference!r} is not official')
                 trump = runner.get('trumpCard')
                 priority = runner.get('priority')

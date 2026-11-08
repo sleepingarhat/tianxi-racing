@@ -383,6 +383,23 @@ class RideTests(unittest.TestCase):
         with self.assertRaises(companions.IdentityError):
             companions.parse_rides(payload, 'jockey', '2026-10-28', 'ST', 'abc', SCRAPED)
 
+    def trainer_payload(self, preference):
+        payload = self.payload()
+        for runner in payload['data']['commonMeetings'][0]['races'][0]['runners']:
+            runner['trainer'] = runner.pop('jockey')
+            runner['trainerPreference'] = preference
+            runner['priority'] = False
+        payload['data']['trainerStat'] = payload['data'].pop('jockeyStat')
+        return payload
+
+    def test_blank_trainer_preference_is_absent_not_a_rank(self):
+        rows = companions.parse_rides(self.trainer_payload(''), 'trainer', '2026-10-28', 'ST', 'abc', SCRAPED)
+        self.assertEqual([row['trainer_preference'] for row in rows], [None, None])
+        rows = companions.parse_rides(self.trainer_payload('2'), 'trainer', '2026-10-28', 'ST', 'abc', SCRAPED)
+        self.assertEqual(rows[0]['trainer_preference'], '2')
+        with self.assertRaises(companions.ParseMiss):
+            companions.parse_rides(self.trainer_payload('A'), 'trainer', '2026-10-28', 'ST', 'abc', SCRAPED)
+
     def test_queries_are_the_page_documents(self):
         queries = companions.load_queries()
         self.assertEqual(set(queries), {'rw_JockeysRides', 'rw_TrainersEntries', 'rw_Summary'})
