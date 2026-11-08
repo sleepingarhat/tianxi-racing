@@ -21,16 +21,19 @@ Exit codes for check:
 from __future__ import annotations
 
 import argparse
+import csv
 import json
 import os
 import subprocess
 import sys
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, Optional
 
 ROOT = Path(__file__).resolve().parents[2]
 TICK_DIR = ROOT / "data" / "job_ticks"
+FIXTURE_CSV = ROOT / "data" / "fixtures" / "fixtures.csv"
+HKT = timezone(timedelta(hours=8))
 
 
 def _now() -> datetime:
@@ -92,6 +95,44 @@ def is_race_day_today() -> bool:
         return True
 
 
+def previous_meeting(today: date, fixture_csv: Optional[Path] = None) -> Optional[date]:
+    """Latest local HKJC meeting strictly before ``today`` (HKT), or None."""
+    fixture_csv = fixture_csv or FIXTURE_CSV
+    if not fixture_csv.is_file():
+        return None
+    best: Optional[date] = None
+    with fixture_csv.open(encoding="utf-8-sig", newline="") as handle:
+        for row in csv.DictReader(handle):
+            if row.get("venue") not in ("ST", "HV"):
+                continue
+            try:
+                day = datetime.strptime(str(row.get("date") or ""), "%Y-%m-%d").date()
+            except ValueError:
+                continue
+            if day < today and (best is None or day > best):
+                best = day
+    return best
+
+
+def covers_previous_meeting(tick: Dict[str, Any], now: datetime,
+                            fixture_csv: Optional[Path] = None) -> Optional[date]:
+    """Return the previous meeting when an ok tick already stored it.
+
+    Race days are three or four days apart, so wall-clock age alone flags the
+    gap between meetings. A tick only counts when its recorded meeting date is
+    the latest completed meeting (or later); otherwise the age check applies.
+    """
+    meta = tick.get("meta") or {}
+    try:
+        stored = datetime.strptime(str(meta.get("date") or ""), "%Y-%m-%d").date()
+    except ValueError:
+        return None
+    expected = previous_meeting(now.astimezone(HKT).date(), fixture_csv)
+    if expected is None or stored < expected:
+        return None
+    return expected
+
+
 def check(job: str, max_age_hours: float, race_day_only: bool) -> int:
     if race_day_only and not is_race_day_today():
         print(f"::notice::job_tick check skipped — not a race day (job={job})")
@@ -119,6 +160,14 @@ def check(job: str, max_age_hours: float, race_day_only: bool) -> int:
         print(f"::error::job_tick last status=fail for job={job}", file=sys.stderr)
         return 1
     if age_h > max_age_hours:
+        covered = covers_previous_meeting(tick, _now())
+        if covered is not None:
+            print(
+                f"::notice::job_tick OK job={job} — stored meeting "
+                f"{(tick.get('meta') or {}).get('date')} covers previous meeting {covered} "
+                f"(age_h={age_h:.2f} spans the gap between race days)"
+            )
+            return 0
         print(
             f"::error::job_tick STALE job={job} age_h={age_h:.2f} > {max_age_hours}",
             file=sys.stderr,
