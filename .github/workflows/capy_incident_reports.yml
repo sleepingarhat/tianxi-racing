@@ -47,4 +47,15 @@ jobs:
           done
           [ -z "$(git diff --cached --name-only --diff-filter=D)" ] || exit 1
           git commit -m '[data][skip ci] post-race incident and veterinary research evidence'
-          git push origin HEAD:main
+          # Retry only after a clean rebase; conflicting evidence remains a hard failure.
+          for attempt in 1 2 3; do
+            if git push origin HEAD:main; then exit 0; fi
+            git fetch origin main
+            if ! git rebase origin/main; then
+              git rebase --abort
+              echo 'Concurrent data conflict; original evidence preserved, refusing overwrite'
+              exit 1
+            fi
+          done
+          echo 'Push failed after three safe retries'
+          exit 1

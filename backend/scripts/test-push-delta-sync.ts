@@ -69,6 +69,23 @@ apply(d1, raceOut, RACE_ORDER, () => true);
 assert.equal(count(d1, `SELECT COUNT(*) n FROM horse_sectional_times`), localSect);
 ok('legacy row with same (race, horse, section) but other id is not duplicated');
 
+// Official post time / rating range already in D1 must survive a race push whose
+// scratch DB has no such value, and an empty post time is filled from the racecard.
+type RaceKey = { id: string; race_number: number; date: string; venue: string };
+const [keep, fill] = d1.prepare(`SELECT r.id, r.race_number, m.date, m.venue FROM races r JOIN race_meetings m ON m.id = r.meeting_id ORDER BY r.race_number LIMIT 2`).all() as RaceKey[];
+const localRace = (id: string) => local.prepare(`SELECT start_time, rating_range FROM races WHERE id = ?`).get(id) as { start_time: string | null; rating_range: string | null };
+d1.prepare(`UPDATE races SET start_time = ?, rating_range = ? WHERE id = ?`).run('2026-10-21T18:40:00+08:00', '60-40', keep.id);
+d1.prepare(`UPDATE races SET start_time = NULL WHERE id = ?`).run(fill.id);
+d1.prepare(`INSERT INTO entries_upcoming (id, race_date, venue, race_number, horse_number, post_time) VALUES (?, ?, ?, ?, ?, ?)`)
+  .run('eu_post_time_test', fill.date, fill.venue, fill.race_number, 99, '2026-10-21T19:10:00+08:00');
+apply(d1, raceOut, RACE_ORDER, () => true);
+const kept = d1.prepare(`SELECT start_time, rating_range FROM races WHERE id = ?`).get(keep.id) as { start_time: string | null; rating_range: string | null };
+assert.equal(kept.start_time, localRace(keep.id).start_time ?? '2026-10-21T18:40:00+08:00');
+assert.equal(kept.rating_range, localRace(keep.id).rating_range ?? '60-40');
+const filled = d1.prepare(`SELECT start_time FROM races WHERE id = ?`).get(fill.id) as { start_time: string | null };
+assert.equal(filled.start_time, localRace(fill.id).start_time ?? '2026-10-21T19:10:00+08:00');
+ok('race push keeps official start_time/rating_range and fills an empty start_time from the racecard');
+
 // ── 2. One-off sectional backfill mode ──────────────────────────────────────
 const d1b = freshD1();
 apply(d1b, raceOut, RACE_ORDER.filter((t) => t !== 'horse_sectional_times'), () => true); // D1 has races/horses, no sectionals
