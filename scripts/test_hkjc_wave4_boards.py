@@ -466,7 +466,7 @@ E486 = {'horse_id': 'HK_2020_E486', 'horse_name': '浪漫勇士', 'brand_no': 'E
 
 
 def legacy_page(name, brand, retired, starts_line, rows, horse_id='HK_2020_E486'):
-    suffix = ' (已退役)' if retired else ''
+    suffix = retired if isinstance(retired, str) else (' (已退役)' if retired else '')
     body = ''.join('<tr>' + ''.join(f'<td>{cell}</td>' for cell in row) + '</tr>' for row in rows)
     return (
         f'<html><body>'
@@ -588,6 +588,81 @@ class ProfileRegisterTests(unittest.TestCase):
             'horse_no,name,status\nBAD,怪馬,active\n', encoding='utf-8')
         with self.assertRaises(wave4.IdentityError):
             wave4.profile_horses(self.root)
+
+
+N014 = {'brand_no': 'N014', 'horse_name': '卡通飛飛', 'status': 'retired'}
+
+
+class RegisterGapTests(unittest.TestCase):
+    """The 2026-11-07 register sweep skipped 225 de-registered horses and 92 horses whose
+    page prints a C-prefixed number; both are official pages and must now be read."""
+
+    def test_deregistered_label_is_read(self):
+        raw = legacy_page('飛鶯', 'A056', ' (已取消登記)', '0-1-0-3', [RECORD_HEADER, RECORD_ROW],
+                          horse_id='HK_2016_A056')
+        self.assertEqual(wave4.legacy_display_name(wave4.BeautifulSoup(raw, 'html.parser')), ('飛鶯', 'A056'))
+        horse = {'horse_id': 'HK_2016_A056', 'horse_name': '飛鶯', 'brand_no': 'A056'}
+        rows = wave4.parse_legacy_record(raw, horse, TODAY, 'sha', SCRAPED)
+        self.assertEqual(rows[0]['brand_no'], 'A056')
+
+    def test_unknown_status_label_still_fails(self):
+        raw = legacy_page('飛鶯', 'A056', ' (已出口)', '0-1-0-3', [RECORD_HEADER, RECORD_ROW],
+                          horse_id='HK_2016_A056')
+        with self.assertRaises(wave4.IdentityError):
+            wave4.legacy_display_name(wave4.BeautifulSoup(raw, 'html.parser'))
+
+    def test_register_strips_deregistered_label(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / 'horses' / 'profiles').mkdir(parents=True)
+            (root / 'horses' / 'profiles' / 'horse_profiles.csv').write_text(
+                'horse_no,name,status\nA056,飛鶯 (A056) (已取消登記),inactive\n', encoding='utf-8')
+            self.assertEqual(wave4.profile_horses(root)[0]['horse_name'], '飛鶯')
+
+    def test_c_prefixed_page_resolves_plain_official_id(self):
+        raw = legacy_page('卡通飛飛', 'CN014', True, '1-5-4-34', [RECORD_HEADER, RECORD_ROW],
+                          horse_id='HK_2011_N014')
+        self.assertEqual(wave4.resolve_legacy_brand(N014, raw), 'HK_2011_N014')
+
+    def test_c_prefixed_page_must_match_register_name(self):
+        raw = legacy_page('別的馬', 'CN014', True, '1-5-4-34', [RECORD_HEADER, RECORD_ROW],
+                          horse_id='HK_2011_N014')
+        with self.assertRaises(wave4.IdentityError):
+            wave4.resolve_legacy_brand(N014, raw)
+
+    def test_c_prefixed_page_must_print_matching_id(self):
+        raw = legacy_page('卡通飛飛', 'CN014', True, '1-5-4-34', [RECORD_HEADER, RECORD_ROW],
+                          horse_id='HK_2024_N015')
+        with self.assertRaises(wave4.IdentityError):
+            wave4.resolve_legacy_brand(N014, raw)
+
+    def test_record_keeps_plain_number_for_c_prefixed_page(self):
+        raw = legacy_page('卡通飛飛', 'CN014', True, '1-5-4-34', [RECORD_HEADER, RECORD_ROW],
+                          horse_id='HK_2011_N014')
+        horse = {'horse_id': 'HK_2011_N014', 'horse_name': '卡通飛飛', 'brand_no': 'N014', 'page_brand': 'CN014'}
+        rows = wave4.parse_legacy_record(raw, horse, TODAY, 'sha', SCRAPED)
+        self.assertEqual((rows[0]['horse_id'], rows[0]['brand_no']), ('HK_2011_N014', 'N014'))
+        with self.assertRaises(wave4.IdentityError):
+            wave4.parse_legacy_record(raw, dict(horse, page_brand=''), TODAY, 'sha', SCRAPED)
+
+    def test_known_horses_falls_back_only_from_an_empty_page(self):
+        pages = {
+            'N014': b'<html><body>horse shell</body></html>',
+            'CN014': legacy_page('卡通飛飛', 'CN014', True, '1-5-4-34', [RECORD_HEADER, RECORD_ROW],
+                                 horse_id='HK_2011_N014'),
+            'N143': legacy_page('勝利攻略', 'N143', True, '2-1-0-15', [RECORD_HEADER], horse_id='HK_2016_J062'),
+            'CN143': legacy_page('勝利攻略', 'CN143', True, '2-1-0-15', [RECORD_HEADER], horse_id='HK_2011_N143'),
+        }
+        original_fetch, original_register = wave4.fetch_bytes, wave4.profile_horses
+        wave4.fetch_bytes = lambda url, *a, **k: pages[url.rsplit('=', 1)[1]]
+        wave4.profile_horses = lambda root: [N014, {'brand_no': 'N143', 'horse_name': '勝利攻略', 'status': 'retired'}]
+        try:
+            known, skipped = wave4.load_known_horses(Path('.'), workers=1)
+        finally:
+            wave4.fetch_bytes, wave4.profile_horses = original_fetch, original_register
+        self.assertEqual(known, [{'horse_id': 'HK_2011_N014', 'horse_name': '卡通飛飛',
+                                  'brand_no': 'N014', 'page_brand': 'CN014'}])
+        self.assertEqual([item['brand_no'] for item in skipped], ['N143'])
 
 
 class ShellTests(unittest.TestCase):

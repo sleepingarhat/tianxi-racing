@@ -41,6 +41,11 @@ MIGRATION = Path(__file__).resolve().parents[1] / 'backend/src/db/migrations/202
 RECORD_MIGRATION = Path(__file__).resolve().parents[1] / 'backend/src/db/migrations/20261103_official_horse_record.sql'
 HORSE_ID = re.compile(r'^HK_\d{4}_[A-Z]\d{3}$')
 BRAND = re.compile(r'^[A-Z]\d{3}$')
+# Horses registered around 2011 print a C-prefixed number on their own page (CN014) while
+# the official id keeps the plain number (HK_2011_N014); the plain number is the identity.
+LEGACY_BRAND = re.compile(r'^C[A-Z]\d{3}$')
+# Status labels the official profile page prints after the number.
+PROFILE_STATUS = r'(?:已退役|已取消登記)'
 ISO_DATE = re.compile(r'^\d{4}-\d{2}-\d{2}$')
 SLASH_DATE = re.compile(r'^(\d{2})/(\d{2})/(\d{4})$')
 VENUE_NAME = {'沙田': 'ST', '跑馬地': 'HV', '從化': 'CH'}
@@ -197,7 +202,8 @@ def cells(row) -> list[str]:
 def horse_display_name(soup: BeautifulSoup) -> tuple[str, str]:
     """Profile shell title is '馬名 (烙號)' immediately before the 往績紀錄 tab strip."""
     text = soup.get_text(' ', strip=True).replace('\xa0', ' ')
-    match = re.search(r'([^\s（()]{1,30}?)\s*[（(]([A-Z]\d{3})[）)]\s*往績紀錄', text)
+    match = re.search(r'([^\s（()]{1,30}?)\s*[（(](C?[A-Z]\d{3})[）)](?:\s*[（(]\s*' + PROFILE_STATUS
+                      + r'\s*[）)])?\s*往績紀錄', text)
     if not match:
         raise IdentityError('horse page title is not name(brand)')
     return match.group(1).strip(), match.group(2)
@@ -206,9 +212,10 @@ def horse_display_name(soup: BeautifulSoup) -> tuple[str, str]:
 def check_horse_identity(soup: BeautifulSoup, horse: dict) -> tuple[str, str]:
     name, brand = horse_display_name(soup)
     want_name = re.sub(r'\s*[（(][A-Z]\d{3}[）)]\s*$', '', horse['horse_name']).strip()
-    if name != want_name or brand != horse['brand_no']:
-        raise IdentityError(f"horse page is {name} ({brand}), not {want_name} ({horse['brand_no']})")
-    return name, brand
+    want_shown = horse.get('page_brand') or horse['brand_no']
+    if name != want_name or brand != want_shown:
+        raise IdentityError(f"horse page is {name} ({brand}), not {want_name} ({want_shown})")
+    return name, horse['brand_no']
 
 
 def content_table(soup: BeautifulSoup) -> list[list[str]]:
@@ -608,7 +615,7 @@ def load_active_horses(root: Path) -> list[dict]:
 
 
 def legacy_profile_url(brand: str) -> str:
-    if not BRAND.fullmatch(brand):
+    if not (BRAND.fullmatch(brand) or LEGACY_BRAND.fullmatch(brand)):
         raise IdentityError(f'brand {brand!r} is not an official horse number')
     return f'{SITE}/racing/information/Chinese/Horse/Horse.aspx?' + urlencode({'HorseNo': brand})
 
@@ -629,13 +636,27 @@ def resolve_official_id(brand: str, raw: bytes) -> str:
 
 
 def legacy_display_name(soup) -> tuple[str, str]:
-    """Legacy profile shell reads '馬名 (烙號)', optionally '(已退役)', before 往績紀錄."""
+    """Legacy profile shell reads '馬名 (烙號)', optionally '(已退役)' or '(已取消登記)',
+    before 往績紀錄. The number is C-prefixed for horses registered around 2011."""
     text = soup.get_text(' ', strip=True).replace('\xa0', ' ')
     match = re.search(
-        r'([^\s（()]{1,30}?)\s*[（(]([A-Z]\d{3})[）)](?:\s*[（(]\s*已退役\s*[）)])?\s*往績紀錄', text)
+        r'([^\s（()]{1,30}?)\s*[（(](C?[A-Z]\d{3})[）)](?:\s*[（(]\s*' + PROFILE_STATUS
+        + r'\s*[）)])?\s*往績紀錄', text)
     if not match:
         raise IdentityError('legacy profile page is not name(brand) 往績紀錄')
     return match.group(1).strip(), match.group(2)
+
+
+def resolve_legacy_brand(entry: dict, raw: bytes) -> str:
+    """Official id from the C-prefixed page of a register number. The page must show the
+    register's own name with 'C' + number, and print exactly one id ending in the plain
+    register number; anything else stays a skip."""
+    brand = entry['brand_no']
+    horse_id = resolve_official_id(brand, raw)
+    name, shown = legacy_display_name(BeautifulSoup(raw, 'html.parser'))
+    if shown != 'C' + brand or name != entry['horse_name']:
+        raise IdentityError(f'{brand}: C-prefixed page is {name} ({shown}), not {entry["horse_name"]} (C{brand})')
+    return horse_id
 
 
 def profile_horses(root: Path) -> list[dict]:
@@ -652,7 +673,7 @@ def profile_horses(root: Path) -> list[dict]:
             if not BRAND.fullmatch(brand):
                 raise IdentityError(f'profile register brand {brand!r} is not official')
             raw_name = (row.get('name') or '').strip()
-            name = re.sub(r'\s*[（(]\s*已退役\s*[）)]\s*$', '', raw_name)
+            name = re.sub(r'\s*[（(]\s*' + PROFILE_STATUS + r'\s*[）)]\s*$', '', raw_name)
             name = re.sub(r'\s*[（(][A-Z]\d{3}[）)]\s*$', '', name).strip()
             if not name:
                 raise IdentityError(f'profile register {brand} has no official name')
@@ -669,8 +690,15 @@ def load_known_horses(root: Path, workers: int = 4) -> tuple[list[dict], list[di
     horses = profile_horses(root)
 
     def one(entry: dict):
-        raw = fetch_bytes(legacy_profile_url(entry['brand_no']))
-        return resolve_official_id(entry['brand_no'], raw)
+        brand = entry['brand_no']
+        raw = fetch_bytes(legacy_profile_url(brand))
+        try:
+            return resolve_official_id(brand, raw), ''
+        except IdentityError:
+            # Only an empty page (no official id at all) may fall back to the C-prefixed number.
+            if re.search(r'HK_\d{4}_', raw.decode('utf-8', 'replace')):
+                raise
+        return resolve_legacy_brand(entry, fetch_bytes(legacy_profile_url('C' + brand))), 'C' + brand
 
     known = []
     skipped = []
@@ -679,13 +707,15 @@ def load_known_horses(root: Path, workers: int = 4) -> tuple[list[dict], list[di
         for future in as_completed(futures):
             entry = futures[future]
             try:
-                horse_id = future.result()
+                horse_id, page_brand = future.result()
             except IdentityError as exc:
                 skipped.append({'brand_no': entry['brand_no'], 'status': entry['status'],
                                 'reason': str(exc)[:200]})
                 continue
-            known.append({'horse_id': horse_id, 'horse_name': entry['horse_name'],
-                          'brand_no': entry['brand_no']})
+            item = {'horse_id': horse_id, 'horse_name': entry['horse_name'], 'brand_no': entry['brand_no']}
+            if page_brand:
+                item['page_brand'] = page_brand
+            known.append(item)
     if not known:
         raise IdentityError('no registered horse has an official id')
     known.sort(key=lambda item: item['horse_id'])
@@ -740,10 +770,12 @@ def parse_legacy_record(raw: bytes, horse: dict, today: date, digest: str, scrap
     place, weight carried, margin and odds. Weight carried is not body weight, so this table
     never feeds official_rating_weight."""
     soup = BeautifulSoup(raw, 'html.parser')
-    name, brand = legacy_display_name(soup)
+    name, shown = legacy_display_name(soup)
+    brand = horse['brand_no']
+    want_shown = horse.get('page_brand') or brand
     want_name = re.sub(r'\s*[（(][A-Z]\d{3}[）)]\s*$', '', horse['horse_name']).strip()
-    if name != want_name or brand != horse['brand_no']:
-        raise IdentityError(f"legacy profile is {name} ({brand}), not {want_name} ({horse['brand_no']})")
+    if name != want_name or shown != want_shown:
+        raise IdentityError(f"legacy profile is {name} ({shown}), not {want_name} ({want_shown})")
     if horse.get('horse_id') and resolve_official_id(brand, raw) != horse['horse_id']:
         raise IdentityError(f'{brand}: official id changed on the profile page')
     rows = record_table(soup)
@@ -935,7 +967,7 @@ def fetch_horse_record(horses: list[dict], today: date, scraped_at: str, workers
     skipped = []
 
     def one(horse: dict):
-        raw = fetch_bytes(legacy_profile_url(horse['brand_no']))
+        raw = fetch_bytes(legacy_profile_url(horse.get('page_brand') or horse['brand_no']))
         digest = sha256(raw)
         try:
             legacy_display_name(BeautifulSoup(raw, 'html.parser'))
