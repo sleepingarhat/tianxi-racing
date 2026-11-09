@@ -1,4 +1,5 @@
 ﻿horse_no,race_index,place,date,racecourse,track,course,distance_m,going,race_class,draw,rating,trainer,jockey,lbw,win_odds,actual_wt_lbs,running_position,finish_time,declared_wt_lbs,gear
+L371,170,08,08/11/26,沙田,草地,C+3,1200,好,4,3,55,韋達,金誠剛,5-3/4,67,135,6 8 8,1.10.65,1020,SR1/TT
 L371,069,10,04/10/26,沙田,草地,B,1200,好/快,4,7,57,韋達,金誠剛,2-3/4,78,135,10 12 10,1.10.08,1030,TT
 L371,023,10,13/09/26,沙田,草地,B,1200,好/快,4,9,59,韋達,金誠剛,4,99,135,2 2 10,1.09.16,1031,TT1
 L371,855,09,12/07/26,沙田,草地,A,1200,好/快,3,10,63,韋達,金誠剛,6,205,119,12 11 9,1.09.30,1041,--

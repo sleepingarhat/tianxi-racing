@@ -1,4 +1,5 @@
 ﻿horse_no,race_index,place,date,racecourse,track,course,distance_m,going,race_class,draw,rating,trainer,jockey,lbw,win_odds,actual_wt_lbs,running_position,finish_time,declared_wt_lbs,gear
+H321,169,06,08/11/26,沙田全天候,,,1200,好,4,6,51,姚本輝,袁幸堯,6,19,119,5 6 6,1.08.63,1114,--
 H321,080,06,07/10/26,跑馬地,草地,C+3,1200,好/快,4,4,53,姚本輝,袁幸堯,3,9.9,122,1 1 6,1.09.95,1100,--
 H321,851,11,12/07/26,沙田,草地,A,1200,好/快,4,5,55,姚本輝,袁幸堯,6-1/2,6.3,120,5 9 11,1.10.02,1127,--
 H321,807,02,27/06/26,沙田,草地,B,1200,好,4,12,54,姚本輝,袁幸堯,1/2,17,119,1 1 2,1.09.08,1140,--
