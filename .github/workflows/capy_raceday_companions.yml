@@ -78,27 +78,32 @@ jobs:
           python3 -m unittest discover -s scripts -p test_hkjc_raceday_articles.py
           python3 -m unittest discover -s scripts -p test_hkjc_raceday_pools.py
 
-      - name: Pre-flight — today or tomorrow HK
+      - name: Pre-flight — yesterday, today or tomorrow HK
         id: guard
         if: github.event_name == 'schedule'
         run: |
           set +e
+          # Yesterday counts too: a night meeting's final dividends are only
+          # published after midnight HKT, when neither today nor tomorrow races.
+          PREV=$(TZ=Asia/Hong_Kong date -d yesterday +%Y-%m-%d)
+          python fixture_guard.py check-date "$PREV"
+          yday=$?
           python fixture_guard.py check-date "$(TZ=Asia/Hong_Kong date +%Y-%m-%d)"
           today=$?
           NEXT=$(TZ=Asia/Hong_Kong date -d tomorrow +%Y-%m-%d)
           python fixture_guard.py check-date "$NEXT"
           tom=$?
           set -e
-          echo "today=$today tomorrow=$tom ($NEXT)"
-          if [ "$today" -eq 0 ] || [ "$tom" -eq 0 ]; then
+          echo "yesterday=$yday ($PREV) today=$today tomorrow=$tom ($NEXT)"
+          if [ "$yday" -eq 0 ] || [ "$today" -eq 0 ] || [ "$tom" -eq 0 ]; then
             echo "no_race=false" >> "$GITHUB_OUTPUT"
           else
             echo "no_race=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Short-circuit — no race today or tomorrow
+      - name: Short-circuit — no race yesterday, today or tomorrow
         if: github.event_name == 'schedule' && steps.guard.outputs.no_race == 'true'
-        run: echo "::notice::fixture_guard reports no race today or tomorrow, exiting cleanly"
+        run: echo "::notice::fixture_guard reports no race yesterday, today or tomorrow, exiting cleanly"
 
       - name: Choose local meetings
         id: plan
@@ -123,9 +128,9 @@ jobs:
                       item = f"{row['date']} {row['venue']}"
                       if item not in seen:
                           seen.append(item)
-          if not seen:
-              seen = [' ']
-          Path('/tmp/raceday-meetings.txt').write_text('\n'.join(seen) + '\n', encoding='utf-8')
+          # Only yesterday raced: leave the companion list empty so the page date is
+          # never guessed; the pools / challenge steps still collect yesterday.
+          Path('/tmp/raceday-meetings.txt').write_text(''.join(s + '\n' for s in seen), encoding='utf-8')
           print('meetings', seen)
           PY
             echo "surfaces=report,formline,exceptional,veterinary,trackwork,rides,summary" >> "$GITHUB_OUTPUT"
