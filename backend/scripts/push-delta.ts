@@ -255,6 +255,14 @@ function main() {
     trainers: ['name_ch', 'name_en'],
   };
 
+  // Columns that D1 may hold more completely than the scratch DB built from CSVs:
+  // the official post time (written from entries_upcoming) and the official rating
+  // range (backfilled from HKJC pages). A NULL in the scratch DB means "not known
+  // here", never "erase it", so the upsert keeps the existing D1 value.
+  const PRESERVE_WHEN_NULL: Record<string, string[]> = {
+    races: ['start_time', 'rating_range', 'video_url'],
+  };
+
   for (const entry of plan) {
     const { table } = entry;
     const where = entry.where + (table.endsWith("_elo_snapshots") ? ` AND as_of_date <= '${until}'${eloV12Only ? " AND id LIKE 'v12:%'" : ""}` : "");
@@ -296,7 +304,11 @@ function main() {
     const updateSetClause = skipUpdate || wantSectionalBackfill
       ? ''
       : nonConflictCols.length
-      ? nonConflictCols.map((c) => `${c}=excluded.${c}`).join(', ')
+      ? nonConflictCols
+          .map((c) => (PRESERVE_WHEN_NULL[table] || []).includes(c)
+            ? `${c}=COALESCE(excluded.${c}, ${table}.${c})`
+            : `${c}=excluded.${c}`)
+          .join(', ')
       : '';
     // D1 multi-row VALUES + ON CONFLICT DO UPDATE triggers D1_RESET_DO on some
     // tables (observed on `horses`, where the SET clause over 22 columns crashes
@@ -385,6 +397,23 @@ function main() {
       writeFileSync(fn, stmts.join('\n') + '\n');
       manifest.push(fn);
       chunkIdx++;
+    }
+
+    // Official post time: the race sync owns writing it, so a race-day push never
+    // leaves start_time empty when the racecard already carries the HKJC post time.
+    // Only NULLs are filled; a stored time is never rewritten.
+    if (table === 'races' && wantRace) {
+      const fn = join(outDir, `races-9999-start-time.sql`);
+      writeFileSync(fn, [
+        `UPDATE races SET start_time = (`,
+        `  SELECT MIN(e.post_time) FROM entries_upcoming e JOIN race_meetings m ON m.id = races.meeting_id`,
+        `   WHERE e.race_date = m.date AND e.venue = m.venue AND e.race_number = races.race_number`,
+        `     AND e.post_time IS NOT NULL AND e.post_time <> ''`,
+        `)`,
+        `WHERE start_time IS NULL`,
+        `  AND meeting_id IN (SELECT id FROM race_meetings WHERE date >= ${esc(since)});`,
+      ].join('\n') + '\n');
+      manifest.push(fn);
     }
   }
 
