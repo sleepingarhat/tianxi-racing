@@ -6,3 +6,4 @@
 {"horses_requested": 164, "horses_skipped": 0, "scraped_at": "2026-11-07T03:15:34+00:00", "skipped": [], "surfaces": ["horse-record", "movement", "performance", "rating-weight"]}
 {"horses_requested": 164, "horses_skipped": 0, "scraped_at": "2026-11-08T02:45:05+00:00", "skipped": [], "surfaces": ["horse-record", "movement", "performance", "rating-weight"]}
 {"horses_requested": 592, "horses_skipped": 0, "scraped_at": "2026-11-08T23:58:39+00:00", "skipped": [], "surfaces": ["horse-record", "movement", "performance", "rating-weight"]}
+{"horses_requested": 124, "horses_skipped": 0, "scraped_at": "2026-11-09T03:00:42+00:00", "skipped": [], "surfaces": ["horse-record", "movement", "performance", "rating-weight"]}
