@@ -92,3 +92,10 @@
 {"rows": 30, "scraped_at": "2026-11-08T02:45:05+00:00", "sha256": "c81c8a0f234bbe49d2d6ae769038bc25a0a1b4ab8028c20f4bc7395aa2d9fe85", "surface": "overoar"}
 {"rows": 35, "scraped_at": "2026-11-08T02:45:05+00:00", "sha256": "59016a989dd5c33e649fada92d3a286430dacd4df29cae1a96bd909126986e45", "surface": "pool-result"}
 {"rows": 499, "scraped_at": "2026-11-08T02:45:05+00:00", "sha256": "bb7004ea5f546433f1e9c818ca8857e7234a398e4908e471875ac5e79cccdedd", "surface": "draw-adv"}
+{"rows": 6518, "scraped_at": "2026-11-08T23:58:39+00:00", "sha256": "8479a7656dd2da368a350e1fe87dada79f8c9049fb500429439317ad196b6953", "surface": "rating-weight"}
+{"rows": 8111, "scraped_at": "2026-11-08T23:58:39+00:00", "sha256": "be6e85c984de5d87e2014824ea5b8cf1947427c4fe9741979195669d45106874", "surface": "performance"}
+{"rows": 8371, "scraped_at": "2026-11-08T23:58:39+00:00", "sha256": "f46493d44827d010927f1e18c8f630ec7fda05943071490e456345d2358f6880", "surface": "movement"}
+{"rows": 8805, "scraped_at": "2026-11-08T23:58:39+00:00", "sha256": "1836394886847a05d0a34d99eb26768de83ea6d114f0bfaca98c8c3dcdcbbb46", "surface": "horse-record"}
+{"rows": 30, "scraped_at": "2026-11-08T23:58:39+00:00", "sha256": "c81c8a0f234bbe49d2d6ae769038bc25a0a1b4ab8028c20f4bc7395aa2d9fe85", "surface": "overoar"}
+{"rows": 35, "scraped_at": "2026-11-08T23:58:39+00:00", "sha256": "f58e8c0ba96c08544c9d84a76a0805d23f87fb13f0cfa135cd6aa9391a37e2e1", "surface": "pool-result"}
+{"rows": 2041, "scraped_at": "2026-11-08T23:58:39+00:00", "sha256": "39a16aebc88e53407d188a41d72663dc7b48e92d99b2d235d64e614bde782590", "surface": "draw-adv"}
