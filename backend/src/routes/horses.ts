@@ -12,6 +12,7 @@ import {
   validateHorseIds,
   validateRaceId,
 } from '../lib/running-style';
+import { HORSE_ELO_HISTORY_SQL, LATEST_HORSE_ELO_SUBQUERY, LATEST_ONE_HORSE_ELO_SQL } from '../lib/elo-display';
 
 export const horsesRoutes = new Hono<{ Bindings: Env }>();
 
@@ -50,7 +51,7 @@ horsesRoutes.get('/leaderboard', async (c) => {
                   cs.total_wins, cs.total_seconds, cs.total_thirds, cs.total_starts,
                   h.status, vle.overall_elo AS elo, vle.overall_as_of AS elo_date
            FROM horses h
-           LEFT JOIN v_horse_latest_elo vle ON vle.horse_id = h.id
+           LEFT JOIN (${LATEST_HORSE_ELO_SUBQUERY}) vle ON vle.horse_id = h.id
            LEFT JOIN career_stats cs ON cs.horse_id = h.id
            WHERE vle.overall_elo IS NOT NULL ${statusClause}
            ORDER BY vle.overall_elo DESC
@@ -95,7 +96,7 @@ horsesRoutes.get('/', async (c) => {
               cs.total_wins, cs.total_seconds, cs.total_thirds, cs.total_starts,
               h.status, vle.overall_elo AS elo
        FROM horses h
-       LEFT JOIN v_horse_latest_elo vle ON vle.horse_id = h.id
+       LEFT JOIN (${LATEST_HORSE_ELO_SUBQUERY}) vle ON vle.horse_id = h.id
        LEFT JOIN career_stats cs ON cs.horse_id = h.id
        ${statusClause}
        ORDER BY ${orderBy}
@@ -232,7 +233,7 @@ horsesRoutes.get('/:id', async (c) => {
   let eloDate: string | null = null;
   try {
     const row = await c.env.DB.prepare(
-      `SELECT overall_elo, overall_as_of FROM v_horse_latest_elo WHERE horse_id = ?`,
+      LATEST_ONE_HORSE_ELO_SQL,
     ).bind(horse.id).first<any>();
     if (row) { elo = row.overall_elo; eloDate = row.overall_as_of; }
   } catch {}
@@ -323,7 +324,7 @@ horsesRoutes.get('/:id/detail', async (c) => {
   let elo: number | null = null;
   try {
     const row = await c.env.DB.prepare(
-      `SELECT overall_elo FROM v_horse_latest_elo WHERE horse_id = ?`
+      LATEST_ONE_HORSE_ELO_SQL
     ).bind(horse.id).first<any>();
     elo = row?.overall_elo ?? null;
   } catch {}
@@ -640,19 +641,12 @@ horsesRoutes.get('/:id/research', async (c) => {
 
     // 2f. latest overall Elo
     c.env.DB.prepare(
-      `SELECT rating, as_of_date, games_played
-       FROM horse_elo_snapshots
-       WHERE horse_id = ? AND axis_key = 'overall'
-       ORDER BY as_of_date DESC LIMIT 1`
+      `SELECT overall_elo AS rating, overall_as_of AS as_of_date, overall_games AS games_played
+       FROM (${LATEST_ONE_HORSE_ELO_SQL})`
     ).bind(horseId).first<any>(),
 
     // 2g. Elo history (overall axis, chronological)
-    c.env.DB.prepare(
-      `SELECT as_of_date, rating, games_played
-       FROM horse_elo_snapshots
-       WHERE horse_id = ? AND axis_key = 'overall'
-       ORDER BY as_of_date ASC`
-    ).bind(horseId).all<any>(),
+    c.env.DB.prepare(HORSE_ELO_HISTORY_SQL).bind(horseId, horseId).all<any>(),
 
     // 2h. Date-unbounded career starts from horse_form_records (preferred).
     //     Includes non-finishers so record and performance can apply separate
