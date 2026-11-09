@@ -1,29 +1,22 @@
 {
-  "scan_date": "2026-11-08",
+  "scan_date": "2026-11-09",
   "repo_root": "/home/runner/work/tianxi-racing/tianxi-racing",
   "overall_severity": "warn",
   "critical_gap_count": 0,
-  "warn_gap_count": 7,
+  "warn_gap_count": 2,
   "recommendation": "monitor_no_block",
   "categories": {
     "race_artefacts": {
       "name": "race_artefacts",
       "expected": 805,
-      "present": 800,
+      "present": 805,
       "missing": [],
       "stale": [],
-      "pending": [
-        "results_2026-11-08",
-        "commentary_2026-11-08",
-        "dividends_2026-11-08",
-        "sectional_times_2026-11-08",
-        "video_links_2026-11-08"
-      ],
+      "pending": [],
       "notes": [
-        "Official cancellation notices verified: 2025-09-24, 2026-09-20",
-        "same-day artefacts pending until verified final start +30m: 2026-11-08T18:20:00+08:00"
+        "Official cancellation notices verified: 2025-09-24, 2026-09-20"
       ],
-      "severity": "warn"
+      "severity": "ok"
     },
     "fixtures_cache": {
       "name": "fixtures_cache",
@@ -39,44 +32,44 @@
     },
     "horse_profiles": {
       "name": "horse_profiles",
-      "expected": 1179,
-      "present": 1179,
+      "expected": 1198,
+      "present": 1198,
       "missing": [],
       "stale": [],
       "pending": [],
       "notes": [
-        "total profiles in DB: 6138"
+        "total profiles in DB: 6153"
       ],
       "severity": "ok"
     },
     "horse_form_records": {
       "name": "horse_form_records",
-      "expected": 1179,
-      "present": 1179,
+      "expected": 1198,
+      "present": 1198,
       "missing": [],
       "stale": [],
       "pending": [],
       "notes": [
-        "total form_records files: 6138"
+        "total form_records files: 6153"
       ],
       "severity": "ok"
     },
     "jockey_profiles": {
       "name": "jockey_profiles",
-      "expected": 26,
-      "present": 26,
+      "expected": 27,
+      "present": 27,
       "missing": [],
       "stale": [],
       "pending": [],
       "notes": [
-        "total jockey profiles: 64"
+        "total jockey profiles: 65"
       ],
       "severity": "ok"
     },
     "jockey_records": {
       "name": "jockey_records",
-      "expected": 64,
-      "present": 64,
+      "expected": 65,
+      "present": 65,
       "missing": [],
       "stale": [],
       "pending": [],
@@ -119,8 +112,8 @@
     },
     "entries_upcoming": {
       "name": "entries_upcoming",
-      "expected": 3,
-      "present": 1,
+      "expected": 2,
+      "present": 0,
       "missing": [
         "2026-11-11",
         "2026-11-14"
