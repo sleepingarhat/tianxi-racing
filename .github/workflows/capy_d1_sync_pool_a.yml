@@ -230,7 +230,15 @@ jobs:
               # Trials: same re-run rule as the race sync — a row whose natural UNIQUE key
               # already exists under another id is skipped, never duplicated.
               case "$t" in trial_*) sed -i -E 's/^INSERT INTO /INSERT OR IGNORE INTO /' "$f" ;; esac
-              if wrangler d1 execute tianxi-db --remote --file="$f" >/tmp/out.log 2>&1; then
+              # Chunks are idempotent upserts, so a transient D1 import error
+              # (internal error / overloaded / long-running import) is retried.
+              ok=0
+              for try in 1 2 3; do
+                if wrangler d1 execute tianxi-db --remote --file="$f" >/tmp/out.log 2>&1; then ok=1; break; fi
+                grep -qiE "internal error|overloaded|long-running import" /tmp/out.log || break
+                sleep $((20 * try))
+              done
+              if [ "$ok" -eq 1 ]; then
                 echo "OK  $base"
               else
                 echo "FAIL $base"
