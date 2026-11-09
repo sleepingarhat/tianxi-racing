@@ -89,8 +89,9 @@ db.exec(`
     draw INTEGER, jockey_name TEXT, trainer_name TEXT, actual_weight REAL,
     declared_weight REAL, gear TEXT, rating INTEGER, post_time TEXT
   );
-  CREATE TABLE v_horse_latest_elo (
-    horse_id TEXT, overall_elo REAL, overall_as_of TEXT
+  CREATE TABLE horse_elo_snapshots (
+    id TEXT PRIMARY KEY, horse_id TEXT, axis_key TEXT, as_of_date TEXT,
+    rating REAL, games_played INTEGER
   );
 
   INSERT INTO horses (
@@ -108,10 +109,14 @@ db.exec(`
     ('horse_J127', 5, 8, 6, 34, 'active', '2026-08-19');
   INSERT INTO horse_form_records VALUES
     ('zero_1', 'horse_zero', '2026-01-01', 'ST', 1, 'race_old', 1, '2026-01-02', '5', 5);
-  INSERT INTO v_horse_latest_elo VALUES
-    ('horse_J343', 1600, '2026-08-19'),
-    ('horse_J127', 1550, '2026-08-19'),
-    ('horse_unknown', 1500, '2026-08-19');
+  -- 同一日有 v12 同舊版快照：展示要跟引擎用 v12（舊版分數較高，用嚟證明冇讀錯）。
+  INSERT INTO horse_elo_snapshots VALUES
+    ('v12:J343|overall|2026-08-10|ST|30', 'horse_J343', 'overall', '2026-08-10', 1580, 16),
+    ('J343|overall|2026-08-10|ST|30', 'horse_J343', 'overall', '2026-08-10', 1700, 16),
+    ('v12:J343|overall|2026-08-19|ST|41', 'horse_J343', 'overall', '2026-08-19', 1600, 17),
+    ('J343|overall|2026-08-19|ST|41', 'horse_J343', 'overall', '2026-08-19', 1720, 17),
+    ('J127|overall|2026-08-19|HV|12', 'horse_J127', 'overall', '2026-08-19', 1550, 34),
+    ('v12:U001|overall|2026-08-19|HV|12', 'horse_unknown', 'overall', '2026-08-19', 1500, 1);
   CREATE TABLE sectional_times (
     race_id TEXT, section_number INTEGER, section_distance INTEGER,
     section_time REAL, cumulative_time REAL
@@ -185,6 +190,10 @@ async function main() {
 
   const elo = await json('/api/horses/leaderboard?by=elo&status=all&limit=10');
   assert(elo.horses.find((horse: any) => horse.id === 'horse_unknown')?.totalStarts === null, 'Elo board faked starts');
+  assert(elo.horses.find((horse: any) => horse.id === 'horse_J343')?.elo === 1600, 'Elo board read legacy rating instead of v12');
+  assert(elo.horses.find((horse: any) => horse.id === 'horse_J127')?.elo === 1550, 'legacy-only horse lost its Elo');
+  const basic = await json('/api/horses/horse_J343');
+  assert(basic.elo === 1600 && basic.eloDate === '2026-08-19', `basic Elo not v12: ${basic.elo}`);
 
   const search = await json('/api/horses/search/query?q=星河');
   assert(search.horses[0].totalStarts === 17 && search.horses[0].totalWins === 7, 'search record mismatch');
@@ -206,6 +215,10 @@ async function main() {
 
   const research = await json('/api/horses/horse_J343/research?limit=3');
   assert(research.horse.record.totalStarts === 17, 'research record mismatch');
+  assert(research.elo.latest?.rating === 1600, `research latest Elo not v12: ${JSON.stringify(research.elo.latest)}`);
+  assert(JSON.stringify(research.elo.history.map((e: any) => e.rating)) === '[1580,1600]', `research Elo history mixed versions: ${JSON.stringify(research.elo.history)}`);
+  const legacyOnly = await json('/api/horses/horse_J127/research?limit=3');
+  assert(legacyOnly.elo.latest?.rating === 1550 && legacyOnly.elo.history.length === 1, 'legacy-only Elo fallback missing');
   // /research (horse page) and /form now agree on trials.
   const rt = research.training?.barrierTrials ?? [];
   assert(rt.length === 2 && rt[0].date === t0.date && rt[0].position === t0.position && rt[0].jockey === t0.jockey && rt[0].time === t0.time, `research/form trials disagree: ${JSON.stringify(rt[0])}`);
