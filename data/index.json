@@ -1,8 +1,8 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-11-08T16:16:26+00:00",
+  "generated_at": "2026-11-09T01:15:54+00:00",
   "generator": "tools/build_manifest.py",
-  "git_head": "689569de471e5c702507a45a5ca8ced158e536fd",
+  "git_head": "ef5e01188e027337e46bc038053bdbf222920a9d",
   "repo": "sleepingarhat/tianxi-database",
   "branch": "main",
   "base_url": {
@@ -20,8 +20,8 @@
     "fixtures_rows": 232,
     "horse_form_files": 6138,
     "horse_profile_rows": 6138,
-    "jockey_record_files": 64,
-    "jockey_profile_rows": 66,
+    "jockey_record_files": 65,
+    "jockey_profile_rows": 68,
     "trainer_profile_rows": 68,
     "season_years": [
       2016,
@@ -106,12 +106,12 @@
     "jockeys": {
       "profiles": {
         "path": "jockeys/jockey_profiles.csv",
-        "row_count": 66
+        "row_count": 68
       },
       "records": {
         "dir": "jockeys/records/",
         "path_template": "jockeys/records/jockey_{code}.csv",
-        "count": 64,
+        "count": 65,
         "sample": [
           "jockey_AA.csv",
           "jockey_AVB.csv",
