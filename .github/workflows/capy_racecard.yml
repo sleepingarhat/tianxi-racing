@@ -56,7 +56,7 @@ jobs:
     defaults:
       run:
         working-directory: backend
-    timeout-minutes: 10
+    timeout-minutes: 25
     steps:
       - name: Checkout tianxi-backend (scrape-racecard.ts + push scripts)
         uses: actions/checkout@v4
@@ -83,10 +83,10 @@ jobs:
             console.log('schema applied');
           "
 
-      # 2026-10-26: scheduled runs used to only scrape "today", so a Wed card
-      # published on Mon stayed at D1=0 until race day. Resolve next fixture
-      # within 7 days when today is not a meet (entries cron still helps).
-      - name: Resolve target race date
+      # Sweep every official fixture from today through 14 days, not only the
+      # next meeting. A later card can be declared while an earlier one is still
+      # current. Days without a declared card exit 0 (--allow-missing).
+      - name: Resolve target race dates
         id: target
         working-directory: ${{ github.workspace }}
         run: |
@@ -94,47 +94,58 @@ jobs:
           DATE="${{ inputs.date }}"
           TODAY=$(TZ=Asia/Hong_Kong date +%Y-%m-%d)
           if [ -n "$DATE" ]; then
+            echo "dates=$DATE" >> "$GITHUB_OUTPUT"
             echo "date=$DATE" >> "$GITHUB_OUTPUT"
+            echo "allow_missing=false" >> "$GITHUB_OUTPUT"
             echo "Resolved explicit date=$DATE"
             exit 0
           fi
-          RC=0
-          python3 fixture_guard.py check-date "$TODAY" >/dev/null 2>&1 || RC=$?
-          if [ "$RC" -eq 0 ] || [ "$RC" -eq 20 ]; then
-            echo "date=$TODAY" >> "$GITHUB_OUTPUT"
-            echo "Resolved today race-day date=$TODAY"
-            exit 0
-          fi
-          NEXT=$(python3 fixture_guard.py next-meets 1 | awk '{print $1; exit}')
-          if [ -n "$NEXT" ]; then
-            # GNU date: days until next meet
-            DIFF=$(( ( $(date -d "$NEXT" +%s) - $(date -d "$TODAY" +%s) ) / 86400 ))
-            if [ "$DIFF" -ge 0 ] && [ "$DIFF" -le 7 ]; then
-              echo "date=$NEXT" >> "$GITHUB_OUTPUT"
-              echo "Resolved next fixture within 7d: $NEXT (diff=${DIFF}d)"
-              exit 0
-            fi
-            echo "::notice::Next fixture $NEXT is ${DIFF}d away (>7) — sticking to today=$TODAY"
-          fi
+          END=$(date -d "$TODAY +14 days" +%Y-%m-%d)
+          DATES=$(python3 - "$TODAY" "$END" << 'PY'
+          import csv, sys
+          start, end = sys.argv[1], sys.argv[2]
+          with open("data/fixtures/fixtures.csv", encoding="utf-8-sig", newline="") as handle:
+              days = []
+              for row in csv.DictReader(handle):
+                  day = (row.get("date") or "").strip()
+                  venue = (row.get("venue") or "").strip().upper()
+                  if start <= day <= end and venue in ("ST", "HV"):
+                      days.append(day)
+          print(",".join(days))
+          PY
+          )
+          if [ -z "$DATES" ]; then DATES="$TODAY"; fi
+          echo "dates=$DATES" >> "$GITHUB_OUTPUT"
           echo "date=$TODAY" >> "$GITHUB_OUTPUT"
-          echo "Resolved fallback date=$TODAY"
+          echo "allow_missing=true" >> "$GITHUB_OUTPUT"
+          echo "Resolved fixture dates=$DATES"
 
       - name: Scrape race card from HKJC API
         id: scrape
         env:
           GITHUB_SHA: ${{ github.sha }}
           SCRATCHED_SQL_OUT: /tmp/delete-scratched.sql
-          TARGET_DATE: ${{ steps.target.outputs.date }}
+          TARGET_DATES: ${{ steps.target.outputs.dates }}
+          ALLOW_MISSING: ${{ steps.target.outputs.allow_missing }}
         run: |
           set -eu
-          ARGS=""
-          if [ -n "$TARGET_DATE" ]; then ARGS="$ARGS --date=$TARGET_DATE"; fi
-          if [ -n "${{ inputs.venue }}" ];    then ARGS="$ARGS --venue=${{ inputs.venue }}"; fi
-          if [ "${{ inputs.dry_run }}" = "true" ]; then ARGS="$ARGS --dry-run"; fi
-          set +e
-          npx tsx scripts/scrape-racecard.ts --db=bulk-local.db $ARGS 2>&1 | tee /tmp/scrape-racecard.log
-          RC=${PIPESTATUS[0]}
-          set -e
+          : > /tmp/delete-scratched.sql
+          : > /tmp/scrape-racecard.log
+          RC=0
+          IFS=',' read -r -a DAYS <<< "$TARGET_DATES"
+          for TARGET_DATE in "${DAYS[@]}"; do
+            [ -n "$TARGET_DATE" ] || continue
+            ARGS="--date=$TARGET_DATE"
+            if [ "$ALLOW_MISSING" = "true" ]; then ARGS="$ARGS --allow-missing"; fi
+            if [ -n "${{ inputs.venue }}" ]; then ARGS="$ARGS --venue=${{ inputs.venue }}"; fi
+            if [ "${{ inputs.dry_run }}" = "true" ]; then ARGS="$ARGS --dry-run"; fi
+            set +e
+            npx tsx scripts/scrape-racecard.ts --db=bulk-local.db $ARGS 2>&1 | tee -a /tmp/scrape-racecard.log
+            ONE=${PIPESTATUS[0]}
+            set -e
+            echo "scrape $TARGET_DATE rc=$ONE"
+            if [ "$ONE" -ne 0 ]; then RC=$ONE; break; fi
+          done
           # Count enriched runners written to local scratch DB (dry-run stays 0).
           ROWS=$(node -e "try{const D=require('better-sqlite3');const d=new D('bulk-local.db');console.log(d.prepare('SELECT COUNT(*) c FROM entries_upcoming WHERE race_number>0').get().c)}catch(e){console.log(0)}")
           echo "rows=$ROWS" >> $GITHUB_OUTPUT
@@ -168,10 +179,13 @@ jobs:
           ROWS: ${{ steps.scrape.outputs.rows || '0' }}
         run: |
           set -eu
-          DATE="${{ steps.target.outputs.date }}"
-          if [ -z "$DATE" ]; then DATE=$(TZ=Asia/Hong_Kong date +%Y-%m-%d); fi
-          # Fail closed only when the resolved target date is a fixture race day.
-          bash scripts/ci/assert_collected_rows.sh "${ROWS:-0}" "$DATE"
+          # Future fixtures may not have a declared card yet. Fail closed only
+          # for an explicit date, or for today when today itself is a race day.
+          if [ -n "${{ inputs.date }}" ]; then
+            bash scripts/ci/assert_collected_rows.sh "${ROWS:-0}" "${{ inputs.date }}"
+          else
+            bash scripts/ci/assert_collected_rows.sh "${ROWS:-0}" "$(TZ=Asia/Hong_Kong date +%Y-%m-%d)"
+          fi
 
       - name: Resolve --since window
         if: steps.scrape.outputs.has_data == 'true' && github.event.inputs.dry_run != 'true'
@@ -215,7 +229,13 @@ jobs:
             "race_name TEXT" \
             "prize TEXT" \
             "rating_range TEXT" \
-            "going TEXT"; do
+            "going TEXT" \
+            "body_weight INTEGER" \
+            "allowance REAL" \
+            "international_rating INTEGER" \
+            "last6run TEXT" \
+            "silk_file TEXT" \
+            "card_stage TEXT"; do
             COL=${SPEC%% *}
             if printf '%s' "$INFO" | grep -q "\"name\": \"$COL\""; then
               echo "exists: entries_upcoming.$COL"

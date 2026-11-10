@@ -41,7 +41,25 @@ DATA_DIRS = ["horses", "entries", "trials", "results", "jockeys", "trainers", "d
 LAST_SYNC_FILE = "last_sync.json"
 GIT_USER_NAME = "天喜 Bot"
 GIT_USER_EMAIL = "bot@tianxi.ai"
-REPO_PATH = "sleepingarhat/hkjc-horse-racing-results"  # owner/name on GitHub
+REPO_PATH = "sleepingarhat/hkjc-horse-racing-results"  # legacy fallback when GITHUB_REPOSITORY is unset
+# Tracked side file written by the pool-a merge. It is not under DATA_DIRS, so
+# leaving it unstaged makes `git rebase` refuse with "unstaged changes" after a
+# non-fast-forward push (capy_pool_a 2026-11-10, run 42743435880).
+EXTRA_COMMIT_FILES = ["audit_reports/horse_profile_coverage_latest.json"]
+REBASE_COMMAND = ["git", "rebase", "--autostash", "origin/main"]
+
+
+def repo_path() -> str:
+    """Repo the workflow checked out. Actions sets GITHUB_REPOSITORY."""
+    repo = os.environ.get("GITHUB_REPOSITORY", "").strip()
+    if repo.count("/") == 1 and " " not in repo:
+        return repo
+    return REPO_PATH
+
+
+def files_to_commit(existing_dirs: list[str]) -> list[str]:
+    extra = [path for path in EXTRA_COMMIT_FILES if os.path.exists(path)]
+    return existing_dirs + extra
 RETRY_DELAYS = [5, 15, 45]
 
 
@@ -110,7 +128,7 @@ def _ensure_git_repo() -> bool:
         _log("No .git/ and no GH_TOKEN — cannot bootstrap repo.")
         return False
     _log("No .git/ on disk — bootstrapping repo and connecting to GitHub...")
-    url = f"https://x-access-token:{token}@github.com/{REPO_PATH}.git"
+    url = f"https://x-access-token:{token}@github.com/{repo_path()}.git"
     try:
         subprocess.run(["git", "init", "-q"], check=True)
         subprocess.run(
@@ -194,7 +212,7 @@ def _format_message(stats: dict, override: str | None = None) -> str:
 
 def _ensure_remote_with_token(token: str) -> None:
     """Set origin URL to embed PAT for push auth. Idempotent."""
-    url = f"https://x-access-token:{token}@github.com/{REPO_PATH}.git"
+    url = f"https://x-access-token:{token}@github.com/{repo_path()}.git"
     subprocess.run(
         ["git", "remote", "set-url", "origin", url],
         check=True, text=True, capture_output=True,
@@ -251,7 +269,7 @@ def push_data_safely(stats: dict | None = None,
         # -f because data dirs (horses/, entries/, results/, ...) are
         # gitignored to prevent dev redeploys from overwriting prod data.
         subprocess.run(
-            ["git", "add", "-f", "--"] + existing_dirs, check=True,
+            ["git", "add", "-f", "--"] + files_to_commit(existing_dirs), check=True,
         )
         # Refresh last_sync.json after add so it gets included next push cycle.
         _write_last_sync(stats)
@@ -285,15 +303,38 @@ def push_data_safely(stats: dict | None = None,
             # reject ours with non-fast-forward. Rebase our local commit onto
             # the latest remote main before each retry so a one-shot job does
             # not lose data.
+            stashed = False
             try:
+                dirty = subprocess.run(
+                    ["git", "status", "--porcelain"],
+                    capture_output=True, text=True, check=False,
+                )
+                if dirty.stdout.strip():
+                    _log("stashing leftover tracked edits before rebase: "
+                         + " | ".join(dirty.stdout.splitlines()[:6]))
+                    stashed_run = subprocess.run(
+                        ["git", "stash", "push", "-u", "-m", "git-sync-pre-rebase"],
+                        capture_output=True, text=True, check=False,
+                    )
+                    stashed = stashed_run.returncode == 0
+                    if not stashed:
+                        _log(f"stash skipped: {(stashed_run.stderr or stashed_run.stdout)[:200]}")
                 subprocess.run(["git", "fetch", "origin", "main"],
                                check=True, capture_output=True, text=True, timeout=120)
-                subprocess.run(["git", "rebase", "origin/main"],
+                subprocess.run(REBASE_COMMAND,
                                check=True, capture_output=True, text=True, timeout=120)
                 _log("Rebased onto latest origin/main.")
             except subprocess.CalledProcessError as re:
                 _log(f"Rebase failed (attempt {attempt + 1}): {(re.stderr or str(re))[:300]}")
                 subprocess.run(["git", "rebase", "--abort"], capture_output=True)
+            finally:
+                if stashed:
+                    popped = subprocess.run(
+                        ["git", "stash", "pop"],
+                        capture_output=True, text=True, check=False,
+                    )
+                    if popped.returncode != 0:
+                        _log(f"stash pop left conflicts; commit is still rebased: {(popped.stderr or popped.stdout)[:200]}")
         try:
             subprocess.run(
                 ["git", "push", "origin", "HEAD:main"],
