@@ -24,6 +24,7 @@ npx tsx scripts/d1-official-card-schema.ts \
   --migration=src/db/migrations/20261027_entries_upcoming_race_meta.sql \
   --migration=src/db/migrations/20261110_official_fixtures_entries.sql \
   --migration=src/db/migrations/20261110_entries_upcoming_card_columns.sql \
+  --migration=src/db/migrations/20261110_entries_upcoming_weight_cells.sql \
   --entries-upcoming="$WORKDIR/entries_upcoming.json" \
   --official-fixtures="$WORKDIR/official_fixtures.json" \
   --official-race-entries="$WORKDIR/official_race_entries.json" \

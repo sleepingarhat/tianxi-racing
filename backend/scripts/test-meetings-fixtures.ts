@@ -44,8 +44,8 @@ assert.deepEqual(publicWeights('results', { actual_weight: 126, declared_weight:
   weight: 126, bodyWeight: 1208, declaredWeight: null, actualWeight: 126,
 });
 assert.equal(publicWeights('upcoming', { declared_weight: 132, actual_weight: 125, body_weight: 1151 }).weight, 132);
-assert.deepEqual(cardDeltas({ rating_change: -1, body_weight_change: 29, best_time: '1.42.43', days_since_run: 41 }), {
-  ratingChange: -1, bodyWeightChange: 29, bestTime: '1.42.43', daysSinceRun: 41,
+assert.deepEqual(cardDeltas({ rating_change: -1, body_weight_change: 29, best_time: '1.42.43', days_since_run: 41, possible_overweight: 1, age_allowance: null }), {
+  ratingChange: -1, bodyWeightChange: 29, bestTime: '1.42.43', daysSinceRun: 41, possibleOverweight: 1, ageAllowance: null,
 });
 assert.equal(cardDeltas({ rating_change: 0, body_weight_change: 0, best_time: '', days_since_run: null }).ratingChange, 0);
 assert.equal(cardDeltas({ best_time: '1101' }).bestTime, null);

@@ -111,6 +111,7 @@
       resolvePath(schemaDir, 'migrations', '20261027_entries_upcoming_race_meta.sql'),
       resolvePath(schemaDir, 'migrations', '20261110_official_fixtures_entries.sql'),
       resolvePath(schemaDir, 'migrations', '20261110_entries_upcoming_card_columns.sql'),
+      resolvePath(schemaDir, 'migrations', '20261110_entries_upcoming_weight_cells.sql'),
     ]);
 
     const deleteSentinels = db.prepare(
@@ -125,8 +126,9 @@
           trainer_name, trainer_id, actual_weight, declared_weight, body_weight,
           allowance, international_rating, last6run, silk_file, card_stage, gear,
           rating, rating_change, body_weight_change, best_time, days_since_run,
+          possible_overweight, age_allowance,
           priority_order, post_time, scraped_at, source_commit)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(race_date, venue, race_number, horse_number) DO UPDATE SET
          -- Race-level meta comes from RaceCard.aspx; an unparseable page must
          -- never wipe values already stored. A header that visibly contains
@@ -167,6 +169,8 @@
          body_weight_change = CASE WHEN ? THEN excluded.body_weight_change ELSE entries_upcoming.body_weight_change END,
          best_time       = CASE WHEN ? THEN excluded.best_time ELSE entries_upcoming.best_time END,
          days_since_run  = CASE WHEN ? THEN excluded.days_since_run ELSE entries_upcoming.days_since_run END,
+         possible_overweight = CASE WHEN ? THEN excluded.possible_overweight ELSE entries_upcoming.possible_overweight END,
+         age_allowance   = CASE WHEN ? THEN excluded.age_allowance ELSE entries_upcoming.age_allowance END,
          priority_order  = excluded.priority_order,
          post_time       = COALESCE(excluded.post_time, entries_upcoming.post_time),
          scraped_at      = excluded.scraped_at,
@@ -344,9 +348,10 @@
             allowance, internationalRating, last6, silkFile, 'declared', gear,
             rating, column?.ratingChange ?? null, column?.bodyWeightChange ?? null,
             column?.bestTime ?? null, column?.daysSinceRun ?? null,
+            column?.possibleOverweight ?? null, column?.ageAllowance ?? null,
             priorityOrder, postTime,
             new Date().toISOString(), sourceCommit,
-            columnParsed, columnParsed, columnParsed, columnParsed,
+            columnParsed, columnParsed, columnParsed, columnParsed, columnParsed, columnParsed,
           );
           inserted++;
         }
