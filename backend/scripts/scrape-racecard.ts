@@ -32,6 +32,7 @@
     const dateFilter = arg('date', '');
     const venueFilter = arg('venue', '').toUpperCase();
     const dryRun = process.argv.includes('--dry-run');
+    const allowMissing = process.argv.includes('--allow-missing');
     const sourceCommit = process.env.GITHUB_SHA ?? null;
 
     // Whitelisted HKJC query only. HKJC falls back to a default (often
@@ -46,7 +47,9 @@
     if (!meetings.length) {
       console.error(`[racecard] no active HK (ST/HV) meeting for ${dates.join(',')} — skipping`);
       // Explicit --date is a backfill/re-run intent: fail closed.
-      process.exit(dateFilter ? 1 : 0);
+      // --allow-missing is the scheduled sweep of later fixtures whose
+      // declared card (and barrier draw) is not published yet.
+      process.exit(dateFilter && !allowMissing ? 1 : 0);
     }
 
     let meeting: any = meetings[0];
@@ -105,6 +108,7 @@
       resolvePath(schemaDir, 'schema_v2.sql'),
       resolvePath(schemaDir, 'schema_silks.sql'),
       resolvePath(schemaDir, 'migrations', '20261027_entries_upcoming_race_meta.sql'),
+      resolvePath(schemaDir, 'migrations', '20261110_official_fixtures_entries.sql'),
     ]);
 
     const deleteSentinels = db.prepare(
@@ -116,9 +120,10 @@
          (id, race_date, venue, race_number, race_class, distance, track, course,
           race_name, prize, rating_range, going,
           horse_id, horse_number, horse_code, draw, jockey_name, jockey_id,
-          trainer_name, trainer_id, actual_weight, declared_weight, gear,
+          trainer_name, trainer_id, actual_weight, declared_weight, body_weight,
+          allowance, international_rating, last6run, silk_file, card_stage, gear,
           rating, priority_order, post_time, scraped_at, source_commit)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(race_date, venue, race_number, horse_number) DO UPDATE SET
          -- Race-level meta comes from RaceCard.aspx; an unparseable page must
          -- never wipe values already stored. A header that visibly contains
@@ -145,6 +150,12 @@
          trainer_id      = excluded.trainer_id,
          actual_weight   = excluded.actual_weight,
          declared_weight = excluded.declared_weight,
+         body_weight     = COALESCE(excluded.body_weight, entries_upcoming.body_weight),
+         allowance       = COALESCE(excluded.allowance, entries_upcoming.allowance),
+         international_rating = COALESCE(excluded.international_rating, entries_upcoming.international_rating),
+         last6run        = COALESCE(excluded.last6run, entries_upcoming.last6run),
+         silk_file       = COALESCE(excluded.silk_file, entries_upcoming.silk_file),
+         card_stage      = 'declared',
          gear            = excluded.gear,
          rating          = excluded.rating,
          priority_order  = excluded.priority_order,
@@ -259,8 +270,13 @@
           // currentWeight is 排位體重 (body weight, ~900-1300) and must never
           // be stored as a carried weight. actual_weight = 負磅 - 見習減磅,
           // matching race_results.actual_weight semantics.
-          const { declaredWeight, actualWeight } = mapWeights(runner);
+          const { declaredWeight, actualWeight, bodyWeight, allowance } = mapWeights(runner);
           const rating: number | null = runner.currentRating ?? null;
+          const internationalRating: number | null = Number.isFinite(Number(runner.internationalRating))
+            ? Number(runner.internationalRating)
+            : null;
+          const last6: string | null = runner.last6run ? String(runner.last6run) : null;
+          const silkFile: string | null = runner.racingColorFileName ? String(runner.racingColorFileName) : null;
           const gear: string | null = runner.gearInfo ?? null;
           const standbyNo: string = String(runner.standbyNo ?? '');
           const priorityOrder: string =
@@ -291,7 +307,8 @@
             horseId, horseNo, horseCode,
             draw, jNameCh || null, null, // jockey_id = null (avoids FK; name kept for display)
             tNameCh || null, null, // trainer_id = null (avoids FK; name kept for display)
-            actualWeight, declaredWeight, gear,
+            actualWeight, declaredWeight, bodyWeight,
+            allowance, internationalRating, last6, silkFile, 'declared', gear,
             rating, priorityOrder, postTime,
             new Date().toISOString(), sourceCommit,
           );
@@ -304,9 +321,9 @@
     // 交俾工作流程喺 D1 刪除同一批退出馬（push-delta 只會新增／覆寫，唔會刪）。
     const sqlOut = process.env.SCRATCHED_SQL_OUT;
     if (sqlOut) {
-      const { writeFileSync } = await import('node:fs');
+      const { appendFileSync } = await import('node:fs');
       const q = (v: string) => `'${v.replace(/'/g, "''")}'`;
-      writeFileSync(sqlOut, scratched.map(x => `DELETE FROM entries_upcoming WHERE race_date = ${q(meetingDate)} AND venue = ${q(venueCode)} AND race_number = ${x.raceNo} AND horse_number = ${x.horseNo};`).join('\n') + (scratched.length ? '\n' : ''));
+      appendFileSync(sqlOut, scratched.map(x => `DELETE FROM entries_upcoming WHERE race_date = ${q(meetingDate)} AND venue = ${q(venueCode)} AND race_number = ${x.raceNo} AND horse_number = ${x.horseNo};`).join('\n') + (scratched.length ? '\n' : ''));
     }
     console.error(`[racecard] scratched pre-lock=${preLock} removed=${scratched.map(x => `R${x.raceNo}#${x.horseNo}`).join(',') || 'none'}`);
     console.error(`[racecard] ✓ deleted ${deleted} sentinels · wrote ${inserted} enriched entries for ${meetingDate}@${venueCode}`);

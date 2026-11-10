@@ -102,7 +102,7 @@ export async function fetchLocalRacecards(dates: string[], venues: string[]): Pr
  *   actual_weight  =  handicapWeight - allowance (實際負磅, matches race_results.actual_weight)
  *   currentWeight  -> 排位體重 (body weight, 900-1300) — never stored as a carried weight
  */
-export function mapWeights(runner: any): { declaredWeight: number | null; actualWeight: number | null; bodyWeight: number | null } {
+export function mapWeights(runner: any): { declaredWeight: number | null; actualWeight: number | null; bodyWeight: number | null; allowance: number | null } {
   const num = (v: unknown): number | null => {
     const n = typeof v === 'number' ? v : typeof v === 'string' && v.trim() !== '' ? Number(v.trim()) : NaN;
     return Number.isFinite(n) ? n : null;
@@ -113,5 +113,6 @@ export function mapWeights(runner: any): { declaredWeight: number | null; actual
     declaredWeight: handicap,
     actualWeight: handicap !== null ? handicap - (allowance ?? 0) : null,
     bodyWeight: num(runner?.currentWeight),
+    allowance,
   };
 }

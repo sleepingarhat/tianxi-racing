@@ -4,12 +4,19 @@ name: Capy Entries — Race Card (排位表)
 # Writes entries/today_entries.txt (consumed by Pool A comeback override)
 # and entries/entries_<YYYY-MM-DD>.txt (dated archive).
 #
-# Auto-mode: HK 20:00 Mon / Tue / Sat (night before each meeting).
+# Auto-mode:
+#   Mon/Tue/Fri 20:00 HKT — Friday covers a Saturday day meeting the night before.
+#   Sat 08:00 HKT — before a Saturday day meeting, not only after it at 20:00.
+#   Sat 20:00 HKT — night before a Sunday meeting.
 
 on:
   schedule:
-    # HK 20:00 Mon,Tue,Sat = UTC 12:00 Mon,Tue,Sat
-    - cron: '0 12 * * 1,2,6'
+    # Mon/Tue/Fri 20:00 HKT = 12:00 UTC
+    - cron: '0 12 * * 1,2,5'
+    # Sat 08:00 HKT = 00:00 UTC
+    - cron: '0 0 * * 6'
+    # Sat 20:00 HKT = 12:00 UTC
+    - cron: '0 12 * * 6'
   workflow_dispatch: {}
 
 permissions:
@@ -54,9 +61,9 @@ jobs:
           fetch-depth: 1
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Pre-flight — fixture guard (tomorrow is race day?)
+      - name: Pre-flight — fixture guard (meeting inside 14 days?)
         id: guard
-        run: bash scripts/fixture_guard.sh --window 3 --direction future
+        run: bash scripts/fixture_guard.sh --window 14 --direction future
 
       - uses: actions/setup-python@v5
         if: steps.guard.outputs.run == 'true'
@@ -83,8 +90,14 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Run entries scraper
+      - name: Scrape official entries lists (報名表, draw may be unpublished)
         if: steps.guard.outputs.run == 'true'
+        run: python scripts/hkjc_entries.py --horizon-days 14
+
+      - name: Run racecard horse-code scraper
+        id: racecard_codes
+        if: steps.guard.outputs.run == 'true'
+        continue-on-error: true
         run: python EntryList_Scraper.py
 
       - name: Push entries to main

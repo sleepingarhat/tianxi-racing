@@ -240,7 +240,13 @@ CREATE TABLE IF NOT EXISTS entries_upcoming (
   trainer_name TEXT,
   trainer_id TEXT REFERENCES trainers(id),
   actual_weight REAL,
-  declared_weight REAL,
+  declared_weight REAL,               -- 負磅（racecard handicapWeight）
+  body_weight INTEGER,                -- 排位體重（currentWeight）；唔係負磅
+  allowance REAL,                     -- 見習減磅
+  international_rating INTEGER,
+  last6run TEXT,                      -- 6次近績原文
+  silk_file TEXT,                     -- 綵衣檔名
+  card_stage TEXT,                    -- 'declared' once the racecard scraper writes the row
   gear TEXT,
   rating INTEGER,
   priority_order TEXT,                 -- '正選' / '後備N'
@@ -253,6 +259,39 @@ CREATE TABLE IF NOT EXISTS entries_upcoming (
 CREATE INDEX IF NOT EXISTS idx_eu_date ON entries_upcoming(race_date);
 CREATE INDEX IF NOT EXISTS idx_eu_horse ON entries_upcoming(horse_id);
 CREATE INDEX IF NOT EXISTS idx_eu_upcoming ON entries_upcoming(race_date, venue, race_number);
+
+-- Official season calendar (fixtures.csv → D1). Not a declared racecard.
+CREATE TABLE IF NOT EXISTS official_fixtures (
+  date TEXT NOT NULL,
+  venue TEXT NOT NULL CHECK (venue IN ('ST', 'HV')),
+  weekday TEXT,
+  timing TEXT,
+  race_count INTEGER,
+  surface TEXT,
+  captured_at TEXT,
+  PRIMARY KEY (date, venue)
+);
+
+-- Pre-draw entry list (報名表). card_stage cannot become a declared card.
+CREATE TABLE IF NOT EXISTS official_race_entries (
+  race_date TEXT NOT NULL,
+  venue TEXT NOT NULL CHECK (venue IN ('ST', 'HV')),
+  race_number INTEGER NOT NULL,
+  horse_code TEXT NOT NULL,
+  horse_name TEXT NOT NULL,
+  trainer_name TEXT,
+  race_class TEXT,
+  distance INTEGER,
+  track TEXT,
+  rating_range TEXT,
+  race_name TEXT,
+  section_label TEXT,
+  card_stage TEXT NOT NULL DEFAULT 'entries' CHECK (card_stage = 'entries'),
+  draw_status TEXT NOT NULL DEFAULT 'unavailable' CHECK (draw_status = 'unavailable'),
+  source_sha256 TEXT NOT NULL,
+  scraped_at TEXT NOT NULL,
+  PRIMARY KEY (race_date, venue, race_number, horse_code)
+);
 
 -- =============================================
 -- 八、Elo rating tables（三軸 ensemble）

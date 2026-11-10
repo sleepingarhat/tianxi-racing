@@ -59,3 +59,30 @@ jobs:
         run: |
           python git_sync.py \
             --message "[data][skip ci] fixture-calendar $(date -u +%Y-%m-%dT%H:%MZ) via GHA"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Sync official fixtures into D1
+        working-directory: backend
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+        run: |
+          set -eu
+          npm install -g wrangler@4
+          python3 ../scripts/sync_official_fixtures.py --out /tmp/official_fixtures.sql
+          set +e
+          wrangler d1 execute tianxi-db --remote --file=src/db/migrations/20261110_official_fixtures_entries.sql >/tmp/mig.log 2>&1
+          RC=$?
+          set -e
+          if [ "$RC" -ne 0 ]; then
+            if grep -q "duplicate column" /tmp/mig.log; then
+              echo "fixture migration already applied"
+            else
+              cat /tmp/mig.log
+              exit 1
+            fi
+          fi
+          wrangler d1 execute tianxi-db --remote --file=/tmp/official_fixtures.sql

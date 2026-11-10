@@ -243,7 +243,10 @@ assert.equal(
 const scraper = readFileSync(join(root, 'scripts/scrape-racecard.ts'), 'utf8');
 const values = /INSERT INTO entries_upcoming[\s\S]*?VALUES \(([^)]+)\)/.exec(scraper);
 assert.ok(values, 'scraper insert has a VALUES list');
-assert.equal(values[1].split(',').filter((p) => p.trim() === '?').length, 28, 'insert placeholders match race-meta columns');
+assert.equal(values[1].split(',').filter((p) => p.trim() === '?').length, 34, 'insert placeholders match race-meta and racecard runner columns');
+assert.match(scraper, /body_weight/);
+assert.match(scraper, /card_stage/);
+assert.match(scraper, /'declared'/);
 assert.match(scraper, /RACECARD_HEADER_MISS_EXIT/);
 assert.equal(RACECARD_HEADER_MISS_EXIT, 2);
 
