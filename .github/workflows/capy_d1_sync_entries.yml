@@ -95,7 +95,8 @@ jobs:
 
       # schema_v2 CREATE does not add columns to the existing remote table.
       # The entries_upcoming INSERT below failed on body_weight when this
-      # migration ran only after that insert.
+      # migration ran only after that insert. Missing columns, including the
+      # HTML racecard cells, are applied one statement at a time.
       - name: Ensure official card schema on D1
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}

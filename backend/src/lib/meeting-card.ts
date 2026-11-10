@@ -107,3 +107,38 @@ export function positiveInt(value: unknown): number | null {
   const n = finite(value);
   return n != null && n > 0 ? Math.trunc(n) : null;
 }
+
+export interface CardDeltas {
+  /** 評分+/-. Null when the racecard cell is blank. */
+  ratingChange: number | null;
+  /** 排位體重+/-. */
+  bodyWeightChange: number | null;
+  /** 最佳時間, official text such as 1.42.43. */
+  bestTime: string | null;
+  /** 上賽距今日數. */
+  daysSinceRun: number | null;
+}
+
+function wholeInt(value: unknown): number | null {
+  const n = finite(value);
+  return n != null && Number.isInteger(n) ? n : null;
+}
+
+/** Racecard deltas stored beside the runner. Missing columns read as null. */
+export function cardDeltas(row: {
+  rating_change?: unknown;
+  body_weight_change?: unknown;
+  best_time?: unknown;
+  days_since_run?: unknown;
+} | null | undefined): CardDeltas {
+  const best = typeof row?.best_time === 'string' && /^\d{1,2}\.\d{2}\.\d{2}$/.test(row.best_time)
+    ? row.best_time
+    : null;
+  const days = wholeInt(row?.days_since_run);
+  return {
+    ratingChange: wholeInt(row?.rating_change),
+    bodyWeightChange: wholeInt(row?.body_weight_change),
+    bestTime: best,
+    daysSinceRun: days != null && days >= 0 && days <= 999 ? days : null,
+  };
+}

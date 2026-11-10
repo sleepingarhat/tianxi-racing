@@ -5,6 +5,7 @@ import { fetchLatestWinOddsByRace, normHorseKey } from '../lib/market-blend';
 import { selectDeclaredRunners, upcomingRaceHeaderView } from '../lib/upcoming-race-header';
 import {
   positiveInt,
+  cardDeltas,
   publicWeights,
   resolveCardStatus,
   type CardSignals,
@@ -202,6 +203,7 @@ async function buildRacecardFromEntries(
           lbw: null,
           rating: e.current_rating ?? e.rating,
           ...weights,
+          ...cardDeltas(e),
           ...runnerProfile(e, profiles.get(e.horse_id)),
         };
       }),
@@ -264,6 +266,7 @@ async function buildEntriesOnlyCard(db: Env['DB'], date: string, venue: string):
         lbw: null,
         rating: e.current_rating ?? null,
         ...publicWeights('upcoming', {}),
+        ...cardDeltas(null),
         ...runnerProfile(e, e.horse_id ? profiles.get(e.horse_id) : undefined),
       })),
     };
@@ -565,6 +568,7 @@ meetingsRoutes.get('/:date', async (c) => {
             lbw: e.lbw,
             rating: e.race_class_rating ?? e.current_rating,
             ...publicWeights('results', e),
+            ...cardDeltas(null),
             ...runnerProfile(e, profiles.get(e.horse_id)),
           })),
         };

@@ -156,11 +156,13 @@ export function parseRaceMeta(html: string, date: string, venue: string, raceNo:
 export interface FetchedRaceMeta {
   meta: RaceMeta;
   headerUnparsed: boolean;
+  /** Null when the page was not fetched. Present HTML is the column source. */
+  html: string | null;
 }
 
 /** Fetch one race's meta; network/HTTP failure returns all-null meta. */
 export async function fetchRaceMeta(date: string, venue: string, raceNo: number): Promise<FetchedRaceMeta> {
-  const blank = (): FetchedRaceMeta => ({ meta: emptyRaceMeta(), headerUnparsed: false });
+  const blank = (): FetchedRaceMeta => ({ meta: emptyRaceMeta(), headerUnparsed: false, html: null });
   try {
     const res = await fetch(racecardPageUrl(date, venue, raceNo), {
       headers: { 'user-agent': 'Mozilla/5.0 (compatible; tianxi-racing/1.0)' },
@@ -169,7 +171,7 @@ export async function fetchRaceMeta(date: string, venue: string, raceNo: number)
     if (!res.ok) return blank();
     const html = await res.text();
     const meta = parseRaceMeta(html, date, venue, raceNo);
-    return { meta, headerUnparsed: trackLineUnparsed(html, meta) };
+    return { meta, headerUnparsed: trackLineUnparsed(html, meta), html };
   } catch {
     return blank();
   }
