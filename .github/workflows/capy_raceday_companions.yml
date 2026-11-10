@@ -238,12 +238,8 @@ jobs:
           echo 'Push failed after three safe retries'
           exit 1
 
-      - name: Fail closed on an unparsed board
-        if: steps.scrape.outcome == 'failure' || steps.challenge.outcome == 'failure' || steps.articles.outcome == 'failure' || steps.pools.outcome == 'failure'
-        run: exit 1
-
       - name: Require Cloudflare token on a schedule
-        if: steps.scrape.outcome == 'success' && github.event_name == 'schedule'
+        if: (steps.scrape.outcome == 'success' || steps.challenge.outcome == 'success' || steps.articles.outcome == 'success' || steps.pools.outcome == 'success') && github.event_name == 'schedule'
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
         run: |
@@ -254,11 +250,14 @@ jobs:
           fi
 
       - name: Install wrangler
-        if: steps.scrape.outcome == 'success'
+        if: (steps.scrape.outcome == 'success' || steps.challenge.outcome == 'success' || steps.articles.outcome == 'success' || steps.pools.outcome == 'success')
         run: npm install -g wrangler@4
 
       - name: Upsert race-day companions into D1
-        if: steps.scrape.outcome == 'success'
+        # Each board is written on its own outcome: one unparsed board must not hold
+        # back the others (a failed companions page once kept a night meeting's
+        # stored dividends out of D1 for days).
+        if: (steps.scrape.outcome == 'success' || steps.challenge.outcome == 'success' || steps.articles.outcome == 'success' || steps.pools.outcome == 'success')
         working-directory: backend
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
@@ -273,7 +272,10 @@ jobs:
           wrangler d1 execute tianxi-db --remote --file=src/db/migrations/20261103_official_challenge_boards.sql --yes
           wrangler d1 execute tianxi-db --remote --file=src/db/migrations/20261103_official_raceday_articles.sql --yes
           wrangler d1 execute tianxi-db --remote --file=src/db/migrations/20261104_official_raceday_pools.sql --yes
-          python3 ../scripts/hkjc_raceday_companions.py --root=.. --emit-sql /tmp/raceday_companions.sql
+          : > /tmp/raceday_companions.sql
+          if [ "${{ steps.scrape.outcome }}" = "success" ]; then
+            python3 ../scripts/hkjc_raceday_companions.py --root=.. --emit-sql /tmp/raceday_companions.sql
+          fi
           if [ "${{ steps.challenge.outcome }}" = "success" ]; then
             python3 ../scripts/hkjc_challenge_boards.py --root=.. --emit-sql /tmp/challenge.sql
             cat /tmp/challenge.sql >> /tmp/raceday_companions.sql
@@ -309,3 +311,8 @@ jobs:
             echo "--> $f"
             wrangler d1 execute tianxi-db --remote --file="$f" --yes
           done
+
+      - name: Fail closed on an unparsed board
+        # After the D1 write, so boards that parsed are stored while the run still fails.
+        if: always() && (steps.scrape.outcome == 'failure' || steps.challenge.outcome == 'failure' || steps.articles.outcome == 'failure' || steps.pools.outcome == 'failure')
+        run: exit 1
