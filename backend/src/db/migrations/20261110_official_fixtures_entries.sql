@@ -2,6 +2,13 @@
 -- Written by capy_fixture_weekly and capy_entries. The Worker only reads them.
 -- card_stage on official_race_entries stays 'entries': a barrier draw is a
 -- different record (entries_upcoming), not a rewrite of this list.
+--
+-- Remote D1 already has entries_upcoming, so CREATE TABLE IF NOT EXISTS does
+-- not add body_weight. scripts/d1-ensure-official-card-schema.sh applies this
+-- file and 20261027_entries_upcoming_race_meta.sql one statement at a time,
+-- before capy_d1_sync_entries inserts and before the Worker deploy. Do not
+-- execute the whole file as one remote batch: the first "duplicate column"
+-- aborts every later ALTER and rolls the batch back.
 
 CREATE TABLE IF NOT EXISTS official_fixtures (
   date TEXT NOT NULL,
@@ -48,3 +55,9 @@ ALTER TABLE entries_upcoming ADD COLUMN international_rating INTEGER;
 ALTER TABLE entries_upcoming ADD COLUMN last6run TEXT;
 ALTER TABLE entries_upcoming ADD COLUMN silk_file TEXT;
 ALTER TABLE entries_upcoming ADD COLUMN card_stage TEXT;
+
+-- Repair a remote official_race_entries created without the identity columns.
+-- A fresh CREATE TABLE above already includes both; statement-at-a-time apply
+-- skips these when the column is present.
+ALTER TABLE official_race_entries ADD COLUMN card_stage TEXT NOT NULL DEFAULT 'entries' CHECK (card_stage = 'entries');
+ALTER TABLE official_race_entries ADD COLUMN draw_status TEXT NOT NULL DEFAULT 'unavailable' CHECK (draw_status = 'unavailable');

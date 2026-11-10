@@ -71,18 +71,7 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
         run: |
           set -eu
-          npm install -g wrangler@4
+          npm ci --no-audit --no-fund
+          bash scripts/d1-ensure-official-card-schema.sh
           python3 ../scripts/sync_official_fixtures.py --out /tmp/official_fixtures.sql
-          set +e
-          wrangler d1 execute tianxi-db --remote --file=src/db/migrations/20261110_official_fixtures_entries.sql >/tmp/mig.log 2>&1
-          RC=$?
-          set -e
-          if [ "$RC" -ne 0 ]; then
-            if grep -q "duplicate column" /tmp/mig.log; then
-              echo "fixture migration already applied"
-            else
-              cat /tmp/mig.log
-              exit 1
-            fi
-          fi
-          wrangler d1 execute tianxi-db --remote --file=/tmp/official_fixtures.sql
+          npx wrangler d1 execute tianxi-db --remote --file=/tmp/official_fixtures.sql

@@ -216,34 +216,13 @@ jobs:
         run: npm install -g wrangler@4
 
       # schema_v2 CREATE already has the columns for a fresh scratch DB.
-      # Remote D1 needs ALTER before push-delta inserts race_name/prize/rating_range/going.
-      - name: Add racecard header columns on D1
+      # Remote D1 needs the runner columns before push-delta inserts body_weight.
+      - name: Ensure official card schema on D1
         if: steps.scrape.outputs.has_data == 'true' && github.event.inputs.dry_run != 'true'
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
-        run: |
-          set -eu
-          INFO=$(wrangler d1 execute tianxi-db --remote --command="PRAGMA table_info(entries_upcoming)" --json)
-          for SPEC in \
-            "race_name TEXT" \
-            "prize TEXT" \
-            "rating_range TEXT" \
-            "going TEXT" \
-            "body_weight INTEGER" \
-            "allowance REAL" \
-            "international_rating INTEGER" \
-            "last6run TEXT" \
-            "silk_file TEXT" \
-            "card_stage TEXT"; do
-            COL=${SPEC%% *}
-            if printf '%s' "$INFO" | grep -q "\"name\": \"$COL\""; then
-              echo "exists: entries_upcoming.$COL"
-            else
-              wrangler d1 execute tianxi-db --remote \
-                --command="ALTER TABLE entries_upcoming ADD COLUMN $SPEC"
-            fi
-          done
+        run: bash scripts/d1-ensure-official-card-schema.sh
 
       - name: Delete sentinel race_number=0 rows from D1
         if: steps.scrape.outputs.has_data == 'true' && github.event.inputs.dry_run != 'true'

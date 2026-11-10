@@ -81,6 +81,15 @@ jobs:
       - name: Regression test — site reader credential + ANON_HITRATE_MODE
         run: npx tsx scripts/test-hit-rate-access.ts
 
+      - name: Regression test — official card D1 schema is applied before insert
+        run: npx tsx scripts/test-d1-official-card-schema.ts
+
+      - name: Ensure official card schema on remote D1
+        run: bash scripts/d1-ensure-official-card-schema.sh
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+
       - name: Deploy to Cloudflare Workers
         run: npx wrangler deploy
         env:
