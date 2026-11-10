@@ -6,6 +6,7 @@ import { corsPolicy } from './lib/cors-policy';
 import { logger } from 'hono/logger';
 import type { Env } from './types';
 import { meetingsRoutes } from './routes/meetings';
+import { officialVisibleRoutes } from './routes/official-visible';
 import { racesRoutes } from './routes/races';
 import { horsesRoutes } from './routes/horses';
 import { jockeysRoutes } from './routes/jockeys';
@@ -88,6 +89,7 @@ app.post('/admin/api/set-season-mode', async (c) => {
 });
 
 app.route('/api/meetings', meetingsRoutes);
+app.route('/api/official', officialVisibleRoutes);
 app.route('/api/races', racesRoutes);
 app.route('/api/horses', horsesRoutes);
 app.route('/api/jockeys', jockeysRoutes);

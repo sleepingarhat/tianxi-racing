@@ -249,4 +249,17 @@ assert.throws(
   /auth failed/,
 );
 
+const weightCells = readFileSync(join(root, 'src/db/migrations/20261110_entries_upcoming_weight_cells.sql'), 'utf8');
+const weightPlan = planOfficialCardMigration(weightCells, remoteFrom(legacy));
+assert.deepEqual(
+  weightPlan.map((statement) => statement.split('\n')[0]),
+  [
+    'ALTER TABLE entries_upcoming ADD COLUMN possible_overweight INTEGER',
+    'ALTER TABLE entries_upcoming ADD COLUMN age_allowance INTEGER',
+  ],
+  'missing overweight and age-allowance cells are planned one ALTER at a time',
+);
+for (const statement of weightPlan) legacy.exec(statement);
+assert.deepEqual(planOfficialCardMigration(weightCells, remoteFrom(legacy)), []);
+
 console.log('d1 official card schema plan ok');

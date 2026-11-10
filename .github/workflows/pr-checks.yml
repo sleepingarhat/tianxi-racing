@@ -108,6 +108,8 @@ jobs:
           python3 -m pip install --break-system-packages beautifulsoup4==4.14.2
           python3 -m unittest discover -s ../scripts -p 'test_hkjc_raceday_companions.py'
           python3 -m unittest discover -s ../scripts -p 'test_hkjc_wave5_visible.py'
+          python3 -m unittest discover -s ../scripts -p 'test_hkjc_wave6_surfaces.py'
+          npx tsx scripts/test-official-visible.ts
 
       - name: Regression test — TG scripts send X-TG-Reader-Token (Python, no network)
         run: python3 -m unittest discover -s ../tools -p test_tg_reader_auth.py

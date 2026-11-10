@@ -40,6 +40,13 @@ assert.equal(rows.get(2)?.bodyWeightChange, -13);
 assert.equal(rows.get(2)?.daysSinceRun, 31);
 assert.equal(rows.get(3)?.ratingChange, 0);
 assert.equal(rows.get(3)?.bodyWeightChange, 0);
+assert.equal(rows.get(1)?.possibleOverweight, null);
+assert.equal(rows.get(1)?.ageAllowance, null);
+const heavy = row(['4', '', '', '一生好彩', 'L200', '125', '潘明輝', '1', '3', '羅富全', '-', '52', '+2', '1100', '+1', '1.09.80', '4', '10', '閹', '0', '1', '14', '', '主', 'S', 'D', 'PP'], 'HK_2024_L200');
+const heavyRows = parseRacecardColumns(card([heavy]));
+assert.equal(heavyRows?.get(4)?.possibleOverweight, 1);
+assert.equal(heavyRows?.get(4)?.ageAllowance, 10);
+assert.throws(() => parseRacecardColumns(card([row(['4', '', '', '一生好彩', 'L200', '125', '潘明輝', 'lots', '3', '羅富全', '-', '52', '+2', '1100', '+1', '1.09.80', '4', '-', '閹', '0', '1', '14', '', '主', 'S', 'D', 'PP'], 'HK_2024_L200')])), RacecardColumnError);
 
 const runners = [
   { no: 1, horse: { id: 'HK_2024_K308', code: 'K308' } },

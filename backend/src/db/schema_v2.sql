@@ -253,6 +253,8 @@ CREATE TABLE IF NOT EXISTS entries_upcoming (
   body_weight_change INTEGER,         -- 排位體重+/-
   best_time TEXT,                     -- 最佳時間原文，例如 1.42.43
   days_since_run INTEGER,             -- 上賽距今日數
+  possible_overweight INTEGER,        -- 可能超磅；空白係 NULL，唔係 0
+  age_allowance INTEGER,              -- 分齡讓磅；空白或「-」係 NULL
   priority_order TEXT,                 -- '正選' / '後備N'
   scraped_at TEXT,
   source_commit TEXT,

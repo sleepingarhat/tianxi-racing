@@ -2,8 +2,9 @@
  * Runner columns that the whitelisted racecard GraphQL query does not return.
  * HKJC rejects added fields, so 評分+/−, 排位體重+/−, 最佳時間 and 上賽距今日數
  * are read from the public RaceCard HTML table, including cells the page hides.
- * A blank cell stays null. A present cell that is not the official shape fails
- * the card. These values are display fields, not a model input.
+ * 可能超磅 and 分齡讓磅 are the same table. A blank cell stays null. A present
+ * cell that is not the official shape fails the card. These values are display
+ * fields, not a model input and not a frozen-pick input.
  */
 
 export class RacecardColumnError extends Error {}
@@ -16,6 +17,10 @@ export interface RacecardColumnRow {
   bodyWeightChange: number | null;
   bestTime: string | null;
   daysSinceRun: number | null;
+  /** 可能超磅, pounds. Null when the cell is blank. */
+  possibleOverweight: number | null;
+  /** 分齡讓磅, pounds. Null when the cell is blank or "-". */
+  ageAllowance: number | null;
 }
 
 const HEADERS = [
@@ -24,9 +29,11 @@ const HEADERS = [
   '性別', '今季獎金', '優先參賽次序', '上賽距今日數', '配備', '馬主', '父系', '母系', '進口類別',
 ] as const;
 
+const POSSIBLE_OVERWEIGHT = 7;
 const RATING_CHANGE = 12;
 const BODY_CHANGE = 14;
 const BEST_TIME = 15;
+const AGE_ALLOWANCE = 17;
 const DAYS_SINCE = 21;
 const HORSE_ID = /^HK_\d{4}_([A-Z]\d{3})$/;
 const BEST_TIME_TEXT = /^\d{1,2}\.\d{2}\.\d{2}$/;
@@ -76,6 +83,16 @@ function daysSince(value: string): number | null {
   return Number(value);
 }
 
+/** A blank or dash cell is null. A printed 0 stays 0. */
+function pounds(value: string, label: string): number | null {
+  if (value === '' || value === '-' || value === '--') return null;
+  const text = value.startsWith('+') ? value.slice(1) : value;
+  if (!/^\d{1,2}$/.test(text)) throw new RacecardColumnError(`${label} ${value} is not official pounds`);
+  const number = Number(text);
+  if (number > 40) throw new RacecardColumnError(`${label} ${value} is outside 0 to 40`);
+  return number;
+}
+
 /**
  * Starter-table rows keyed by saddle number. Null when this HTML has no starter
  * table (the card is not declared on the page). Throws when the table is present
@@ -118,6 +135,8 @@ export function parseRacecardColumns(html: string): Map<number, RacecardColumnRo
       bodyWeightChange: signed(cells[BODY_CHANGE].text, 'body-weight change'),
       bestTime: bestTime(cells[BEST_TIME].text),
       daysSinceRun: daysSince(cells[DAYS_SINCE].text),
+      possibleOverweight: pounds(cells[POSSIBLE_OVERWEIGHT].text, 'possible overweight'),
+      ageAllowance: pounds(cells[AGE_ALLOWANCE].text, 'age allowance'),
     });
   }
   if (!out.size) throw new RacecardColumnError('racecard starter table has a header and no runners');

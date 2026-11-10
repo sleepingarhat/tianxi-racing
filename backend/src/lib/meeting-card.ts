@@ -117,6 +117,10 @@ export interface CardDeltas {
   bestTime: string | null;
   /** 上賽距今日數. */
   daysSinceRun: number | null;
+  /** 可能超磅. Null when the racecard cell is blank. */
+  possibleOverweight: number | null;
+  /** 分齡讓磅. Null when the cell is blank. */
+  ageAllowance: number | null;
 }
 
 function wholeInt(value: unknown): number | null {
@@ -130,15 +134,23 @@ export function cardDeltas(row: {
   body_weight_change?: unknown;
   best_time?: unknown;
   days_since_run?: unknown;
+  possible_overweight?: unknown;
+  age_allowance?: unknown;
 } | null | undefined): CardDeltas {
   const best = typeof row?.best_time === 'string' && /^\d{1,2}\.\d{2}\.\d{2}$/.test(row.best_time)
     ? row.best_time
     : null;
   const days = wholeInt(row?.days_since_run);
+  const pounds = (value: unknown): number | null => {
+    const n = wholeInt(value);
+    return n != null && n >= 0 && n <= 40 ? n : null;
+  };
   return {
     ratingChange: wholeInt(row?.rating_change),
     bodyWeightChange: wholeInt(row?.body_weight_change),
     bestTime: best,
     daysSinceRun: days != null && days >= 0 && days <= 999 ? days : null,
+    possibleOverweight: pounds(row?.possible_overweight),
+    ageAllowance: pounds(row?.age_allowance),
   };
 }
