@@ -95,6 +95,8 @@ jobs:
         run: |
           npx tsx scripts/test-meetings-fixtures.ts
           npx tsx scripts/test-d1-official-card-schema.ts
+          npx tsx scripts/test-racecard-meta.ts
+          npx tsx scripts/test-racecard-columns.ts
           npx tsx scripts/test-result-course.ts
           npx tsx scripts/test-parse-dividends.ts
           python3 -m unittest discover -s ../scripts -p 'test_racing_changes.py'
@@ -105,6 +107,7 @@ jobs:
           python3 -m unittest discover -s ../scripts -p 'test_job_ticks.py'
           python3 -m pip install --break-system-packages beautifulsoup4==4.14.2
           python3 -m unittest discover -s ../scripts -p 'test_hkjc_raceday_companions.py'
+          python3 -m unittest discover -s ../scripts -p 'test_hkjc_wave5_visible.py'
 
       - name: Regression test — TG scripts send X-TG-Reader-Token (Python, no network)
         run: python3 -m unittest discover -s ../tools -p test_tg_reader_auth.py

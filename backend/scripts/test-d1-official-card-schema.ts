@@ -24,6 +24,7 @@ const headerMigration = readFileSync(headerMigrationPath, 'utf8');
 const ensureScript = readFileSync(join(root, 'scripts/d1-ensure-official-card-schema.sh'), 'utf8');
 assert.match(ensureScript, /20261027_entries_upcoming_race_meta\.sql/);
 assert.match(ensureScript, /20261110_official_fixtures_entries\.sql/);
+assert.match(ensureScript, /20261110_entries_upcoming_card_columns\.sql/);
 const schemaV2 = readFileSync(join(root, 'src/db/schema_v2.sql'), 'utf8');
 
 const RUNNER_COLUMNS = [
@@ -33,6 +34,12 @@ const RUNNER_COLUMNS = [
   'last6run',
   'silk_file',
   'card_stage',
+];
+const CARD_DELTA_COLUMNS = [
+  'rating_change',
+  'body_weight_change',
+  'best_time',
+  'days_since_run',
 ];
 
 function createBody(sql: string, table: string): string {
@@ -52,7 +59,7 @@ function sameColumns(left: string, right: string, table: string): void {
 sameColumns(schemaV2, migration, 'official_fixtures');
 sameColumns(schemaV2, migration, 'official_race_entries');
 const upcomingBody = createBody(schemaV2, 'entries_upcoming');
-for (const column of RUNNER_COLUMNS) {
+for (const column of [...RUNNER_COLUMNS, ...CARD_DELTA_COLUMNS]) {
   assert.match(upcomingBody, new RegExp(`\\b${column}\\b`), `schema_v2 entries_upcoming.${column}`);
 }
 
@@ -126,6 +133,21 @@ legacy.prepare(
 ).run();
 assert.deepEqual(legacy.prepare(`SELECT body_weight FROM entries_upcoming`).get(), { body_weight: 1151 });
 assert.deepEqual(planOfficialCardMigration(migration, remoteFrom(legacy)), []);
+const cardColumnsPath = join(root, 'src/db/migrations/20261110_entries_upcoming_card_columns.sql');
+const cardColumns = readFileSync(cardColumnsPath, 'utf8');
+const deltaPlan = planOfficialCardMigration(cardColumns, remoteFrom(legacy));
+assert.deepEqual(
+  deltaPlan.map((statement) => statement.split('\n')[0]),
+  [
+    'ALTER TABLE entries_upcoming ADD COLUMN rating_change INTEGER',
+    'ALTER TABLE entries_upcoming ADD COLUMN body_weight_change INTEGER',
+    'ALTER TABLE entries_upcoming ADD COLUMN best_time TEXT',
+    'ALTER TABLE entries_upcoming ADD COLUMN days_since_run INTEGER',
+  ],
+  'missing racecard cells are planned one ALTER at a time',
+);
+for (const statement of deltaPlan) legacy.exec(statement);
+assert.deepEqual(planOfficialCardMigration(cardColumns, remoteFrom(legacy)), []);
 
 const headerLegacy = new Database(':memory:');
 headerLegacy.exec(`CREATE TABLE entries_upcoming (id TEXT PRIMARY KEY, declared_weight REAL)`);

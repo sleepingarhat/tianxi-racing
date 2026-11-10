@@ -249,6 +249,10 @@ CREATE TABLE IF NOT EXISTS entries_upcoming (
   card_stage TEXT,                    -- 'declared' once the racecard scraper writes the row
   gear TEXT,
   rating INTEGER,
+  rating_change INTEGER,              -- 評分+/-；空白係 NULL，唔係 0
+  body_weight_change INTEGER,         -- 排位體重+/-
+  best_time TEXT,                     -- 最佳時間原文，例如 1.42.43
+  days_since_run INTEGER,             -- 上賽距今日數
   priority_order TEXT,                 -- '正選' / '後備N'
   scraped_at TEXT,
   source_commit TEXT,

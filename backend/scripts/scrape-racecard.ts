@@ -18,6 +18,7 @@
   import { resolve } from 'node:path';
   import { fetchLocalRacecards, mapWeights } from './ingest/lib/hkjc-racecard.js';
   import { emptyRaceMeta, fetchRaceMeta, meetingTrackCondition, raceLevelAssignment, RACECARD_HEADER_MISS_EXIT, type RaceMeta } from './ingest/lib/racecard-meta.js';
+  import { assertRacecardColumns, columnRowForRunner, parseRacecardColumns, type RacecardColumnRow } from './ingest/lib/racecard-columns.js';
   import { entryId } from './ingest/lib/ids.js';
     import { ensureSchema } from './ingest/lib/db.js';
     import { resolve as resolvePath } from 'node:path';
@@ -109,6 +110,7 @@
       resolvePath(schemaDir, 'schema_silks.sql'),
       resolvePath(schemaDir, 'migrations', '20261027_entries_upcoming_race_meta.sql'),
       resolvePath(schemaDir, 'migrations', '20261110_official_fixtures_entries.sql'),
+      resolvePath(schemaDir, 'migrations', '20261110_entries_upcoming_card_columns.sql'),
     ]);
 
     const deleteSentinels = db.prepare(
@@ -122,8 +124,9 @@
           horse_id, horse_number, horse_code, draw, jockey_name, jockey_id,
           trainer_name, trainer_id, actual_weight, declared_weight, body_weight,
           allowance, international_rating, last6run, silk_file, card_stage, gear,
-          rating, priority_order, post_time, scraped_at, source_commit)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          rating, rating_change, body_weight_change, best_time, days_since_run,
+          priority_order, post_time, scraped_at, source_commit)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(race_date, venue, race_number, horse_number) DO UPDATE SET
          -- Race-level meta comes from RaceCard.aspx; an unparseable page must
          -- never wipe values already stored. A header that visibly contains
@@ -158,6 +161,12 @@
          card_stage      = 'declared',
          gear            = excluded.gear,
          rating          = excluded.rating,
+         -- Parsed HTML cells replace a stored value, including an official blank.
+         -- An unfetched page keeps the stored cells.
+         rating_change   = CASE WHEN ? THEN excluded.rating_change ELSE entries_upcoming.rating_change END,
+         body_weight_change = CASE WHEN ? THEN excluded.body_weight_change ELSE entries_upcoming.body_weight_change END,
+         best_time       = CASE WHEN ? THEN excluded.best_time ELSE entries_upcoming.best_time END,
+         days_since_run  = CASE WHEN ? THEN excluded.days_since_run ELSE entries_upcoming.days_since_run END,
          priority_order  = excluded.priority_order,
          post_time       = COALESCE(excluded.post_time, entries_upcoming.post_time),
          scraped_at      = excluded.scraped_at,
@@ -207,13 +216,34 @@
     // from the classic RaceCard.aspx pages instead; unparseable races keep
     // existing database values via COALESCE in the upsert below.
     const metaByRace = new Map<number, RaceMeta>();
+    const columnsByRace = new Map<number, Map<number, RacecardColumnRow> | null>();
     const headerMisses: number[] = [];
+    const columnMisses: string[] = [];
     for (const race of races) {
       const rn = Number(race.no ?? 0);
       if (!rn) continue;
       const fetched = await fetchRaceMeta(meetingDate, venueCode, rn);
       metaByRace.set(rn, fetched.meta);
       if (fetched.headerUnparsed) headerMisses.push(rn);
+      if (!fetched.html || !fetched.meta.postTime) {
+        columnsByRace.set(rn, null);
+        continue;
+      }
+      try {
+        const rows = parseRacecardColumns(fetched.html);
+        if (!rows) {
+          columnMisses.push(`R${rn} starter table missing`);
+          continue;
+        }
+        assertRacecardColumns(rows, race.runners ?? []);
+        columnsByRace.set(rn, rows);
+      } catch (err) {
+        columnMisses.push(`R${rn} ${(err as Error).message}`);
+      }
+    }
+    if (columnMisses.length) {
+      console.error(`[racecard] runner columns failed: ${columnMisses.join('; ')} — failing closed`);
+      process.exit(RACECARD_HEADER_MISS_EXIT);
     }
     // 官方退出（Scratched）：只喺鎖點（首場前90分鐘）前從排位剔走；鎖後唔郁，原凍結保持不變。
     const postTimes = [...metaByRace.values()].map(m => m.postTime ? Date.parse(`${meetingDate}T${m.postTime}:00+08:00`) : NaN).filter(Number.isFinite);
@@ -300,6 +330,9 @@
           if (tId) upsertTrainer.run(tId, tNameEn || tCode, tNameCh || null);
 
           const id = entryId(meetingDate, venueCode, raceNo, horseNo);
+          const columnTable = columnsByRace.get(raceNo) ?? null;
+          const column = columnTable ? columnRowForRunner(columnTable, runners, runner) : null;
+          const columnParsed = columnTable ? 1 : 0;
           upsert.run(
             id, meetingDate, venueCode, raceNo,
             level.race_class, level.distance, level.track, level.course,
@@ -309,8 +342,11 @@
             tNameCh || null, null, // trainer_id = null (avoids FK; name kept for display)
             actualWeight, declaredWeight, bodyWeight,
             allowance, internationalRating, last6, silkFile, 'declared', gear,
-            rating, priorityOrder, postTime,
+            rating, column?.ratingChange ?? null, column?.bodyWeightChange ?? null,
+            column?.bestTime ?? null, column?.daysSinceRun ?? null,
+            priorityOrder, postTime,
             new Date().toISOString(), sourceCommit,
+            columnParsed, columnParsed, columnParsed, columnParsed,
           );
           inserted++;
         }
