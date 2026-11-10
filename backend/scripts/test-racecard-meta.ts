@@ -241,14 +241,22 @@ assert.equal(
 );
 
 const scraper = readFileSync(join(root, 'scripts/scrape-racecard.ts'), 'utf8');
-const values = /INSERT INTO entries_upcoming[\s\S]*?VALUES \(([^)]+)\)/.exec(scraper);
-assert.ok(values, 'scraper insert has a VALUES list');
-assert.equal(values[1].split(',').filter((p) => p.trim() === '?').length, 38, 'insert placeholders match race-meta and racecard runner columns');
+const insertSql = /INSERT INTO entries_upcoming\s*\(([^)]+)\)[\s\S]*?VALUES \(([^)]+)\)/.exec(scraper);
+assert.ok(insertSql, 'scraper insert has a column list and a VALUES list');
+const insertColumns = insertSql[1].split(',').map((part) => part.trim()).filter(Boolean);
+const placeholders = insertSql[2].split(',').filter((part) => part.trim() === '?');
+assert.equal(placeholders.length, insertColumns.length, 'insert placeholders match race-meta and racecard runner columns');
+assert.equal(placeholders.length, 40, 'race-meta columns plus racecard runner columns, including possible overweight and age allowance');
+for (const column of ['possible_overweight', 'age_allowance', 'rating_change', 'body_weight_change', 'best_time', 'days_since_run']) {
+  assert.ok(insertColumns.includes(column), column);
+}
 assert.match(scraper, /body_weight/);
 assert.match(scraper, /rating_change/);
 assert.match(scraper, /body_weight_change/);
 assert.match(scraper, /best_time/);
 assert.match(scraper, /days_since_run/);
+assert.match(scraper, /possible_overweight/);
+assert.match(scraper, /age_allowance/);
 assert.match(scraper, /card_stage/);
 assert.match(scraper, /'declared'/);
 assert.match(scraper, /RACECARD_HEADER_MISS_EXIT/);
