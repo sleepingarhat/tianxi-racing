@@ -58,7 +58,14 @@ def repo_path() -> str:
 
 
 def files_to_commit(existing_dirs: list[str]) -> list[str]:
-    extra = [path for path in EXTRA_COMMIT_FILES if os.path.exists(path)]
+    """Extra reports live next to this script, not relative to the process cwd.
+
+    PR checks run this test from backend/, so a cwd-relative exists() check
+    dropped the coverage report even though the file is in the repo root.
+    git_sync itself is invoked from that root, and these paths are root-relative.
+    """
+    root = Path(__file__).resolve().parent
+    extra = [path for path in EXTRA_COMMIT_FILES if (root / path).is_file()]
     return existing_dirs + extra
 RETRY_DELAYS = [5, 15, 45]
 
