@@ -6,6 +6,8 @@
 
 2026-11-10 再對 live 頁之後：馬匹來港前名稱、獎金計劃出賽馬、終點照片、賽事特別情況索引由冇改已有。賽日數據的頁面 payload 係兩張 JPEG，冇表。馬匹消息同馬匹評分榜的 `View=` 仍然返回目錄殼，頁面腳本冇另一次資料請求。進口資格係政策正文。計完係 **49 完整、15 部分、4 冇**（49/68，約 72%）。排位表的可能超磅、分齡讓磅已入庫，頁面仍然係部分（出賽馬匹 PDF、跑道圖未收；馬齡、性別、馬主、進口類別、今季獎金仍然用馬匹主檔）。
 
+2026-11-10 再讀官方頁：賽日數據仍然係兩張 JPEG，而家把官方圖片路徑同顯示窗時間入庫，唔估圖入面的數字。馬匹評分榜的 iframe 有評分表。馬匹消息的 `View=` 有公告清單、評分變動、首五十、獎金表，同季終評分正文。進口資格仍然係政策正文，正文入面的國家表同年齡表一併收。排位表的出賽馬匹 PDF、跑道圖，同埋馬齡、性別、馬主、進口類別、今季獎金，由排位 HTML 入庫。計完係 **54 完整、14 部分、0 冇**（54/68，約 79%）。
+
 上一份審計專門對 10 月 28 日沙田場次頭：[`docs/hkjc-coverage-audit.md`](./hkjc-coverage-audit.md)，而家在 [PR #113](https://github.com/sleepingarhat/tianxi-racing/pull/113)（分支 `cursor/hkjc-coverage-audit-10dc`），尚未合併。合併之後兩份文件同目錄。今份把範圍拉闊到成個本地公開網站，唔再只係該次場次頭。
 
 自有預測同 Elo 係官方頁上面的一層。官方頁未寫入的場名、獎金、途程，唔好用預測文案填。
@@ -92,7 +94,7 @@
 
 | 頁 | 狀態 | 公開欄位 | 天喜落點同節奏 | 日期風險 |
 |---|---|---|---|---|
-| [排位表](https://racing.hkjc.com/zh-hk/local/information/racecard?racedate=2026/10/28&Racecourse=ST&RaceNo=1) 同經典 `RaceCard.aspx` | 部分 | 場名、日期、星期、馬場、開跑時間、草地／全天候、途程、賽道、地況、獎金、評分區間、班次。馬匹欄：馬號、6次近績、綵衣、馬名、烙號、負磅、騎師、可能超磅、檔位、練馬師、國際評分、評分、評分+/-、排位體重、體重+/-、最佳時間、馬齡、分齡讓磅、性別、今季獎金、優先參賽次序、上賽距今日數、配備、馬主、父系、母系、進口類別。另有出賽馬匹 PDF、跑道圖 | 馬匹層：同一條已獲准的 GraphQL → `entries_upcoming`（馬號、檔位、騎練、負磅、實際負磅、排位體重、見習減磅、評分、國際評分、6次近績、綵衣檔名、配備、班次、開跑時間、後備）。唔加 GraphQL 欄。場名、獎金、評分區間、途程、跑道、地況由排位 HTML 寫入。`capy_racecard` 掃今日起 14 日內每一個賽期，未出排位的日子跳過；一／三／五／六 09:00 HKT，每日 06:15 HKT。公開 `weight` 係負磅或實際負磅；排位體重係 `bodyWeight`。完場 `ratingRange` 讀 `races.rating_range`。馬齡、性別、馬主、進口類別、今季獎金用已入庫的馬匹主檔，冇就留空。評分+/-、排位體重+/-、最佳時間、上賽距今日數由同一頁 HTML 寫入 `entries_upcoming.rating_change`、`body_weight_change`、`best_time`、`days_since_run`，空白留空，0 就寫 0，唔加 GraphQL 欄。頁面有排位表但這四欄對唔上馬號同烙號，`capy_racecard` 以 exit 2 失敗。可能超磅、分齡讓磅由同一頁 HTML 寫入 `entries_upcoming.possible_overweight`、`age_allowance`，空白或「-」留空，0 就寫 0。出賽馬匹 PDF、跑道圖未收。馬齡、性別、馬主、進口類別、今季獎金仍然用馬匹主檔，冇就留空 | P0。身份閘仍要保持。頁面有「米」同「全天候／草地」但途程或跑道空，`capy_racecard` 以 exit 2 失敗，唔會綠燈推上 D1 |
+| [排位表](https://racing.hkjc.com/zh-hk/local/information/racecard?racedate=2026/10/28&Racecourse=ST&RaceNo=1) 同經典 `RaceCard.aspx` | 已有 | 場名、日期、星期、馬場、開跑時間、草地／全天候、途程、賽道、地況、獎金、評分區間、班次。馬匹欄：馬號、6次近績、綵衣、馬名、烙號、負磅、騎師、可能超磅、檔位、練馬師、國際評分、評分、評分+/-、排位體重、體重+/-、最佳時間、馬齡、分齡讓磅、性別、今季獎金、優先參賽次序、上賽距今日數、配備、馬主、父系、母系、進口類別。另有出賽馬匹 PDF、跑道圖 | 馬匹層：同一條已獲准的 GraphQL → `entries_upcoming`（馬號、檔位、騎練、負磅、實際負磅、排位體重、見習減磅、評分、國際評分、6次近績、綵衣檔名、配備、班次、開跑時間、後備）。唔加 GraphQL 欄。場名、獎金、評分區間、途程、跑道、地況由排位 HTML 寫入。`capy_racecard` 掃今日起 14 日內每一個賽期，未出排位的日子跳過；一／三／五／六 09:00 HKT，每日 06:15 HKT。公開 `weight` 係負磅或實際負磅；排位體重係 `bodyWeight`。完場 `ratingRange` 讀 `races.rating_range`。評分+/-、排位體重+/-、最佳時間、上賽距今日數由同一頁 HTML 寫入 `entries_upcoming.rating_change`、`body_weight_change`、`best_time`、`days_since_run`，空白留空，0 就寫 0，唔加 GraphQL 欄。頁面有排位表但這四欄對唔上馬號同烙號，`capy_racecard` 以 exit 2 失敗。可能超磅、分齡讓磅由同一頁 HTML 寫入 `entries_upcoming.possible_overweight`、`age_allowance`，空白或「-」留空，0 就寫 0。馬齡、性別、今季獎金、馬主、父系、母系、進口類別由同一頁出賽馬匹表寫入 `official_racecard_runner`，空白或「-」留空，0 就寫 0。後備表只得馬齡，其餘主檔欄留空。出賽馬匹 PDF 同跑道圖只存官方路徑：檔名日期同途程要對頁面場次頭；草地圖中間字母係 `t`，全天候圖唔可以用 `t`。`capy_wave7_surfaces` 跟今日起 14 日有場數的賽期，未出排位就跳過。公開卡仍然用馬匹主檔填馬齡、性別、馬主、進口類別、今季獎金，呢張官方表唔改 `entries_upcoming` | P0。身份閘仍要保持。頁面有「米」同「全天候／草地」但途程或跑道空，`capy_racecard` 以 exit 2 失敗，唔會綠燈推上 D1 |
 | [報名表](https://racing.hkjc.com/zh-hk/local/information/entries) | 已有 | 練馬師 × 班次 × 評分幅度 × 途程 × 草地／全天候，格內係已報馬名。未有馬號同檔位 | `scripts/hkjc_entries.py` 寫 `entries/official/entries_<日期>_<馬場>.csv`，再入 D1 `official_race_entries`。`card_stage=entries`、`draw_status=unavailable`。頁面「賽事日期」同馬場對唔上就唔寫。未刊出的賽日唔會刪走已存的表。跟住未來 14 日賽期，唔止下一場。`capy_entries`：一、二、五 20:00，六 08:00 同 20:00 HKT。`entries/entries_*.txt` 仍然只係下一場排位的馬號清單 | 排位未出之前這張表先出現。唔當正式排位表 |
 | [晨操資料（當日排位）](https://racing.hkjc.com/zh-hk/local/information/localtrackwork) | 已有 | 同上場次頭。每駒：試閘、快操、踱步、游泳、跑步機、水中步行機、休歇。後備馬匹係另一張表 | `official_meeting_trackwork`。逐匹 `horse_trackwork` 唔改。`runner_section` 分開正選同後備。冇晨操線的馬留 `category=declared`。近績空白留空。`capy_raceday_companions`：賽日同賽日前一日 HKT 08:25／12:25／16:25／19:25 | 晨操日期唔係賽事日。場次頭要有途程同跑道。後備馬號可以同正選重複 |
 | [各駒上次競賽事件摘要](https://racing.hkjc.com/zh-hk/local/information/racereportext) | 已有 | 馬號、烙號、馬名、日期、場次、描述（上次報告原句）。後備馬匹由「後備馬匹」一行分開 | `official_race_report_ext`。上次日期、連結場次、馬場要同日期格一致；烙號要同馬匹連結一致。描述原文保留，包括 `--`。正選同後備各記一行。全文報告 `racereportfull` 仍係另一頁。同 `capy_raceday_companions` | 描述入面的日期係上次出賽，唔係今場 |
@@ -108,7 +110,7 @@
 | [即時賠率](https://bet.hkjc.com/ch/racing/wp/) | 部分 | 投注網。本地選單連出。獨贏、位置以及其他彩池 | 本地賽日 **WIN／PLA** 顯示賠率 → `odds_snapshots`。GraphQL `oddsTypes: ['WIN','PLA']`。`capy_odds` 每 10 分鐘；另有約 5 分鐘 Worker 收同一對彩池。未開跑賽事 20 分鐘未更新先算舊。其他彩池冇收。騎師王／練馬師王走勢係 `official_challenge_odds`，唔寫 `odds_snapshots` | 賠率更新唔改凍結同模型 |
 | [賽日頭條](https://racing.hkjc.com/zh-hk/local/page/raceday-focus) | `official_raceday_focus` | 標題、導語、版本；正文只存 SHA-256 及字數，連回官方頁 | `capy_raceday_companions` | 文章日期可以早過賽事日；圖片無授權不收 |
 | [速勢能量](https://racing.hkjc.com/zh-hk/local/info/speedpro/speedguide?raceno=1) 同 [formguide](https://racing.hkjc.com/zh-hk/local/info/speedpro/formguide) | 部分 | 速勢圖：能量、所需能量、狀態、檔位、最近五仗、場地。走勢指南：騎練、負磅、檔位、賠率、分段、體重、日數。頁面註明賽前一天中午，而且係供應商參考 | `speedpro/scrape_speedpro.py` → `speedpro/data/<日期>_<馬場>.json`（去掉底圖）。09:00、11:00 HKT。只得當前賽馬日。不入模型 | 過期日補不回。場地狀況註明要對排位表 |
-| [賽日數據](https://racing.hkjc.com/zh-hk/local/page/stats-centre) | 冇 | 互動統計。頁面 payload 係「熱門」同「賽日數據」兩張 JPEG（`whosHot`、`racedayStats`），另有顯示窗時間。冇官方表 | 無。唔會從圖片估數字 | 圖片檔名帶賽日，過期日補不回表 |
+| [賽日數據](https://racing.hkjc.com/zh-hk/local/page/stats-centre) | 已有 | 互動統計。頁面 payload 係「熱門」同「賽日數據」兩張 JPEG（`whosHot`、`racedayStats`），另有顯示窗完結時間同最後更新時間。冇官方數字表 | `official_stats_centre_image` 只存官方圖片路徑、檔名入面的日期，同兩個時間。唔下載圖片位元組，唔從圖片估數字。`not_race_result=1`。`capy_wave7_surfaces`。公開 `GET /api/official/stats-centre` | 圖片檔名帶賽日。兩張圖的日期要一致，而且同資料夾年月一致。過期日補不回表 |
 | [上仗備忘](https://racing.hkjc.com/zh-hk/local/page/last-run-reminder) | `official_last_run_reminder` | 精選馬上仗日期、場次、走位、疊數、備忘 | `capy_raceday_companions` | 須對上當日排位馬（場次、馬號、烙號、馬名），上仗日期須早過賽日 |
 | [天氣及跑道狀況](https://racing.hkjc.com/zh-hk/local/info/windtracker) | 部分 | 2026-10-27 畫面：28/10 沙田夜賽 9 場、全天候、好地、風向風速（多個方位同陣風）、硬度計（當日未出）、氣溫、濕度、雨量、土壤濕度、蒸散量、最後更新時間 | `data/weather/` 有氣溫、濕度、風、雨、土壤時間序列（平台天氣檔約每 5 分鐘，23:50 HKT 同步）。`data/track_conditions` 係草地探針研究檔，每小時 47 分，不寫 D1，未公布留空。風向儀畫面同「好地」句子唔係探針檔 | 硬度計 `--` 要保持空白。全天候場的草地探針唔適用。排位頁「好地」唔可以冒充探針讀數 |
 | [賽期表](https://racing.hkjc.com/zh-hk/local/information/fixture?calyear=2026&calmonth=10) | 部分 | 日曆。圖示帶馬場（ST／HV）、草地／全天候／混合、日賽／夜賽／黃昏、場數、G2／G3。參數 `calyear`、`calmonth` | `FixtureCalendar_Scraper.py` → `data/fixtures/fixtures.csv`：日期、星期，再加 `venue`（ST／HV）、`timing`（day／night／twilight）、`race_count`、`surface`（turf／awt／mixed）。黃昏圖示係 `dusk.gif`、alt `T`。例如 2026-10-28 係 ST、night、awt、9 場。`capy_fixture_weekly` 逢星期一 05:00 HKT。格內逐場班次／途程同 G2／G3 未拆成獨立行。`capy_fixture_weekly` 把這份 CSV 全量寫入 D1 `official_fixtures`。`/api/meetings?month=` 同 `/api/meetings/:date` 會列出尚未寫入 `race_meetings` 的賽日，`cardStatus=fixture`，唔當排位表。快取超過 21 日會當每日都係賽日 | 空月份回當月，已對標題，月份對唔上就唔寫日。圖示缺馬場、日夜／黃昏或跑道，該月失敗。頁面有途程數字但拆唔到場數，同樣失敗。未列途程（例如 2027 上半年、2025-09-24）場數留空，有途程的日子唔會因此被跳過 |
@@ -142,8 +144,8 @@
 | [同父系馬](https://racing.hkjc.com/zh-hk/local/information/samesire?horsesire=Zoustar) | 部分 | 冠、亞、季、出賽、曾勝路程 | 血統欄有父系名。同父系名單冇收 | 退役馬仍在名單 |
 | [馬匹搜尋／馬主搜尋](https://racing.hkjc.com/zh-hk/local/information/ownersearch) | 部分 | 馬名、烙號、馬主、父系。結果連去馬匹頁。選單亦有按筆畫、馬房、所在地、馬齡 | 現役 `horse_profiles.csv` 馬主原句 → `data/official_p2/owner_horse.csv`、D1 `official_owner_horse`。回聲必須等於查詢字。頁面列出的退役馬一併入索引；烙號轉世而馬名不同，唔當成現役主檔那一匹。每週一 04:20 HKT `capy_official_p2`。已無現役馬的馬主未逐個爬。筆畫／馬房選單未爬 | 馬主字串要原句，團體名中間有「與」 |
 | [馬匹列表](https://racing.hkjc.com/zh-hk/local/information/selecthorse) | 部分 | 現役馬、評分、按練馬師／位置／馬齡 | 活躍馬來自賽果同排位，唔係這張目錄的副本 | 位置分香港、從化、海外 |
-| [馬匹評分榜](https://racing.hkjc.com/zh-hk/local/information/latestonhorse?View=Horses/clas/) | 冇 | 評分榜視圖 | 單匹現評在主檔。2026-11-10 再讀：`View=Horses/clas`、`View=Horses/c_ahrl`、`View=List/nimp` 都返回同一個目錄殼，頁面腳本冇資料請求，舊內容路徑 404。唔另造查詢 | `View` 路徑要整段保留 |
-| [馬匹消息](https://racing.hkjc.com/zh-hk/local/information/latestonhorse) | 冇 | 消息列表 | 目錄殼，列出 `View=List/...` 同 `View=Horses/...`。子頁未返回成張表，見上一行 | — |
+| [馬匹評分榜](https://racing.hkjc.com/zh-hk/local/information/latestonhorse?View=Horses/clas/) | 已有 | 英文名、中文名、烙號、評分、變動。變動可以空白、`+2`／`-1`，或者 `*`。頁面係兩欄，讀法係逐行左右交叉 | `official_horse_rating`（`board=clas`）。目錄殼的 iframe 先至係表：`/racing/info/mcs/Chinese/Horses/clas`。唔加欄，唔把 `*` 改成數字。`not_race_result=1`。`capy_wave7_surfaces`。公開 `GET /api/official/horse-ratings?board=clas`。單匹現評在主檔仍然係另一份 | `View` 路徑要整段保留。評分榜係當前名單，唔係某一日的賽果 |
+| [馬匹消息](https://racing.hkjc.com/zh-hk/local/information/latestonhorse) | 已有 | 目錄列出的每個 `View=`。公告視圖係標題、發佈時間、官方檔案路徑（xml.zip 或 doc／docx）。評分變動摘要、首五十名、獎金表係頁面上的表。馬匹總評分表係季終正文加兩條 PDF | `official_horse_news` 收公告清單，唔拆開 zip 或 Word。`official_horse_rating` 另收 `csum` 同 `tp50`（首五十名頁而家有 52 匹，評分打和都收，唔截成 50）。`official_horse_stakes` 收獎金表同頁尾 `*`／`#`／`%` 註。`official_horse_news_document` 收季終正文同 PDF 路徑，檔名日期要出現在正文。`not_race_result=1`。`capy_wave7_surfaces`。公開 `GET /api/official/horse-news`。選單若多出未識的 `View=`，工作失敗，唔當已經收齊 | 公告時間係標題入面的鐘，檔名日期可以係另一日。海外賽事標 `S1`–`S4`，唔當沙田或跑馬地 |
 | [初出馬介紹](https://racing.hkjc.com/zh-hk/local/page/new-horse) | 已有 | 2026-10-27 畫面：馬名、烙號、資料及評語（截至日期）、出生地、毛色、進口類別、血統表、父系簡介、母系簡介。馬匹頁可以帶 `racedate`、`raceNo`、`brandNo` 指住某一匹 | `official_new_horse_intro`：評語正文、截至日、出生地、毛色、進口類別。`not_race_result=1`。血統計數留在父系母系簡介，唔寫入正文。近 14 日有介紹的會議。`capy_official_p2` 每日 07:17 HKT。父系母系數字仍由 `HorsePedigree_Scraper.py` 收 | 評語的「截至」日期早過出賽日。唔好把評語寫成賽果 |
 | [試閘](https://racing.hkjc.com/zh-hk/local/information/btresult) | 已有 | 日期、馬場、途程、地況、組別時間；馬名、騎師、練馬師、排位、配備、頭馬距離、沿途走位、完成時間、結果、評述 | `TrialResults_Scraper.py` → `trials/` → `trial_sessions`、`trial_runners`。每日 02:00 HKT 抓、05:17 入 D1 | 馬會只留約 176 個試閘日 |
 | [晨操搜尋](https://racing.hkjc.com/zh-hk/local/information/trackworksearch) | 部分 | 搜尋入口，結果去單駒晨操 | 單駒晨操已有 | — |
@@ -153,7 +155,7 @@
 | [自購馬來港前賽績](https://racing.hkjc.com/zh-hk/local/page/ppo-performance) | 已有 | 馬季、烙號、馬名、舊名、來港前賽績原文。馬名可以空白 | `official_ppo_performance`。舊名同備忘原文保留，唔拆成香港賽事。`not_race_result=1`。`capy_wave5_visible` | 來港前賽績唔係香港賽事日 |
 | [從化搬遷一覽](https://racing.hkjc.com/zh-hk/local/page/conghua-movement-records) | 已有 | 場次、馬號、中英文馬名、抵達從化、回港。後備另標。頁面檔係 PDF | `official_conghua_movement`。中英標題日期要同顯示窗入面唯一的本地賽期日一致，馬場跟賽期表。冇烙號，唔估馬匹編號。單駒 `official_movement` 唔改。`capy_wave5_visible` | 回港日要早過或等於該賽事日 |
 | [獎金計劃出賽馬](https://racing.hkjc.com/zh-hk/local/page/fwb-declared-starters) | 已有 | 賽日、場次、馬號（後備寫 STBY）、中英文馬名、烙號、獎金中英文。頁面 payload 係這段文字，唔係第一個 HTML 表 | `official_fwb_declared`。首行日期必須係賽期表裡面唯一的本地賽日，場次唔可以超出該日場數。`not_race_result=1`。`capy_wave6_surfaces` | 名單日期係該賽日，唔係抓取日 |
-| [進口資格、進口前體格檢驗](https://racing.hkjc.com/zh-hk/local/page/pps-import-critieria) | 冇 | 政策正文同標題圖。進口前體格檢驗 PDF 係選單另一條連結 | 無。正文唔係表 | 參考，唔係賽事日資料 |
+| [進口資格、進口前體格檢驗](https://racing.hkjc.com/zh-hk/local/page/pps-import-critieria) | 已有 | 政策正文、標題圖、頁內國家表同年齡／出賽次數表、自購新馬分頁，同選單上的進口前體格檢驗 PDF | `official_import_policy`。`pps` 係曾出賽馬匹，`ppgs` 係自購新馬。段落、表內每一格、標題圖路徑、PDF 路徑照頁面收。格子入面的 `*` 留在原文，唔另造「可直接進口」欄。`not_race_result=1`。`capy_wave7_surfaces`。公開 `GET /api/official/import-policy` | 參考，唔係賽事日資料 |
 
 ## 騎師同練馬師（P1 往績，P2 榜）
 
@@ -221,15 +223,15 @@ Elo、鎖倉預測、模型重要度係我哋自己的層，唔計入官方 100%
 
 按對公眾畫面的影響排。
 
-1. **即將開跑的場次頭。** 場名、獎金、評分區間、途程、草地／全天候、地況已由排位 HTML 入庫，完場 `ratingRange` 不再寫死空。未排位的賽期日同報名表要靠 `official_fixtures`／`official_race_entries`，Worker 部署之後月份 API 先顯示到。評分+/-、排位體重+/-、最佳時間、上賽距今日數、可能超磅、分齡讓磅已入 `entries_upcoming`，公開卡讀這些欄。可能超磅、分齡讓磅空白或「-」留空，0 就寫 0。出賽馬匹 PDF、跑道圖未收。馬齡、性別、馬主、進口類別、今季獎金仍然用馬匹主檔，冇就留空。
+1. **即將開跑的場次頭。** 場名、獎金、評分區間、途程、草地／全天候、地況已由排位 HTML 入庫，完場 `ratingRange` 不再寫死空。未排位的賽期日同報名表要靠 `official_fixtures`／`official_race_entries`，Worker 部署之後月份 API 先顯示到。評分+/-、排位體重+/-、最佳時間、上賽距今日數、可能超磅、分齡讓磅已入 `entries_upcoming`，公開卡讀這些欄。可能超磅、分齡讓磅空白或「-」留空，0 就寫 0。出賽馬匹 PDF、跑道圖路徑，同埋馬齡、性別、馬主、父系、母系、進口類別、今季獎金，已入 `official_racecard_file`／`official_racecard_runner`。公開卡仍然讀馬匹主檔的馬齡、性別、馬主、進口類別、今季獎金。
 2. **場次頭解析失敗仍然綠燈。** 頁面有米數同跑道，欄位空，排程當成功。
 3. **地況按會議一格，而且今次連這一格都空。** 混合場會再錯。
 4. **更易事項的剩餘面。** 本地榜已拆欄並在身份相符時寫回排位。海外轉播段不收。對唔上馬名的句子不覆蓋。鎖點之後的退出不改 `priority_order`。
 5. **賽果新欄要逐日 sync 先補舊行。** 新導入會寫 `rating_range` 同 `races.track`。早過今次的 D1 行要該日再跑 `capy_d1_sync` 先填到。
 6. **賽期表格內逐場線。** 馬場、日賽／夜賽／黃昏、場數、草地／全天候／混合已入 `fixtures.csv`。未列途程的賽日場數留空。每一格裡面的班次、途程、G2／G3 仍未拆成獨立行。
-7. **馬匹主檔以外的公開表。** 評分體重曲線、途程成績、單駒搬遷、喘鳴症名單已入 Wave4。傷患資料庫、自購馬來港前賽績、從化搬遷一覽已入 `capy_wave5_visible`。來港前名稱全馬目錄、獎金計劃出賽馬已入 `capy_wave6_surfaces`。同父系名單、已無現役馬的馬主、馬匹消息、馬匹評分榜仍然未收。
+7. **馬匹主檔以外的公開表。** 評分體重曲線、途程成績、單駒搬遷、喘鳴症名單已入 Wave4。傷患資料庫、自購馬來港前賽績、從化搬遷一覽已入 `capy_wave5_visible`。來港前名稱全馬目錄、獎金計劃出賽馬已入 `capy_wave6_surfaces`。馬匹評分榜、馬匹消息（公告路徑、評分變動、首五十名、獎金表、季終正文）已入 `capy_wave7_surfaces`。同父系名單、已無現役馬的馬主仍然未收。
 8. **榜同統計成表。** 練馬師榜、騎師榜的場地／百分比視圖、檔位統計、騎師王、練馬師王、大熱、讓磅。
-9. **賽日配套頁。** 上次事件摘要、對壘、特別因素、當日晨操、當日傷患、騎師／練馬師分場，同一般資訊的場地句、彩池場次、停賽騎師，已入 `official_*`（`capy_raceday_companions`）。多寶、派彩、探針已入 `official_pool_*`／`official_track_probe`。騎練配對及初出馬已入 `official_jt_combo`。終點相路徑已入 `official_finish_photo`。賽事特別情況索引係縮寫表，已入 `official_special_index`。仍然未收：賽日數據（只有 JPEG）、馬匹消息。
+9. **賽日配套頁。** 上次事件摘要、對壘、特別因素、當日晨操、當日傷患、騎師／練馬師分場，同一般資訊的場地句、彩池場次、停賽騎師，已入 `official_*`（`capy_raceday_companions`）。多寶、派彩、探針已入 `official_pool_*`／`official_track_probe`。騎練配對及初出馬已入 `official_jt_combo`。終點相路徑已入 `official_finish_photo`。賽事特別情況索引係縮寫表，已入 `official_special_index`。賽日數據的兩張 JPEG 路徑已入 `official_stats_centre_image`。馬匹消息已入 `official_horse_news`。
 10. **即時賠率只得獨贏同位置。** 分場表的獨贏格係研究副本 `official_ride_assignment.win_odds_text`。一般資訊記錄邊個彩池包邊幾場。完場派彩已入 `official_pool_dividend`。騎師王／練馬師王走勢已入 `official_challenge_odds`，唔係獨贏快照。
 
 ## 分階段（今次不實作）

@@ -1,7 +1,7 @@
 /**
- * Read APIs for official boards already ingested by capy_wave5_visible and
- * capy_wave6_surfaces. Public JSON, same visibility as /api/meetings.
- * These routes do not crawl HKJC and do not write D1.
+ * Read APIs for official boards already ingested by capy_wave5_visible,
+ * capy_wave6_surfaces, and capy_wave7_surfaces. Public JSON, same visibility
+ * as /api/meetings. These routes do not crawl HKJC and do not write D1.
  */
 import { Hono } from 'hono';
 import type { Env } from '../types';
@@ -363,6 +363,180 @@ officialVisibleRoutes.get('/special-index', async (c) => {
       code: row.code,
       lineNo: row.line_no,
       noteCh: row.note_ch,
+      notRaceResult: true,
+    })),
+  }, 200, HEADERS);
+});
+
+officialVisibleRoutes.get('/stats-centre', async (c) => {
+  const list = await rows<Record<string, unknown>>(
+    c.env.DB,
+    `SELECT slot, poster_date, window_end, last_update, image_path
+       FROM official_stats_centre_image ORDER BY slot`,
+    [],
+  );
+  if (!list) return unavailable(c, 'official_stats_centre_image');
+  return c.json({
+    source: 'official_stats_centre_image',
+    available: true,
+    rows: list.map((row) => ({
+      slot: row.slot,
+      posterDate: row.poster_date,
+      windowEnd: row.window_end,
+      lastUpdate: row.last_update,
+      imagePath: row.image_path,
+      notRaceResult: true,
+    })),
+  }, 200, HEADERS);
+});
+
+officialVisibleRoutes.get('/horse-ratings', async (c) => {
+  const board = c.req.query('board') ?? '';
+  if (!/^(clas|csum|tp50)$/.test(board)) return c.json({ error: 'board=clas|csum|tp50 is required' }, 400);
+  const list = await rows<Record<string, unknown>>(
+    c.env.DB,
+    `SELECT line_no, horse_code, name_en, name_ch, rating, change_text, mark_text, trainer_name
+       FROM official_horse_rating WHERE board = ? ORDER BY line_no`,
+    [board],
+  );
+  if (!list) return unavailable(c, 'official_horse_rating');
+  return c.json({
+    source: 'official_horse_rating',
+    available: true,
+    board,
+    rows: list.map((row) => ({
+      lineNo: row.line_no,
+      brand: row.horse_code,
+      nameEn: row.name_en,
+      nameCh: row.name_ch,
+      rating: row.rating,
+      changeText: row.change_text,
+      markText: row.mark_text,
+      trainerName: row.trainer_name,
+      notRaceResult: true,
+    })),
+  }, 200, HEADERS);
+});
+
+officialVisibleRoutes.get('/horse-news', async (c) => {
+  const view = c.req.query('view') ?? '';
+  if (view && !/^(Horses|List)\/[A-Za-z0-9_]+$/.test(view)) {
+    return c.json({ error: 'view must be Horses/… or List/…' }, 400);
+  }
+  const filters = view ? 'WHERE view_code = ?' : '';
+  const list = await rows<Record<string, unknown>>(
+    c.env.DB,
+    `SELECT view_code, line_no, title_ch, published_at, artifact_path, file_date, file_tag, venue, simulcast_code
+       FROM official_horse_news ${filters} ORDER BY view_code, line_no`,
+    view ? [view] : [],
+  );
+  if (!list) return unavailable(c, 'official_horse_news');
+  return c.json({
+    source: 'official_horse_news',
+    available: true,
+    view: view || null,
+    rows: list.map((row) => ({
+      view: row.view_code,
+      lineNo: row.line_no,
+      title: row.title_ch,
+      publishedAt: row.published_at,
+      artifactPath: row.artifact_path,
+      fileDate: row.file_date,
+      fileTag: row.file_tag,
+      venue: row.venue,
+      simulcastCode: row.simulcast_code,
+      notRaceResult: true,
+    })),
+  }, 200, HEADERS);
+});
+
+officialVisibleRoutes.get('/import-policy', async (c) => {
+  const page = c.req.query('page') ?? '';
+  if (page && !/^(pps|ppgs)$/.test(page)) return c.json({ error: 'page=pps|ppgs' }, 400);
+  const filters = page ? 'WHERE page_code = ?' : '';
+  const list = await rows<Record<string, unknown>>(
+    c.env.DB,
+    `SELECT page_code, kind, block_no, row_no, col_no, text_ch, asset_path
+       FROM official_import_policy ${filters}
+      ORDER BY page_code, kind, block_no, row_no, col_no`,
+    page ? [page] : [],
+  );
+  if (!list) return unavailable(c, 'official_import_policy');
+  return c.json({
+    source: 'official_import_policy',
+    available: true,
+    page: page || null,
+    rows: list.map((row) => ({
+      page: row.page_code,
+      kind: row.kind,
+      blockNo: row.block_no,
+      rowNo: row.row_no,
+      colNo: row.col_no,
+      text: row.text_ch,
+      assetPath: row.asset_path,
+      notRaceResult: true,
+    })),
+  }, 200, HEADERS);
+});
+
+officialVisibleRoutes.get('/racecard-profile', async (c) => {
+  const meeting = requireMeeting(c);
+  if (meeting instanceof Response) return meeting;
+  const list = await rows<Record<string, unknown>>(
+    c.env.DB,
+    `SELECT race_no, horse_no, is_reserve, horse_id, brand_no, horse_name, age, sex,
+            season_stakes, owner, sire, dam, import_type
+       FROM official_racecard_runner WHERE meeting_date = ? AND venue = ?
+      ORDER BY race_no, is_reserve, horse_no`,
+    [meeting.date, meeting.venue],
+  );
+  if (!list) return unavailable(c, 'official_racecard_runner');
+  return c.json({
+    source: 'official_racecard_runner',
+    available: true,
+    date: meeting.date,
+    venue: meeting.venue,
+    rows: list.map((row) => ({
+      raceNo: row.race_no,
+      horseNo: row.horse_no,
+      reserve: row.is_reserve === 1,
+      horseId: row.horse_id,
+      brand: row.brand_no,
+      horseName: row.horse_name,
+      age: row.age,
+      sex: row.sex,
+      seasonStakes: row.season_stakes,
+      owner: row.owner,
+      sire: row.sire,
+      dam: row.dam,
+      importType: row.import_type,
+      notRaceResult: true,
+    })),
+  }, 200, HEADERS);
+});
+
+officialVisibleRoutes.get('/racecard-files', async (c) => {
+  const meeting = requireMeeting(c);
+  if (meeting instanceof Response) return meeting;
+  const list = await rows<Record<string, unknown>>(
+    c.env.DB,
+    `SELECT race_no, kind, artifact_path, distance, surface_code
+       FROM official_racecard_file WHERE meeting_date = ? AND venue = ?
+      ORDER BY race_no, kind`,
+    [meeting.date, meeting.venue],
+  );
+  if (!list) return unavailable(c, 'official_racecard_file');
+  return c.json({
+    source: 'official_racecard_file',
+    available: true,
+    date: meeting.date,
+    venue: meeting.venue,
+    rows: list.map((row) => ({
+      raceNo: row.race_no,
+      kind: row.kind,
+      artifactPath: row.artifact_path,
+      distance: row.distance,
+      surfaceCode: row.surface_code,
       notRaceResult: true,
     })),
   }, 200, HEADERS);

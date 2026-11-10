@@ -76,6 +76,53 @@ async function main(): Promise<void> {
   assert.equal(missingBody.available, false);
   assert.deepEqual(missingBody.rows, []);
 
+  const statsMissing = await app.request('/api/official/stats-centre', {}, env);
+  const statsMissingBody = await statsMissing.json() as { available: boolean; rows: unknown[] };
+  assert.equal(statsMissing.status, 200);
+  assert.equal(statsMissingBody.available, false);
+  assert.deepEqual(statsMissingBody.rows, []);
+
+  db.exec(`
+    CREATE TABLE official_stats_centre_image (
+      slot TEXT, poster_date TEXT, window_end TEXT, last_update TEXT, image_path TEXT,
+      not_race_result INTEGER, source_sha256 TEXT, scraped_at TEXT
+    );
+    INSERT INTO official_stats_centre_image VALUES (
+      'whos_hot','2026-11-11','2026-11-12T01:00:00+08:00','2026-11-10T12:00:00+08:00',
+      'https://consvc.hkjc.com/-/media/Sites/JCRW/Page/stats_centre/202611/statcentre_hot_261111_ch.jpg?rev=aa&sc_lang=zh-HK',
+      1,'abc','2026-11-10T00:00:00+00:00'
+    );
+    CREATE TABLE official_racecard_runner (
+      meeting_date TEXT, venue TEXT, race_no INTEGER, horse_no INTEGER, is_reserve INTEGER,
+      horse_id TEXT, brand_no TEXT, horse_name TEXT, age INTEGER, sex TEXT, season_stakes INTEGER,
+      owner TEXT, sire TEXT, dam TEXT, import_type TEXT, not_race_result INTEGER, source_sha256 TEXT, scraped_at TEXT
+    );
+    INSERT INTO official_racecard_runner VALUES (
+      '2026-11-11','HV',1,1,0,'HK_2024_K308','K308','電路一百',5,'閹',134550,'何燕生與曾建華','Zoustar','Reconstruct','PPG',1,'abc','2026-11-10T00:00:00+00:00'
+    );
+  `);
+  const stats = await app.request('/api/official/stats-centre', {}, env);
+  const statsBody = await stats.json() as { available: boolean; rows: Array<{ slot: string; posterDate: string; imagePath: string }> };
+  assert.equal(stats.status, 200);
+  assert.equal(stats.headers.get('cache-control'), 'public, max-age=120');
+  assert.equal(statsBody.available, true);
+  assert.equal(statsBody.rows[0].slot, 'whos_hot');
+  assert.equal(statsBody.rows[0].posterDate, '2026-11-11');
+  assert.match(statsBody.rows[0].imagePath, /statcentre_hot_261111_ch\.jpg/);
+
+  const profile = await app.request('/api/official/racecard-profile?date=2026-11-11&venue=HV', {}, env);
+  const profileBody = await profile.json() as { rows: Array<{ age: number; sex: string; seasonStakes: number; importType: string; reserve: boolean }> };
+  assert.equal(profileBody.rows[0].age, 5);
+  assert.equal(profileBody.rows[0].sex, '閹');
+  assert.equal(profileBody.rows[0].seasonStakes, 134550);
+  assert.equal(profileBody.rows[0].importType, 'PPG');
+  assert.equal(profileBody.rows[0].reserve, false);
+
+  const badBoard = await app.request('/api/official/horse-ratings?board=made-up', {}, env);
+  assert.equal(badBoard.status, 400);
+  const badCard = await app.request('/api/official/racecard-files?date=2026-11-11', {}, env);
+  assert.equal(badCard.status, 400);
+
   console.log('official visible read api ok');
 }
 
