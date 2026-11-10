@@ -148,3 +148,8 @@
 {"rows": 21, "scraped_at": "2026-11-10T05:50:27+00:00", "sha256": "22aa0f75e23098992190ff0653a9e5730e30c1232175320faadab8582a3afcb8", "surface": "challenge_jkc"}
 {"rows": 23, "scraped_at": "2026-11-10T05:50:27+00:00", "sha256": "4013b2f149f9d5bcb2f99003b475f5d5eb5db5d5ab3c5dba9dfa793a16258ab8", "surface": "challenge_tnc"}
 {"rows": {"pool_dividend": 144, "pool_status": 97, "track_probe": 2}, "scraped_at": "2026-11-10T05:50:31+00:00", "sha256": "74746f406946651aee05957d69731f4698d427148349f30f0da094879790b1e5", "surface": "pools"}
+{"rows": 124, "scraped_at": "2026-11-10T05:51:40+00:00", "sha256": "dfd1b1d44ea182a2defa3112f05a78b57174da4201770bbb3bb41ecd2054dc20", "surface": "report"}
+{"rows": 154, "scraped_at": "2026-11-10T05:51:40+00:00", "sha256": "bf283bc8accf97c8ad024644ee7e6a0f518f877d6dc59ce514b5135e8d901ad9", "surface": "formline"}
+{"rows": 56, "scraped_at": "2026-11-10T05:51:40+00:00", "sha256": "b87a053f2d5f266804c6f5e3d843c76c80e3173576a16a503de49385462ce661", "surface": "exceptional"}
+{"rows": 102, "scraped_at": "2026-11-10T05:51:40+00:00", "sha256": "10829e92e9792014983a3e7cbe297aa2aa73df70723ec0d3748466abda313c43", "surface": "veterinary"}
+{"rows": 4546, "scraped_at": "2026-11-10T05:51:40+00:00", "sha256": "100d07527d136be5bf8ac8be0f26141624ff6d7a77bbdbabf8202df99ed46309", "surface": "trackwork"}
