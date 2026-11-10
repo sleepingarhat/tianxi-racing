@@ -93,6 +93,16 @@ jobs:
       - name: Install wrangler
         run: npm install -g wrangler@4
 
+      # schema_v2 CREATE does not add columns to the existing remote table.
+      # The entries_upcoming INSERT below failed on body_weight when this
+      # migration ran only after that insert.
+      - name: Ensure official card schema on D1
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+        working-directory: tianxi-backend
+        run: bash scripts/d1-ensure-official-card-schema.sh
+
       - name: Push entries delta to D1
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
@@ -134,18 +144,5 @@ jobs:
           if [ ! -s /tmp/official_entries.sql ]; then
             echo "official entries sql empty"
             exit 0
-          fi
-          set +e
-          wrangler d1 execute tianxi-db --remote \
-            --file=src/db/migrations/20261110_official_fixtures_entries.sql >/tmp/mig.log 2>&1
-          RC=$?
-          set -e
-          if [ "$RC" -ne 0 ]; then
-            if grep -q "duplicate column" /tmp/mig.log; then
-              echo "entries migration already applied"
-            else
-              cat /tmp/mig.log
-              exit 1
-            fi
           fi
           wrangler d1 execute tianxi-db --remote --file=/tmp/official_entries.sql

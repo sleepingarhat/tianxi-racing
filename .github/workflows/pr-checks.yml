@@ -94,6 +94,7 @@ jobs:
       - name: Regression test — results course split, changes board, fixture icons
         run: |
           npx tsx scripts/test-meetings-fixtures.ts
+          npx tsx scripts/test-d1-official-card-schema.ts
           npx tsx scripts/test-result-course.ts
           npx tsx scripts/test-parse-dividends.ts
           python3 -m unittest discover -s ../scripts -p 'test_racing_changes.py'
