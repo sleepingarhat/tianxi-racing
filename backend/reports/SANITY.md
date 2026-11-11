@@ -1,6 +1,6 @@
 # TX-Oracle Engine Sanity Report
 
-_Generated 2026-11-10T09:09Z (HK today = 2026-11-10) · season=in_season_
+_Generated 2026-11-11T08:47Z (HK today = 2026-11-11) · season=in_season_
 
 This file is written by `engine_sanity_daily.yml`.
 
@@ -12,7 +12,7 @@ This file is written by `engine_sanity_daily.yml`.
 | lgb_predict_upcoming.yml | none | - | 0 |
 | lgb_backfill.yml | none | - | 0 |
 | lgb_walkforward.yml | none | - | 0 |
-| capy_racecard.yml | success | 2026-11-10T04:08:27Z | 5 |
+| capy_racecard.yml | failure | 2026-11-11T07:24:33Z | 2 |
 | capy_results.yml | none | - | 0 |
 | engine_sanity_daily.yml | none | - | 0 |
 
