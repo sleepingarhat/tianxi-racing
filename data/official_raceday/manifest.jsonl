@@ -185,3 +185,13 @@
 {"rows": 1, "scraped_at": "2026-11-10T16:31:24+00:00", "sha256": "9b90debc014f2461e2aa9e9769acb332d80792c60e32f9420675d09c612b7557", "surface": "raceday_focus"}
 {"rows": 14, "scraped_at": "2026-11-10T16:31:24+00:00", "sha256": "4d949e997561ad9af5a71e880db08603e98a3d8ce563080aa171b7d096b66778", "surface": "last_run_reminder"}
 {"rows": {"pool_dividend": 0, "pool_status": 97, "track_probe": 0}, "scraped_at": "2026-11-10T16:31:27+00:00", "sha256": "c24c8f6054591a1bf3ffec6857cc7c002c6e8d3c870ec2dccf400bb592637191", "surface": "pools"}
+{"rows": 123, "scraped_at": "2026-11-11T06:52:14+00:00", "sha256": "dfd1b1d44ea182a2defa3112f05a78b57174da4201770bbb3bb41ecd2054dc20", "surface": "report"}
+{"rows": 152, "scraped_at": "2026-11-11T06:52:14+00:00", "sha256": "bf283bc8accf97c8ad024644ee7e6a0f518f877d6dc59ce514b5135e8d901ad9", "surface": "formline"}
+{"rows": 55, "scraped_at": "2026-11-11T06:52:14+00:00", "sha256": "b87a053f2d5f266804c6f5e3d843c76c80e3173576a16a503de49385462ce661", "surface": "exceptional"}
+{"rows": 100, "scraped_at": "2026-11-11T06:52:14+00:00", "sha256": "10829e92e9792014983a3e7cbe297aa2aa73df70723ec0d3748466abda313c43", "surface": "veterinary"}
+{"rows": 4696, "scraped_at": "2026-11-11T06:52:14+00:00", "sha256": "314e76a6f9a44f4fd6dd88c3dc94759659b23833274326402f7a043c744b046f", "surface": "trackwork"}
+{"rows": 21, "scraped_at": "2026-11-11T06:53:35+00:00", "sha256": "a80756701640c195e192b46a21ec4a808012c73bf8cbb984b333ea36f304a77d", "surface": "challenge_jkc"}
+{"rows": 24, "scraped_at": "2026-11-11T06:53:35+00:00", "sha256": "d0a170bc873d5e25459ba26c579c5b84524eb8ea8db92abb227f831b0059ebde", "surface": "challenge_tnc"}
+{"rows": 1, "scraped_at": "2026-11-11T06:53:36+00:00", "sha256": "619b0802a9798e9ad04f81562cc30edd3bfe0412ee6835665889b5838083fbaf", "surface": "raceday_focus"}
+{"rows": 14, "scraped_at": "2026-11-11T06:53:36+00:00", "sha256": "f74beb55a9ee9bca323f002248ec2925c3e8e89d831b84f0579351f10560e16c", "surface": "last_run_reminder"}
+{"rows": {"pool_dividend": 0, "pool_status": 97, "track_probe": 1}, "scraped_at": "2026-11-11T06:53:37+00:00", "sha256": "80cbf3e7c7266a873a679a22f7c9c2e94ccac37581e130482a6e0fcc8e9c30a7", "surface": "pools"}
