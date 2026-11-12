@@ -1,15 +1,15 @@
 {
   "schemaVersion": 3,
-  "generatedHKT": "2026-11-11 16:47 HKT",
+  "generatedHKT": "2026-11-12 17:12 HKT",
   "engine": "TX-Oracle v3.2",
   "season": {
     "status": "in_season",
     "mode": "auto",
-    "today": "2026-11-11",
-    "lastMeeting": "2026-11-08",
-    "nextMeeting": "2026-11-11",
-    "gapDays": 3,
-    "reason": "next HK meeting known (2026-11-11)",
+    "today": "2026-11-12",
+    "lastMeeting": "2026-11-11",
+    "nextMeeting": "2026-11-14",
+    "gapDays": 1,
+    "reason": "next HK meeting known (2026-11-14)",
     "label": "賽季進行中"
   },
   "overall": "PASS",
@@ -40,9 +40,9 @@
     "publicRule": "未凍結一律標「初版」；只有 frozen=true 先算最終版，戰績只計最終版。"
   },
   "latestFrozenDay": {
-    "date": "2026-11-11",
-    "rows": 107,
-    "lgbRows": 107,
+    "date": "2026-11-14",
+    "rows": 153,
+    "lgbRows": 153,
     "alpha": 0.88
   },
   "checks": [
@@ -86,7 +86,7 @@
       "id": "season",
       "label": "季節自動感應",
       "status": "PASS",
-      "detail": "賽季進行中（mode=auto）· 上仗 2026-11-08 · 下場 2026-11-11 · gap 3 日。"
+      "detail": "賽季進行中（mode=auto）· 上仗 2026-11-11 · 下場 2026-11-14 · gap 1 日。"
     },
     {
       "id": "elo_v12",
@@ -128,19 +128,19 @@
       "id": "diag_persist",
       "label": "健康檔公開落地",
       "status": "PASS",
-      "detail": "健康檔即時由 DB 組成（季節 + 2026-11-11 凍結日診斷），唔再讀寫死常數。"
+      "detail": "健康檔即時由 DB 組成（季節 + 2026-11-14 凍結日診斷），唔再讀寫死常數。"
     },
     {
       "id": "live_curve",
       "label": "當日 live 曲線",
       "status": "PASS",
-      "detail": "最近凍結賽日 2026-11-11：107 匹入帳、107 匹有 LGB 分、α=0.88。"
+      "detail": "最近凍結賽日 2026-11-14：153 匹入帳、153 匹有 LGB 分、α=0.88。"
     },
     {
       "id": "display_odds_freshness",
       "label": "賽日市場盤口時效",
       "status": "PASS",
-      "detail": "未開跑場次盤口均在20分鐘內；五分鐘自動收料。"
+      "detail": "非本地賽日投注窗口或已全日開跑，不按舊盤口誤報。"
     }
   ]
 }
