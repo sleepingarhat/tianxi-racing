@@ -1,9 +1,9 @@
 {
-  "generatedAt": "2026-11-11T03:44:29.471095+00:00",
+  "generatedAt": "2026-11-12T05:00:43.316932+00:00",
   "source": {
     "name": "香港賽馬會公開馬匹資料",
     "archive": "/home/runner/work/tianxi-racing/tianxi-racing/horses/profiles/horse_profiles.csv",
-    "dataAsOf": "2026-11-11"
+    "dataAsOf": "2026-11-12"
   },
   "cohorts": {
     "active": {
@@ -69,64 +69,64 @@
       }
     },
     "all": {
-      "horses": 6153,
-      "completeProfiles": 1104,
-      "completeCoveragePct": 17.9,
+      "horses": 6154,
+      "completeProfiles": 1105,
+      "completeCoveragePct": 18.0,
       "fields": {
         "countryOfOrigin": {
-          "present": 6153,
+          "present": 6154,
           "missing": 0,
           "coveragePct": 100.0
         },
         "colour": {
-          "present": 6153,
+          "present": 6154,
           "missing": 0,
           "coveragePct": 100.0
         },
         "sex": {
-          "present": 6153,
+          "present": 6154,
           "missing": 0,
           "coveragePct": 100.0
         },
         "importType": {
-          "present": 6153,
+          "present": 6154,
           "missing": 0,
           "coveragePct": 100.0
         },
         "owner": {
-          "present": 6153,
+          "present": 6154,
           "missing": 0,
           "coveragePct": 100.0
         },
         "sire": {
-          "present": 6153,
+          "present": 6154,
           "missing": 0,
           "coveragePct": 100.0
         },
         "dam": {
-          "present": 6153,
+          "present": 6154,
           "missing": 0,
           "coveragePct": 100.0
         },
         "damSire": {
-          "present": 6153,
+          "present": 6154,
           "missing": 0,
           "coveragePct": 100.0
         },
         "seasonStakes": {
-          "present": 1266,
+          "present": 1267,
           "missing": 4887,
           "coveragePct": 20.6
         },
         "totalStakes": {
-          "present": 6153,
+          "present": 6154,
           "missing": 0,
           "coveragePct": 100.0
         },
         "currentTrainer": {
-          "present": 1104,
+          "present": 1105,
           "missing": 5049,
-          "coveragePct": 17.9
+          "coveragePct": 18.0
         }
       }
     }
