@@ -1,8 +1,8 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-11-12T04:16:32+00:00",
+  "generated_at": "2026-11-12T05:16:09+00:00",
   "generator": "tools/build_manifest.py",
-  "git_head": "a32034acb53631f8c7f09f812d667e41a02e4f6a",
+  "git_head": "445707c5c41c895d773597aff21b7ecf7f49994e",
   "repo": "sleepingarhat/tianxi-database",
   "branch": "main",
   "base_url": {
@@ -18,8 +18,8 @@
     "race_days": 956,
     "race_artefact_files": 4774,
     "fixtures_rows": 232,
-    "horse_form_files": 6153,
-    "horse_profile_rows": 6153,
+    "horse_form_files": 6154,
+    "horse_profile_rows": 6154,
     "jockey_record_files": 65,
     "jockey_profile_rows": 68,
     "trainer_profile_rows": 68,
@@ -90,12 +90,12 @@
     "horses": {
       "profiles": {
         "path": "horses/profiles/horse_profiles.csv",
-        "row_count": 6153
+        "row_count": 6154
       },
       "form_records": {
         "dir": "horses/form_records/",
         "path_template": "horses/form_records/form_{horse_id}.csv",
-        "count": 6153,
+        "count": 6154,
         "sample": [
           "form_A001.csv",
           "form_A002.csv",
