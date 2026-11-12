@@ -1,0 +1,135 @@
+{
+  "scan_date": "2026-11-12",
+  "repo_root": "/home/runner/work/tianxi-racing/tianxi-racing",
+  "overall_severity": "critical",
+  "critical_gap_count": 2,
+  "warn_gap_count": 2,
+  "recommendation": "gha_next_delta_will_fix",
+  "categories": {
+    "race_artefacts": {
+      "name": "race_artefacts",
+      "expected": 810,
+      "present": 810,
+      "missing": [],
+      "stale": [],
+      "pending": [],
+      "notes": [
+        "Official cancellation notices verified: 2025-09-24, 2026-09-20"
+      ],
+      "severity": "ok"
+    },
+    "fixtures_cache": {
+      "name": "fixtures_cache",
+      "expected": 1,
+      "present": 232,
+      "missing": [],
+      "stale": [],
+      "pending": [],
+      "notes": [
+        "total cached race days: 232"
+      ],
+      "severity": "ok"
+    },
+    "horse_profiles": {
+      "name": "horse_profiles",
+      "expected": 1197,
+      "present": 1196,
+      "missing": [
+        "L414"
+      ],
+      "stale": [],
+      "pending": [],
+      "notes": [
+        "1 horses raced in last 180d have NO profile",
+        "total profiles in DB: 6153"
+      ],
+      "severity": "critical"
+    },
+    "horse_form_records": {
+      "name": "horse_form_records",
+      "expected": 1197,
+      "present": 1196,
+      "missing": [
+        "L414"
+      ],
+      "stale": [],
+      "pending": [],
+      "notes": [
+        "1 recent-cohort horses have NO form_records file",
+        "total form_records files: 6153"
+      ],
+      "severity": "critical"
+    },
+    "jockey_profiles": {
+      "name": "jockey_profiles",
+      "expected": 27,
+      "present": 27,
+      "missing": [],
+      "stale": [],
+      "pending": [],
+      "notes": [
+        "total jockey profiles: 65"
+      ],
+      "severity": "ok"
+    },
+    "jockey_records": {
+      "name": "jockey_records",
+      "expected": 65,
+      "present": 65,
+      "missing": [],
+      "stale": [],
+      "pending": [],
+      "notes": [],
+      "severity": "ok"
+    },
+    "trainer_profiles": {
+      "name": "trainer_profiles",
+      "expected": 25,
+      "present": 25,
+      "missing": [],
+      "stale": [],
+      "pending": [],
+      "notes": [
+        "total trainer profiles: 68"
+      ],
+      "severity": "ok"
+    },
+    "trainer_records": {
+      "name": "trainer_records",
+      "expected": 68,
+      "present": 68,
+      "missing": [],
+      "stale": [],
+      "pending": [],
+      "notes": [],
+      "severity": "ok"
+    },
+    "trial_results": {
+      "name": "trial_results",
+      "expected": 1,
+      "present": 1,
+      "missing": [],
+      "stale": [],
+      "pending": [],
+      "notes": [
+        "trial rows: 10178"
+      ],
+      "severity": "ok"
+    },
+    "entries_upcoming": {
+      "name": "entries_upcoming",
+      "expected": 2,
+      "present": 0,
+      "missing": [
+        "2026-11-14",
+        "2026-11-18"
+      ],
+      "stale": [],
+      "pending": [],
+      "notes": [
+        "2 upcoming race days lack entries file"
+      ],
+      "severity": "warn"
+    }
+  }
+}

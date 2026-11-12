@@ -1,29 +1,22 @@
 {
-  "scan_date": "2026-11-11",
+  "scan_date": "2026-11-12",
   "repo_root": "/home/runner/work/tianxi-racing/tianxi-racing",
-  "overall_severity": "warn",
-  "critical_gap_count": 0,
-  "warn_gap_count": 7,
-  "recommendation": "monitor_no_block",
+  "overall_severity": "critical",
+  "critical_gap_count": 2,
+  "warn_gap_count": 2,
+  "recommendation": "gha_next_delta_will_fix",
   "categories": {
     "race_artefacts": {
       "name": "race_artefacts",
       "expected": 810,
-      "present": 805,
+      "present": 810,
       "missing": [],
       "stale": [],
-      "pending": [
-        "results_2026-11-11",
-        "commentary_2026-11-11",
-        "dividends_2026-11-11",
-        "sectional_times_2026-11-11",
-        "video_links_2026-11-11"
-      ],
+      "pending": [],
       "notes": [
-        "Official cancellation notices verified: 2025-09-24, 2026-09-20",
-        "same-day artefacts pending until verified final start +30m: 2026-11-11T23:20:00+08:00"
+        "Official cancellation notices verified: 2025-09-24, 2026-09-20"
       ],
-      "severity": "warn"
+      "severity": "ok"
     },
     "fixtures_cache": {
       "name": "fixtures_cache",
@@ -39,27 +32,33 @@
     },
     "horse_profiles": {
       "name": "horse_profiles",
-      "expected": 1196,
+      "expected": 1197,
       "present": 1196,
-      "missing": [],
+      "missing": [
+        "L414"
+      ],
       "stale": [],
       "pending": [],
       "notes": [
+        "1 horses raced in last 180d have NO profile",
         "total profiles in DB: 6153"
       ],
-      "severity": "ok"
+      "severity": "critical"
     },
     "horse_form_records": {
       "name": "horse_form_records",
-      "expected": 1196,
+      "expected": 1197,
       "present": 1196,
-      "missing": [],
+      "missing": [
+        "L414"
+      ],
       "stale": [],
       "pending": [],
       "notes": [
+        "1 recent-cohort horses have NO form_records file",
         "total form_records files: 6153"
       ],
-      "severity": "ok"
+      "severity": "critical"
     },
     "jockey_profiles": {
       "name": "jockey_profiles",
@@ -119,8 +118,8 @@
     },
     "entries_upcoming": {
       "name": "entries_upcoming",
-      "expected": 3,
-      "present": 1,
+      "expected": 2,
+      "present": 0,
       "missing": [
         "2026-11-14",
         "2026-11-18"
