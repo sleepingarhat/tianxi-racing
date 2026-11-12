@@ -78,6 +78,27 @@ class Wave5Tests(unittest.TestCase):
         self.assertEqual(rows[2]['injury_date'], '2026-03-06')
         self.assertIsNone(rows[2]['passed_date'])
 
+    def _fixture_root(self):
+        root = Path(tempfile.mkdtemp())
+        (root / 'data' / 'fixtures').mkdir(parents=True)
+        with (root / 'data' / 'fixtures' / 'fixtures.csv').open('w', encoding='utf-8', newline='') as handle:
+            writer = csv.DictWriter(handle, fieldnames=['date', 'venue', 'race_count'])
+            writer.writeheader()
+            writer.writerow({'date': '2026-11-11', 'venue': 'HV', 'race_count': '9'})
+        return root
+
+    def test_declared_veterinary_pass_not_required_is_no_pass_date(self):
+        # 2026-11-12: HKJC printed 不適用 after a gelding operation (L244 鵲橋飛昇).
+        raw = record_html().replace('<td>03/11/2026</td>'.encode(), '<td>不適用</td>'.encode())
+        rows = parse_ove_record(raw, self._fixture_root(), 'abc', SCRAPED)
+        self.assertIsNone(rows[0]['passed_date'])
+        self.assertEqual(rows[0]['detail'], '賽後內窺鏡檢查發現氣管內有大量血液')
+
+    def test_declared_veterinary_unknown_pass_text_still_fails(self):
+        raw = record_html().replace('<td>03/11/2026</td>'.encode(), '<td>待定</td>'.encode())
+        with self.assertRaises(ParseMiss):
+            parse_ove_record(raw, self._fixture_root(), 'abc', SCRAPED)
+
     def test_pre_import_former_name_is_kept_verbatim_without_a_hong_kong_result(self):
         rows = parse_ppo(ppo_html(), 'abc', SCRAPED)
         self.assertEqual(rows[0]['former_name'], 'Bear Champ (AUS)')

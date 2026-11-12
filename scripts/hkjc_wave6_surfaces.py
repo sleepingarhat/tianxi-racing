@@ -310,7 +310,30 @@ def json_string_after(flight: str, marker: str) -> str:
         raise ParseMiss(f'{marker} JSON string is broken') from exc
     if not isinstance(value, str):
         raise ParseMiss(f'{marker} is not text')
-    return value
+    return resolve_flight_text(flight, value)
+
+
+def resolve_flight_text(flight: str, value: str) -> str:
+    """Follow a React flight text reference such as "$2c" to its "2c:T<len>," row.
+
+    Next.js moves long strings out of the props into a separate text row; the
+    length is the UTF-8 byte count. Anything other than exactly one complete row
+    fails closed so a moved or truncated payload is never read as the board.
+    """
+    ref = re.fullmatch(r'\$([0-9a-f]+)', value)
+    if not ref:
+        return value
+    rows = list(re.finditer(r'(?<![0-9A-Za-z])' + ref.group(1) + r':T([0-9a-f]+),', flight))
+    if len(rows) != 1:
+        raise ParseMiss(f'page payload text row {value!r} is missing or repeated')
+    length = int(rows[0].group(1), 16)
+    tail = flight[rows[0].end():].encode('utf-8')
+    if len(tail) < length:
+        raise ParseMiss(f'page payload text row {value!r} is truncated')
+    try:
+        return tail[:length].decode('utf-8')
+    except UnicodeDecodeError as exc:
+        raise ParseMiss(f'page payload text row {value!r} splits a character') from exc
 
 
 def parse_fwb(flight: str, root: Path, digest: str, scraped_at: str) -> list[dict]:

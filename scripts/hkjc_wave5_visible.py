@@ -158,6 +158,18 @@ def blank(value: str | None) -> str | None:
     return text
 
 
+# HKJC prints 不適用 in 通過日期 when no veterinary pass is required (for example
+# after gelding). It is not a date and not a missing pass; store no pass date.
+PASS_NOT_REQUIRED = frozenset({'不適用'})
+
+
+def passed_on(value: str | None) -> str | None:
+    text = blank(value)
+    if text is None or text in PASS_NOT_REQUIRED:
+        return None
+    return dmy(text, 'passed')
+
+
 def dmy(value: str, label: str) -> str:
     match = re.fullmatch(r'(\d{2})/(\d{2})/(\d{4})', (value or '').strip())
     if not match:
@@ -284,11 +296,11 @@ def parse_ove_database(raw: bytes, digest: str, scraped_at: str) -> list[dict]:
         detail = text_of(values[3]).strip()
         if not detail:
             raise ParseMiss('injury database detail is empty')
-        passed = blank(text_of(values[4]))
+        passed = passed_on(text_of(values[4]))
         rows.append({
             'as_of_date': as_of_date.isoformat(), 'line_no': len(rows) + 1,
             'horse_code': current[0], 'horse_name': current[1], 'injury_date': injury, 'detail': detail,
-            'passed_date': dmy(passed, 'passed') if passed else None,
+            'passed_date': passed,
             'not_race_result': 1, 'source_sha256': digest, 'scraped_at': scraped_at,
         })
     if not rows:
@@ -363,12 +375,12 @@ def parse_ove_record(raw: bytes, root: Path, digest: str, scraped_at: str) -> li
         detail = text_of(values[5]).strip()
         if not detail:
             raise ParseMiss('declared veterinary detail is empty')
-        passed = blank(text_of(values[6]))
+        passed = passed_on(text_of(values[6]))
         line_no += 1
         rows.append({
             'meeting_date': meeting.isoformat(), 'venue': VENUE_LABEL[button.group(3)], 'race_no': race_no,
             'line_no': line_no, **current, 'injury_date': dmy(text_of(values[4]), 'injury'), 'detail': detail,
-            'passed_date': dmy(passed, 'passed') if passed else None,
+            'passed_date': passed,
             'not_race_result': 1, 'source_sha256': digest, 'scraped_at': scraped_at,
         })
     if not rows:

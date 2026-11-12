@@ -236,6 +236,27 @@ class Wave7Tests(unittest.TestCase):
         with self.assertRaises(IdentityError):
             parse_racecard_page(html, '2026-11-11', 'HV', 1, 'abc', SCRAPED)
 
+    def test_racecard_before_booklets_keeps_runners_and_maps(self):
+        # 2026-11-12: the 14/11 card was out but both download buttons pointed at No_PDF_Download.html.
+        html = (card_html()
+                .replace('/racing/content/PDF/RaceCard/20261111_starter_r1_chi.pdf', '/racing/chinese/No_PDF_Download.html')
+                .replace('/racing/content/PDF/RaceCard/20261111_starter_all_chi.pdf', '/racing/chinese/No_PDF_Download.html'))
+        runners, files = parse_racecard_page(html, '2026-11-11', 'HV', 1, 'abc', SCRAPED)
+        self.assertEqual(runners[0]['horse_id'], 'HK_2024_K308')
+        self.assertEqual(sorted(row['kind'] for row in files), ['track_map', 'track_map_thumb'])
+
+    def test_racecard_without_booklet_or_placeholder_fails(self):
+        html = (card_html()
+                .replace('<a href="/racing/content/PDF/RaceCard/20261111_starter_r1_chi.pdf">此場</a>', '')
+                .replace('<a href="/racing/content/PDF/RaceCard/20261111_starter_all_chi.pdf">所有</a>', ''))
+        with self.assertRaises(ParseMiss):
+            parse_racecard_page(html, '2026-11-11', 'HV', 1, 'abc', SCRAPED)
+
+    def test_racecard_with_only_one_booklet_fails(self):
+        html = card_html().replace('/racing/content/PDF/RaceCard/20261111_starter_all_chi.pdf', '/racing/chinese/No_PDF_Download.html')
+        with self.assertRaises(ParseMiss):
+            parse_racecard_page(html, '2026-11-11', 'HV', 1, 'abc', SCRAPED)
+
     def test_unpublished_card_is_pending(self):
         with self.assertRaises(BoardPending):
             parse_racecard_page('<html><title>排位表</title></html>', '2026-11-14', 'ST', 1, 'abc', SCRAPED)
