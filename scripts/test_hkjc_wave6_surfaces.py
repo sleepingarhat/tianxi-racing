@@ -95,6 +95,38 @@ class Wave6Tests(unittest.TestCase):
         self.assertEqual(rows[1]['horse_no'], 2)
         self.assertEqual(rows[1]['brand_no'], 'L399')
 
+    def _bonus_root(self, day='2026-11-11', venue='HV'):
+        root = Path(tempfile.mkdtemp())
+        (root / 'data' / 'fixtures').mkdir(parents=True)
+        with (root / 'data' / 'fixtures' / 'fixtures.csv').open('w', encoding='utf-8', newline='') as handle:
+            writer = csv.DictWriter(handle, fieldnames=['date', 'venue', 'race_count'])
+            writer.writeheader()
+            writer.writerow({'date': day, 'venue': venue, 'race_count': '9'})
+        return root
+
+    def test_bonus_list_follows_a_flight_text_row(self):
+        # 2026-11-12: Next.js moved the list into a "$2c" text row (2c:T<bytes>,...).
+        value = (
+            '11/11/2026\r\n'
+            '07,8,MASK WARRIOR,假面勇士,L518,PP Bonus of HK$1.5M,「自購曾出賽馬匹特別獎金」一百五十萬港元\r\n'
+        )
+        size = format(len(value.encode('utf-8')), 'x')
+        flight = f'1f:["$","div",null]\n2c:T{size},{value}2d:["$","p",null]\n' + '"pP_PPG_and_ISG_Bonuses":{"value":"$2c"}'
+        rows = parse_fwb(flight, self._bonus_root(), 'abc', SCRAPED)
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]['brand_no'], 'L518')
+        self.assertEqual(rows[0]['horse_name_ch'], '假面勇士')
+
+    def test_bonus_list_reference_without_its_row_fails(self):
+        flight = '"pP_PPG_and_ISG_Bonuses":{"value":"$2c"}'
+        with self.assertRaises(ParseMiss):
+            parse_fwb(flight, self._bonus_root(), 'abc', SCRAPED)
+
+    def test_bonus_list_truncated_row_fails(self):
+        flight = '2c:Tfff,11/11/2026\r\n' + '"pP_PPG_and_ISG_Bonuses":{"value":"$2c"}'
+        with self.assertRaises(ParseMiss):
+            parse_fwb(flight, self._bonus_root(), 'abc', SCRAPED)
+
     def test_finish_photo_path_must_match_the_results_heading(self):
         rows = parse_finish_race(photo_html(), '2026-11-08', 'ST', 1, 'abc', SCRAPED)
         self.assertEqual(rows[0]['photo_code'], 'P3')

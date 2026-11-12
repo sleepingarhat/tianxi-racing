@@ -929,6 +929,12 @@ def racecard_files(soup, meeting_date: str, venue: str, race_no: int, facts: dic
             continue
         if href not in pdfs:
             pdfs.append(href)
+    # Before HKJC prints the starter booklets, both download buttons point at
+    # No_PDF_Download.html. The card itself is published; only the files wait.
+    placeholders = {
+        link['href'] for link in soup.find_all('a', href=True)
+        if re.fullmatch(r'/racing/chinese/No_PDF_Download\.html', link['href'].strip())
+    }
     race_pdf = None
     all_pdf = None
     for href in pdfs:
@@ -947,7 +953,8 @@ def racecard_files(soup, meeting_date: str, venue: str, race_no: int, facts: dic
             if all_pdf:
                 raise ParseMiss('racecard has two meeting PDFs')
             all_pdf = href
-    if not race_pdf or not all_pdf:
+    pdf_pending = not pdfs and bool(placeholders)
+    if not pdf_pending and (not race_pdf or not all_pdf):
         raise ParseMiss(f'{meeting_date} race {race_no} is missing a starter PDF')
 
     maps = []
@@ -979,9 +986,11 @@ def racecard_files(soup, meeting_date: str, venue: str, race_no: int, facts: dic
         'meeting_date': meeting_date, 'venue': venue, 'not_race_result': 1,
         'source_sha256': digest, 'scraped_at': scraped_at,
     }
-    return [
+    pdf_rows = [] if pdf_pending else [
         {**common, 'race_no': race_no, 'kind': 'starter_pdf', 'artifact_path': absolute(race_pdf), 'distance': None, 'surface_code': None},
         {**common, 'race_no': 0, 'kind': 'starter_pdf_all', 'artifact_path': absolute(all_pdf), 'distance': None, 'surface_code': None},
+    ]
+    return pdf_rows + [
         {**common, 'race_no': race_no, 'kind': 'track_map_thumb', 'artifact_path': absolute(thumb), 'distance': facts['distance'], 'surface_code': letter},
         {**common, 'race_no': race_no, 'kind': 'track_map', 'artifact_path': absolute(full), 'distance': facts['distance'], 'surface_code': letter},
     ]
@@ -1203,8 +1212,12 @@ def collect_racecard(root: Path, scraped_at: str) -> tuple[list[dict], list[dict
         if pending:
             continue
         all_pdfs = {row['artifact_path'] for row in meeting_files if row['kind'] == 'starter_pdf_all'}
-        if len(all_pdfs) != 1:
-            raise IdentityError(f'{meeting_date} {venue} meeting PDF is not one file')
+        race_pdfs = {row['race_no'] for row in meeting_files if row['kind'] == 'starter_pdf'}
+        # Booklets are either still pending on every race or printed for every race.
+        if race_pdfs and (len(all_pdfs) != 1 or race_pdfs != set(range(1, race_count + 1))):
+            raise IdentityError(f'{meeting_date} {venue} starter PDFs are only partly published')
+        if not race_pdfs and all_pdfs:
+            raise IdentityError(f'{meeting_date} {venue} meeting PDF has no race PDFs')
         kept_files = []
         seen_all = False
         for row in meeting_files:
