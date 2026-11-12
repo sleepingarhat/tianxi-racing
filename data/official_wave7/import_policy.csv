@@ -1,104 +1,104 @@
 page_code,kind,block_no,row_no,col_no,text_ch,asset_path,not_race_result,source_sha256,scraped_at
-pps,image,1,0,0,,https://consvc.hkjc.com/-/media/Sites/JCRW/Page/pps_import_critieria/title_horses_pps_CHI.gif?rev=ac5b74de05424e54abe2a3933fcb4a8f&sc_lang=zh-HK&hash=6821377CE974CD1FE541E549A3C2A159,1,22c3c26f71dd732e00a2d2d5aff5bac183336fb2acfa83c2c2ff11ee2350f4ba,2026-11-11T16:26:20+00:00
-pps,exam_pdf,1,0,0,馬匹進口前體格檢驗規定,https://racing.hkjc.com/general/-/media/Sites/JCRW/pp_formsheet/ch/Veterinary_Pre-Import_Exam_Protocol_Version_Chi.pdf,1,22c3c26f71dd732e00a2d2d5aff5bac183336fb2acfa83c2c2ff11ee2350f4ba,2026-11-11T16:26:20+00:00
-pps,tab,1,0,0,2026/27自購馬,https://racing.hkjc.com/zh-hk/local/page/pps-import-critieria,1,22c3c26f71dd732e00a2d2d5aff5bac183336fb2acfa83c2c2ff11ee2350f4ba,2026-11-11T16:26:20+00:00
-pps,tab,2,0,0,2026/27自購新馬,https://racing.hkjc.com/zh-hk/local/page/ppgs-import-critieria,1,22c3c26f71dd732e00a2d2d5aff5bac183336fb2acfa83c2c2ff11ee2350f4ba,2026-11-11T16:26:20+00:00
-pps,paragraph,1,0,0,曾出賽馬匹進口資格,,1,22c3c26f71dd732e00a2d2d5aff5bac183336fb2acfa83c2c2ff11ee2350f4ba,2026-11-11T16:26:20+00:00
-pps,paragraph,2,0,0,甲、 國家,,1,22c3c26f71dd732e00a2d2d5aff5bac183336fb2acfa83c2c2ff11ee2350f4ba,2026-11-11T16:26:20+00:00
-pps,paragraph,3,0,0,於下列國家出賽的馬匹，若能符合香港進口資格者，均可從下列國家進口:,,1,22c3c26f71dd732e00a2d2d5aff5bac183336fb2acfa83c2c2ff11ee2350f4ba,2026-11-11T16:26:20+00:00
-pps,paragraph,4,0,0,*並未訂有准許從該國直接進口馬匹的規定。,,1,22c3c26f71dd732e00a2d2d5aff5bac183336fb2acfa83c2c2ff11ee2350f4ba,2026-11-11T16:26:20+00:00
-pps,paragraph,5,0,0,乙、 年齡及出賽次數的規定,,1,22c3c26f71dd732e00a2d2d5aff5bac183336fb2acfa83c2c2ff11ee2350f4ba,2026-11-11T16:26:20+00:00
-pps,paragraph,6,0,0,#馬匹必須於年屆五歲之前進口香港。,,1,22c3c26f71dd732e00a2d2d5aff5bac183336fb2acfa83c2c2ff11ee2350f4ba,2026-11-11T16:26:20+00:00
-pps,paragraph,7,0,0,丙、對於賽績的規定,,1,22c3c26f71dd732e00a2d2d5aff5bac183336fb2acfa83c2c2ff11ee2350f4ba,2026-11-11T16:26:20+00:00
-pps,paragraph,8,0,0,一、常規馬匹進口許可證/常規補替馬匹進口許可證,,1,22c3c26f71dd732e00a2d2d5aff5bac183336fb2acfa83c2c2ff11ee2350f4ba,2026-11-11T16:26:20+00:00
-pps,paragraph,9,0,0,使用常規馬匹進口許可證進口的馬匹，於進口香港時，須已獲確定香港評分為六十三分或以上，以及該馬匹須從上列其中一個國家取得資格並進口香港。,,1,22c3c26f71dd732e00a2d2d5aff5bac183336fb2acfa83c2c2ff11ee2350f4ba,2026-11-11T16:26:20+00:00
-pps,paragraph,10,0,0,香港評分由馬會賽馬產品部應許可證持有人及／或練馬師的要求而提供。由外地賽馬機構提供及／或公佈的評分均不可用以確定馬匹進口資格。,,1,22c3c26f71dd732e00a2d2d5aff5bac183336fb2acfa83c2c2ff11ee2350f4ba,2026-11-11T16:26:20+00:00
-pps,paragraph,11,0,0,許可證持有人及／或練馬師必須於事前獲得賽馬產品部以書面確認，有關馬匹符合進口資格進口香港。此等確認僅於有關該匹馬的所有條件均維持不變時，方為有效，假如其條件有所改變（例如馬齡改變或該匹馬再次出賽），此等確認即會自動撤銷。在此情況下，有關人士須再獲得賽馬產品部確認該匹馬的進口資格。許可證持有人必須自行負責確保他們擬進口的馬匹符合香港各項進口資格及規定。,,1,22c3c26f71dd732e00a2d2d5aff5bac183336fb2acfa83c2c2ff11ee2350f4ba,2026-11-11T16:26:20+00:00
-pps,paragraph,12,0,0,二、特別補替馬匹進口許可證,,1,22c3c26f71dd732e00a2d2d5aff5bac183336fb2acfa83c2c2ff11ee2350f4ba,2026-11-11T16:26:20+00:00
-pps,paragraph,13,0,0,使用特別補替馬匹進口許可證進口的馬匹，於進口香港時，須已獲確定香港評分為七十分或以上；,,1,22c3c26f71dd732e00a2d2d5aff5bac183336fb2acfa83c2c2ff11ee2350f4ba,2026-11-11T16:26:20+00:00
-pps,paragraph,14,0,0,以及 該馬匹曾勝出一場賽事，或曾在國際分級賽或表列賽中獲得第二或第三名；,,1,22c3c26f71dd732e00a2d2d5aff5bac183336fb2acfa83c2c2ff11ee2350f4ba,2026-11-11T16:26:20+00:00
-pps,paragraph,15,0,0,以及 該馬匹須從上列其中一個國家取得資格並進口香港。,,1,22c3c26f71dd732e00a2d2d5aff5bac183336fb2acfa83c2c2ff11ee2350f4ba,2026-11-11T16:26:20+00:00
-pps,paragraph,16,0,0,香港評分由馬會賽馬產品部應許可證持有人及／或練馬師的要求而提供。由外地賽馬機構提供及／或公佈的評分均不可用以確定馬匹進口資格。,,1,22c3c26f71dd732e00a2d2d5aff5bac183336fb2acfa83c2c2ff11ee2350f4ba,2026-11-11T16:26:20+00:00
-pps,paragraph,17,0,0,許可證持有人及／或練馬師必須於事前獲得賽馬產品部以書面確認，有關馬匹符合進口資格進口香港。此等確認僅於有關該匹馬的所有條件均維持不變時，方為有效，假如其條件有所改變（例如馬齡改變或該匹馬再次出賽），此等確認即會自動撤銷。在此情況下，有關人士須再獲得賽馬產品部確認該匹馬的進口資格。許可證持有人必須自行負責確保他們擬進口的馬匹符合香港各項進口資格及規定。,,1,22c3c26f71dd732e00a2d2d5aff5bac183336fb2acfa83c2c2ff11ee2350f4ba,2026-11-11T16:26:20+00:00
-pps,table_cell,1,1,1,阿根廷,,1,22c3c26f71dd732e00a2d2d5aff5bac183336fb2acfa83c2c2ff11ee2350f4ba,2026-11-11T16:26:20+00:00
-pps,table_cell,1,1,2,德國,,1,22c3c26f71dd732e00a2d2d5aff5bac183336fb2acfa83c2c2ff11ee2350f4ba,2026-11-11T16:26:20+00:00
-pps,table_cell,1,1,3,秘魯 *,,1,22c3c26f71dd732e00a2d2d5aff5bac183336fb2acfa83c2c2ff11ee2350f4ba,2026-11-11T16:26:20+00:00
-pps,table_cell,1,2,1,澳洲,,1,22c3c26f71dd732e00a2d2d5aff5bac183336fb2acfa83c2c2ff11ee2350f4ba,2026-11-11T16:26:20+00:00
-pps,table_cell,1,2,2,英國,,1,22c3c26f71dd732e00a2d2d5aff5bac183336fb2acfa83c2c2ff11ee2350f4ba,2026-11-11T16:26:20+00:00
-pps,table_cell,1,2,3,南非 *,,1,22c3c26f71dd732e00a2d2d5aff5bac183336fb2acfa83c2c2ff11ee2350f4ba,2026-11-11T16:26:20+00:00
-pps,table_cell,1,3,1,巴西 *,,1,22c3c26f71dd732e00a2d2d5aff5bac183336fb2acfa83c2c2ff11ee2350f4ba,2026-11-11T16:26:20+00:00
-pps,table_cell,1,3,2,愛爾蘭,,1,22c3c26f71dd732e00a2d2d5aff5bac183336fb2acfa83c2c2ff11ee2350f4ba,2026-11-11T16:26:20+00:00
-pps,table_cell,1,3,3,阿拉伯聯合酋長國,,1,22c3c26f71dd732e00a2d2d5aff5bac183336fb2acfa83c2c2ff11ee2350f4ba,2026-11-11T16:26:20+00:00
-pps,table_cell,1,4,1,加拿大,,1,22c3c26f71dd732e00a2d2d5aff5bac183336fb2acfa83c2c2ff11ee2350f4ba,2026-11-11T16:26:20+00:00
-pps,table_cell,1,4,2,意大利,,1,22c3c26f71dd732e00a2d2d5aff5bac183336fb2acfa83c2c2ff11ee2350f4ba,2026-11-11T16:26:20+00:00
-pps,table_cell,1,4,3,美國,,1,22c3c26f71dd732e00a2d2d5aff5bac183336fb2acfa83c2c2ff11ee2350f4ba,2026-11-11T16:26:20+00:00
-pps,table_cell,1,5,1,智利 *,,1,22c3c26f71dd732e00a2d2d5aff5bac183336fb2acfa83c2c2ff11ee2350f4ba,2026-11-11T16:26:20+00:00
-pps,table_cell,1,5,2,日本,,1,22c3c26f71dd732e00a2d2d5aff5bac183336fb2acfa83c2c2ff11ee2350f4ba,2026-11-11T16:26:20+00:00
-pps,table_cell,1,5,3,烏拉圭 *,,1,22c3c26f71dd732e00a2d2d5aff5bac183336fb2acfa83c2c2ff11ee2350f4ba,2026-11-11T16:26:20+00:00
-pps,table_cell,1,6,1,法國,,1,22c3c26f71dd732e00a2d2d5aff5bac183336fb2acfa83c2c2ff11ee2350f4ba,2026-11-11T16:26:20+00:00
-pps,table_cell,1,6,2,紐西蘭,,1,22c3c26f71dd732e00a2d2d5aff5bac183336fb2acfa83c2c2ff11ee2350f4ba,2026-11-11T16:26:20+00:00
-pps,table_cell,1,6,3,,,1,22c3c26f71dd732e00a2d2d5aff5bac183336fb2acfa83c2c2ff11ee2350f4ba,2026-11-11T16:26:20+00:00
-pps,table_cell,2,1,1,抵港時年齡#,,1,22c3c26f71dd732e00a2d2d5aff5bac183336fb2acfa83c2c2ff11ee2350f4ba,2026-11-11T16:26:20+00:00
-pps,table_cell,2,1,2,兩歲,,1,22c3c26f71dd732e00a2d2d5aff5bac183336fb2acfa83c2c2ff11ee2350f4ba,2026-11-11T16:26:20+00:00
-pps,table_cell,2,1,3,三歲,,1,22c3c26f71dd732e00a2d2d5aff5bac183336fb2acfa83c2c2ff11ee2350f4ba,2026-11-11T16:26:20+00:00
-pps,table_cell,2,1,4,四歲,,1,22c3c26f71dd732e00a2d2d5aff5bac183336fb2acfa83c2c2ff11ee2350f4ba,2026-11-11T16:26:20+00:00
-pps,table_cell,2,2,1,出賽次數 上限,,1,22c3c26f71dd732e00a2d2d5aff5bac183336fb2acfa83c2c2ff11ee2350f4ba,2026-11-11T16:26:20+00:00
-pps,table_cell,2,2,2,10次,,1,22c3c26f71dd732e00a2d2d5aff5bac183336fb2acfa83c2c2ff11ee2350f4ba,2026-11-11T16:26:20+00:00
-pps,table_cell,2,2,3,兩歲時 10次,,1,22c3c26f71dd732e00a2d2d5aff5bac183336fb2acfa83c2c2ff11ee2350f4ba,2026-11-11T16:26:20+00:00
-pps,table_cell,2,2,4,三歲時 15次,,1,22c3c26f71dd732e00a2d2d5aff5bac183336fb2acfa83c2c2ff11ee2350f4ba,2026-11-11T16:26:20+00:00
-pps,table_cell,2,2,5,兩歲時 10次,,1,22c3c26f71dd732e00a2d2d5aff5bac183336fb2acfa83c2c2ff11ee2350f4ba,2026-11-11T16:26:20+00:00
-pps,table_cell,2,2,6,三歲時 15次,,1,22c3c26f71dd732e00a2d2d5aff5bac183336fb2acfa83c2c2ff11ee2350f4ba,2026-11-11T16:26:20+00:00
-pps,table_cell,2,2,7,四歲時 15次,,1,22c3c26f71dd732e00a2d2d5aff5bac183336fb2acfa83c2c2ff11ee2350f4ba,2026-11-11T16:26:20+00:00
-pps,table_cell,2,3,1,出賽總次數上限,,1,22c3c26f71dd732e00a2d2d5aff5bac183336fb2acfa83c2c2ff11ee2350f4ba,2026-11-11T16:26:20+00:00
-pps,table_cell,2,3,2,10次,,1,22c3c26f71dd732e00a2d2d5aff5bac183336fb2acfa83c2c2ff11ee2350f4ba,2026-11-11T16:26:20+00:00
-pps,table_cell,2,3,3,17次,,1,22c3c26f71dd732e00a2d2d5aff5bac183336fb2acfa83c2c2ff11ee2350f4ba,2026-11-11T16:26:20+00:00
-pps,table_cell,2,3,4,17次,,1,22c3c26f71dd732e00a2d2d5aff5bac183336fb2acfa83c2c2ff11ee2350f4ba,2026-11-11T16:26:20+00:00
-ppgs,image,1,0,0,,https://consvc.hkjc.com/-/media/Sites/JCRW/Page/pps_import_critieria/title_horses_pps_CHI.gif?rev=ac5b74de05424e54abe2a3933fcb4a8f&sc_lang=zh-HK&hash=6821377CE974CD1FE541E549A3C2A159,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-11T16:26:20+00:00
-ppgs,exam_pdf,1,0,0,馬匹進口前體格檢驗規定,https://racing.hkjc.com/general/-/media/Sites/JCRW/pp_formsheet/ch/Veterinary_Pre-Import_Exam_Protocol_Version_Chi.pdf,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-11T16:26:20+00:00
-ppgs,tab,1,0,0,2026/27自購馬,https://racing.hkjc.com/zh-hk/local/page/pps-import-critieria,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-11T16:26:20+00:00
-ppgs,tab,2,0,0,2026/27自購新馬,https://racing.hkjc.com/zh-hk/local/page/ppgs-import-critieria,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-11T16:26:20+00:00
-ppgs,paragraph,1,0,0,自購新馬進口資格,,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-11T16:26:20+00:00
-ppgs,paragraph,2,0,0,國家,,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-11T16:26:20+00:00
-ppgs,paragraph,3,0,0,不論屬購入或自行繁殖者，均可從下列國家進口:,,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-11T16:26:20+00:00
-ppgs,paragraph,4,0,0,*並未訂有准許從該國直接進口馬匹的規定。,,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-11T16:26:20+00:00
-ppgs,paragraph,5,0,0,年齡規定,,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-11T16:26:20+00:00
-ppgs,paragraph,6,0,0,所有自購新馬必須在進口本港時，符合下列所述之年齡規定。,,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-11T16:26:20+00:00
-ppgs,table_cell,1,1,1,阿根廷,,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-11T16:26:20+00:00
-ppgs,table_cell,1,1,2,德國,,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-11T16:26:20+00:00
-ppgs,table_cell,1,1,3,秘魯 *,,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-11T16:26:20+00:00
-ppgs,table_cell,1,2,1,澳洲,,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-11T16:26:20+00:00
-ppgs,table_cell,1,2,2,英國,,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-11T16:26:20+00:00
-ppgs,table_cell,1,2,3,南非 *,,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-11T16:26:20+00:00
-ppgs,table_cell,1,3,1,巴西 *,,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-11T16:26:20+00:00
-ppgs,table_cell,1,3,2,愛爾蘭,,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-11T16:26:20+00:00
-ppgs,table_cell,1,3,3,阿拉伯聯合酋長國,,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-11T16:26:20+00:00
-ppgs,table_cell,1,4,1,加拿大,,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-11T16:26:20+00:00
-ppgs,table_cell,1,4,2,意大利,,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-11T16:26:20+00:00
-ppgs,table_cell,1,4,3,美國,,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-11T16:26:20+00:00
-ppgs,table_cell,1,5,1,智利 *,,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-11T16:26:20+00:00
-ppgs,table_cell,1,5,2,日本,,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-11T16:26:20+00:00
-ppgs,table_cell,1,5,3,烏拉圭 *,,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-11T16:26:20+00:00
-ppgs,table_cell,1,6,1,法國,,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-11T16:26:20+00:00
-ppgs,table_cell,1,6,2,紐西蘭,,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-11T16:26:20+00:00
-ppgs,table_cell,1,6,3,,,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-11T16:26:20+00:00
-ppgs,table_cell,2,1,1,出生於,,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-11T16:26:20+00:00
-ppgs,table_cell,2,1,2,進口時段,,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-11T16:26:20+00:00
-ppgs,table_cell,2,2,1,2026年 7月1日至7月31日,,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-11T16:26:20+00:00
-ppgs,table_cell,2,2,2,2026年 8月1日至12月31日,,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-11T16:26:20+00:00
-ppgs,table_cell,2,2,3,2027年 1月1日至6月30日,,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-11T16:26:20+00:00
-ppgs,table_cell,2,3,1,北半球 自購新馬,,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-11T16:26:20+00:00
-ppgs,table_cell,2,3,2,兩歲 (於2024年出生) 及 三歲 (於2023年出生),,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-11T16:26:20+00:00
-ppgs,table_cell,2,3,3,三歲 (於2024年出生),,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-11T16:26:20+00:00
-ppgs,table_cell,2,4,1,南半球 自購新馬,,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-11T16:26:20+00:00
-ppgs,table_cell,2,4,2,兩歲 (於2023年出生) 及 三歲 (於2022年出生)**,,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-11T16:26:20+00:00
-ppgs,table_cell,2,4,3,兩歲 (於2024年出生) 及 三歲 (於2023年出生),,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-11T16:26:20+00:00
-ppgs,table_cell,2,5,1,南美洲 自購新馬,,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-11T16:26:20+00:00
-ppgs,table_cell,2,5,2,兩歲 (於2024年出生) 及 三歲 (於2023年出生),,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-11T16:26:20+00:00
-ppgs,table_cell,3,1,1,註:,,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-11T16:26:20+00:00
-ppgs,table_cell,3,1,2,,,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-11T16:26:20+00:00
-ppgs,table_cell,3,2,1,1：,,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-11T16:26:20+00:00
-ppgs,table_cell,3,2,2,於二０二三年出生之北半球自購新馬（將於二０二七年一月一日年滿四歲） 必須 於二０二七年一月一日之前運抵本港。,,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-11T16:26:20+00:00
-ppgs,table_cell,3,3,1,2：,,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-11T16:26:20+00:00
-ppgs,table_cell,3,3,2,**於二０二二年出生之南半球自購新馬（將於二０二六年八月一日年滿四歲） 必須 於二０二六年八月一日之前運抵本港。,,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-11T16:26:20+00:00
-ppgs,table_cell,3,4,1,3：,,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-11T16:26:20+00:00
-ppgs,table_cell,3,4,2,於二０二五年出生之北半球自購新馬，可於二０二七年一月一日後進口，惟須視乎馬房是否有空位容納進口馬匹，以及有關馬房當時擁有馬匹之數目是否已達最高限額而定；同時，該等馬匹須待至二０二七／二０二八年度馬季編入新馬班次後，或由二０二八年一月一日起按練馬師要求獲評分以報名角逐班次賽事，方有資格參賽。,,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-11T16:26:20+00:00
+pps,image,1,0,0,,https://consvc.hkjc.com/-/media/Sites/JCRW/Page/pps_import_critieria/title_horses_pps_CHI.gif?rev=ac5b74de05424e54abe2a3933fcb4a8f&sc_lang=zh-HK&hash=6821377CE974CD1FE541E549A3C2A159,1,f199ad2fc33e5df2f1d27635f1405c6a56a80ba36bbe8b84562b93428f60ca71,2026-11-12T05:58:34+00:00
+pps,exam_pdf,1,0,0,馬匹進口前體格檢驗規定,https://racing.hkjc.com/general/-/media/Sites/JCRW/pp_formsheet/ch/Veterinary_Pre-Import_Exam_Protocol_Version_Chi.pdf,1,f199ad2fc33e5df2f1d27635f1405c6a56a80ba36bbe8b84562b93428f60ca71,2026-11-12T05:58:34+00:00
+pps,tab,1,0,0,2026/27自購馬,https://racing.hkjc.com/zh-hk/local/page/pps-import-critieria,1,f199ad2fc33e5df2f1d27635f1405c6a56a80ba36bbe8b84562b93428f60ca71,2026-11-12T05:58:34+00:00
+pps,tab,2,0,0,2026/27自購新馬,https://racing.hkjc.com/zh-hk/local/page/ppgs-import-critieria,1,f199ad2fc33e5df2f1d27635f1405c6a56a80ba36bbe8b84562b93428f60ca71,2026-11-12T05:58:34+00:00
+pps,paragraph,1,0,0,曾出賽馬匹進口資格,,1,f199ad2fc33e5df2f1d27635f1405c6a56a80ba36bbe8b84562b93428f60ca71,2026-11-12T05:58:34+00:00
+pps,paragraph,2,0,0,甲、 國家,,1,f199ad2fc33e5df2f1d27635f1405c6a56a80ba36bbe8b84562b93428f60ca71,2026-11-12T05:58:34+00:00
+pps,paragraph,3,0,0,於下列國家出賽的馬匹，若能符合香港進口資格者，均可從下列國家進口:,,1,f199ad2fc33e5df2f1d27635f1405c6a56a80ba36bbe8b84562b93428f60ca71,2026-11-12T05:58:34+00:00
+pps,paragraph,4,0,0,*並未訂有准許從該國直接進口馬匹的規定。,,1,f199ad2fc33e5df2f1d27635f1405c6a56a80ba36bbe8b84562b93428f60ca71,2026-11-12T05:58:34+00:00
+pps,paragraph,5,0,0,乙、 年齡及出賽次數的規定,,1,f199ad2fc33e5df2f1d27635f1405c6a56a80ba36bbe8b84562b93428f60ca71,2026-11-12T05:58:34+00:00
+pps,paragraph,6,0,0,#馬匹必須於年屆五歲之前進口香港。,,1,f199ad2fc33e5df2f1d27635f1405c6a56a80ba36bbe8b84562b93428f60ca71,2026-11-12T05:58:34+00:00
+pps,paragraph,7,0,0,丙、對於賽績的規定,,1,f199ad2fc33e5df2f1d27635f1405c6a56a80ba36bbe8b84562b93428f60ca71,2026-11-12T05:58:34+00:00
+pps,paragraph,8,0,0,一、常規馬匹進口許可證/常規補替馬匹進口許可證,,1,f199ad2fc33e5df2f1d27635f1405c6a56a80ba36bbe8b84562b93428f60ca71,2026-11-12T05:58:34+00:00
+pps,paragraph,9,0,0,使用常規馬匹進口許可證進口的馬匹，於進口香港時，須已獲確定香港評分為六十三分或以上，以及該馬匹須從上列其中一個國家取得資格並進口香港。,,1,f199ad2fc33e5df2f1d27635f1405c6a56a80ba36bbe8b84562b93428f60ca71,2026-11-12T05:58:34+00:00
+pps,paragraph,10,0,0,香港評分由馬會賽馬產品部應許可證持有人及／或練馬師的要求而提供。由外地賽馬機構提供及／或公佈的評分均不可用以確定馬匹進口資格。,,1,f199ad2fc33e5df2f1d27635f1405c6a56a80ba36bbe8b84562b93428f60ca71,2026-11-12T05:58:34+00:00
+pps,paragraph,11,0,0,許可證持有人及／或練馬師必須於事前獲得賽馬產品部以書面確認，有關馬匹符合進口資格進口香港。此等確認僅於有關該匹馬的所有條件均維持不變時，方為有效，假如其條件有所改變（例如馬齡改變或該匹馬再次出賽），此等確認即會自動撤銷。在此情況下，有關人士須再獲得賽馬產品部確認該匹馬的進口資格。許可證持有人必須自行負責確保他們擬進口的馬匹符合香港各項進口資格及規定。,,1,f199ad2fc33e5df2f1d27635f1405c6a56a80ba36bbe8b84562b93428f60ca71,2026-11-12T05:58:34+00:00
+pps,paragraph,12,0,0,二、特別補替馬匹進口許可證,,1,f199ad2fc33e5df2f1d27635f1405c6a56a80ba36bbe8b84562b93428f60ca71,2026-11-12T05:58:34+00:00
+pps,paragraph,13,0,0,使用特別補替馬匹進口許可證進口的馬匹，於進口香港時，須已獲確定香港評分為七十分或以上；,,1,f199ad2fc33e5df2f1d27635f1405c6a56a80ba36bbe8b84562b93428f60ca71,2026-11-12T05:58:34+00:00
+pps,paragraph,14,0,0,以及 該馬匹曾勝出一場賽事，或曾在國際分級賽或表列賽中獲得第二或第三名；,,1,f199ad2fc33e5df2f1d27635f1405c6a56a80ba36bbe8b84562b93428f60ca71,2026-11-12T05:58:34+00:00
+pps,paragraph,15,0,0,以及 該馬匹須從上列其中一個國家取得資格並進口香港。,,1,f199ad2fc33e5df2f1d27635f1405c6a56a80ba36bbe8b84562b93428f60ca71,2026-11-12T05:58:34+00:00
+pps,paragraph,16,0,0,香港評分由馬會賽馬產品部應許可證持有人及／或練馬師的要求而提供。由外地賽馬機構提供及／或公佈的評分均不可用以確定馬匹進口資格。,,1,f199ad2fc33e5df2f1d27635f1405c6a56a80ba36bbe8b84562b93428f60ca71,2026-11-12T05:58:34+00:00
+pps,paragraph,17,0,0,許可證持有人及／或練馬師必須於事前獲得賽馬產品部以書面確認，有關馬匹符合進口資格進口香港。此等確認僅於有關該匹馬的所有條件均維持不變時，方為有效，假如其條件有所改變（例如馬齡改變或該匹馬再次出賽），此等確認即會自動撤銷。在此情況下，有關人士須再獲得賽馬產品部確認該匹馬的進口資格。許可證持有人必須自行負責確保他們擬進口的馬匹符合香港各項進口資格及規定。,,1,f199ad2fc33e5df2f1d27635f1405c6a56a80ba36bbe8b84562b93428f60ca71,2026-11-12T05:58:34+00:00
+pps,table_cell,1,1,1,阿根廷,,1,f199ad2fc33e5df2f1d27635f1405c6a56a80ba36bbe8b84562b93428f60ca71,2026-11-12T05:58:34+00:00
+pps,table_cell,1,1,2,德國,,1,f199ad2fc33e5df2f1d27635f1405c6a56a80ba36bbe8b84562b93428f60ca71,2026-11-12T05:58:34+00:00
+pps,table_cell,1,1,3,秘魯 *,,1,f199ad2fc33e5df2f1d27635f1405c6a56a80ba36bbe8b84562b93428f60ca71,2026-11-12T05:58:34+00:00
+pps,table_cell,1,2,1,澳洲,,1,f199ad2fc33e5df2f1d27635f1405c6a56a80ba36bbe8b84562b93428f60ca71,2026-11-12T05:58:34+00:00
+pps,table_cell,1,2,2,英國,,1,f199ad2fc33e5df2f1d27635f1405c6a56a80ba36bbe8b84562b93428f60ca71,2026-11-12T05:58:34+00:00
+pps,table_cell,1,2,3,南非 *,,1,f199ad2fc33e5df2f1d27635f1405c6a56a80ba36bbe8b84562b93428f60ca71,2026-11-12T05:58:34+00:00
+pps,table_cell,1,3,1,巴西 *,,1,f199ad2fc33e5df2f1d27635f1405c6a56a80ba36bbe8b84562b93428f60ca71,2026-11-12T05:58:34+00:00
+pps,table_cell,1,3,2,愛爾蘭,,1,f199ad2fc33e5df2f1d27635f1405c6a56a80ba36bbe8b84562b93428f60ca71,2026-11-12T05:58:34+00:00
+pps,table_cell,1,3,3,阿拉伯聯合酋長國,,1,f199ad2fc33e5df2f1d27635f1405c6a56a80ba36bbe8b84562b93428f60ca71,2026-11-12T05:58:34+00:00
+pps,table_cell,1,4,1,加拿大,,1,f199ad2fc33e5df2f1d27635f1405c6a56a80ba36bbe8b84562b93428f60ca71,2026-11-12T05:58:34+00:00
+pps,table_cell,1,4,2,意大利,,1,f199ad2fc33e5df2f1d27635f1405c6a56a80ba36bbe8b84562b93428f60ca71,2026-11-12T05:58:34+00:00
+pps,table_cell,1,4,3,美國,,1,f199ad2fc33e5df2f1d27635f1405c6a56a80ba36bbe8b84562b93428f60ca71,2026-11-12T05:58:34+00:00
+pps,table_cell,1,5,1,智利 *,,1,f199ad2fc33e5df2f1d27635f1405c6a56a80ba36bbe8b84562b93428f60ca71,2026-11-12T05:58:34+00:00
+pps,table_cell,1,5,2,日本,,1,f199ad2fc33e5df2f1d27635f1405c6a56a80ba36bbe8b84562b93428f60ca71,2026-11-12T05:58:34+00:00
+pps,table_cell,1,5,3,烏拉圭 *,,1,f199ad2fc33e5df2f1d27635f1405c6a56a80ba36bbe8b84562b93428f60ca71,2026-11-12T05:58:34+00:00
+pps,table_cell,1,6,1,法國,,1,f199ad2fc33e5df2f1d27635f1405c6a56a80ba36bbe8b84562b93428f60ca71,2026-11-12T05:58:34+00:00
+pps,table_cell,1,6,2,紐西蘭,,1,f199ad2fc33e5df2f1d27635f1405c6a56a80ba36bbe8b84562b93428f60ca71,2026-11-12T05:58:34+00:00
+pps,table_cell,1,6,3,,,1,f199ad2fc33e5df2f1d27635f1405c6a56a80ba36bbe8b84562b93428f60ca71,2026-11-12T05:58:34+00:00
+pps,table_cell,2,1,1,抵港時年齡#,,1,f199ad2fc33e5df2f1d27635f1405c6a56a80ba36bbe8b84562b93428f60ca71,2026-11-12T05:58:34+00:00
+pps,table_cell,2,1,2,兩歲,,1,f199ad2fc33e5df2f1d27635f1405c6a56a80ba36bbe8b84562b93428f60ca71,2026-11-12T05:58:34+00:00
+pps,table_cell,2,1,3,三歲,,1,f199ad2fc33e5df2f1d27635f1405c6a56a80ba36bbe8b84562b93428f60ca71,2026-11-12T05:58:34+00:00
+pps,table_cell,2,1,4,四歲,,1,f199ad2fc33e5df2f1d27635f1405c6a56a80ba36bbe8b84562b93428f60ca71,2026-11-12T05:58:34+00:00
+pps,table_cell,2,2,1,出賽次數 上限,,1,f199ad2fc33e5df2f1d27635f1405c6a56a80ba36bbe8b84562b93428f60ca71,2026-11-12T05:58:34+00:00
+pps,table_cell,2,2,2,10次,,1,f199ad2fc33e5df2f1d27635f1405c6a56a80ba36bbe8b84562b93428f60ca71,2026-11-12T05:58:34+00:00
+pps,table_cell,2,2,3,兩歲時 10次,,1,f199ad2fc33e5df2f1d27635f1405c6a56a80ba36bbe8b84562b93428f60ca71,2026-11-12T05:58:34+00:00
+pps,table_cell,2,2,4,三歲時 15次,,1,f199ad2fc33e5df2f1d27635f1405c6a56a80ba36bbe8b84562b93428f60ca71,2026-11-12T05:58:34+00:00
+pps,table_cell,2,2,5,兩歲時 10次,,1,f199ad2fc33e5df2f1d27635f1405c6a56a80ba36bbe8b84562b93428f60ca71,2026-11-12T05:58:34+00:00
+pps,table_cell,2,2,6,三歲時 15次,,1,f199ad2fc33e5df2f1d27635f1405c6a56a80ba36bbe8b84562b93428f60ca71,2026-11-12T05:58:34+00:00
+pps,table_cell,2,2,7,四歲時 15次,,1,f199ad2fc33e5df2f1d27635f1405c6a56a80ba36bbe8b84562b93428f60ca71,2026-11-12T05:58:34+00:00
+pps,table_cell,2,3,1,出賽總次數上限,,1,f199ad2fc33e5df2f1d27635f1405c6a56a80ba36bbe8b84562b93428f60ca71,2026-11-12T05:58:34+00:00
+pps,table_cell,2,3,2,10次,,1,f199ad2fc33e5df2f1d27635f1405c6a56a80ba36bbe8b84562b93428f60ca71,2026-11-12T05:58:34+00:00
+pps,table_cell,2,3,3,17次,,1,f199ad2fc33e5df2f1d27635f1405c6a56a80ba36bbe8b84562b93428f60ca71,2026-11-12T05:58:34+00:00
+pps,table_cell,2,3,4,17次,,1,f199ad2fc33e5df2f1d27635f1405c6a56a80ba36bbe8b84562b93428f60ca71,2026-11-12T05:58:34+00:00
+ppgs,image,1,0,0,,https://consvc.hkjc.com/-/media/Sites/JCRW/Page/pps_import_critieria/title_horses_pps_CHI.gif?rev=ac5b74de05424e54abe2a3933fcb4a8f&sc_lang=zh-HK&hash=6821377CE974CD1FE541E549A3C2A159,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-12T05:58:34+00:00
+ppgs,exam_pdf,1,0,0,馬匹進口前體格檢驗規定,https://racing.hkjc.com/general/-/media/Sites/JCRW/pp_formsheet/ch/Veterinary_Pre-Import_Exam_Protocol_Version_Chi.pdf,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-12T05:58:34+00:00
+ppgs,tab,1,0,0,2026/27自購馬,https://racing.hkjc.com/zh-hk/local/page/pps-import-critieria,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-12T05:58:34+00:00
+ppgs,tab,2,0,0,2026/27自購新馬,https://racing.hkjc.com/zh-hk/local/page/ppgs-import-critieria,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-12T05:58:34+00:00
+ppgs,paragraph,1,0,0,自購新馬進口資格,,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-12T05:58:34+00:00
+ppgs,paragraph,2,0,0,國家,,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-12T05:58:34+00:00
+ppgs,paragraph,3,0,0,不論屬購入或自行繁殖者，均可從下列國家進口:,,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-12T05:58:34+00:00
+ppgs,paragraph,4,0,0,*並未訂有准許從該國直接進口馬匹的規定。,,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-12T05:58:34+00:00
+ppgs,paragraph,5,0,0,年齡規定,,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-12T05:58:34+00:00
+ppgs,paragraph,6,0,0,所有自購新馬必須在進口本港時，符合下列所述之年齡規定。,,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-12T05:58:34+00:00
+ppgs,table_cell,1,1,1,阿根廷,,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-12T05:58:34+00:00
+ppgs,table_cell,1,1,2,德國,,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-12T05:58:34+00:00
+ppgs,table_cell,1,1,3,秘魯 *,,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-12T05:58:34+00:00
+ppgs,table_cell,1,2,1,澳洲,,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-12T05:58:34+00:00
+ppgs,table_cell,1,2,2,英國,,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-12T05:58:34+00:00
+ppgs,table_cell,1,2,3,南非 *,,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-12T05:58:34+00:00
+ppgs,table_cell,1,3,1,巴西 *,,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-12T05:58:34+00:00
+ppgs,table_cell,1,3,2,愛爾蘭,,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-12T05:58:34+00:00
+ppgs,table_cell,1,3,3,阿拉伯聯合酋長國,,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-12T05:58:34+00:00
+ppgs,table_cell,1,4,1,加拿大,,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-12T05:58:34+00:00
+ppgs,table_cell,1,4,2,意大利,,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-12T05:58:34+00:00
+ppgs,table_cell,1,4,3,美國,,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-12T05:58:34+00:00
+ppgs,table_cell,1,5,1,智利 *,,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-12T05:58:34+00:00
+ppgs,table_cell,1,5,2,日本,,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-12T05:58:34+00:00
+ppgs,table_cell,1,5,3,烏拉圭 *,,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-12T05:58:34+00:00
+ppgs,table_cell,1,6,1,法國,,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-12T05:58:34+00:00
+ppgs,table_cell,1,6,2,紐西蘭,,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-12T05:58:34+00:00
+ppgs,table_cell,1,6,3,,,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-12T05:58:34+00:00
+ppgs,table_cell,2,1,1,出生於,,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-12T05:58:34+00:00
+ppgs,table_cell,2,1,2,進口時段,,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-12T05:58:34+00:00
+ppgs,table_cell,2,2,1,2026年 7月1日至7月31日,,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-12T05:58:34+00:00
+ppgs,table_cell,2,2,2,2026年 8月1日至12月31日,,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-12T05:58:34+00:00
+ppgs,table_cell,2,2,3,2027年 1月1日至6月30日,,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-12T05:58:34+00:00
+ppgs,table_cell,2,3,1,北半球 自購新馬,,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-12T05:58:34+00:00
+ppgs,table_cell,2,3,2,兩歲 (於2024年出生) 及 三歲 (於2023年出生),,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-12T05:58:34+00:00
+ppgs,table_cell,2,3,3,三歲 (於2024年出生),,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-12T05:58:34+00:00
+ppgs,table_cell,2,4,1,南半球 自購新馬,,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-12T05:58:34+00:00
+ppgs,table_cell,2,4,2,兩歲 (於2023年出生) 及 三歲 (於2022年出生)**,,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-12T05:58:34+00:00
+ppgs,table_cell,2,4,3,兩歲 (於2024年出生) 及 三歲 (於2023年出生),,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-12T05:58:34+00:00
+ppgs,table_cell,2,5,1,南美洲 自購新馬,,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-12T05:58:34+00:00
+ppgs,table_cell,2,5,2,兩歲 (於2024年出生) 及 三歲 (於2023年出生),,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-12T05:58:34+00:00
+ppgs,table_cell,3,1,1,註:,,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-12T05:58:34+00:00
+ppgs,table_cell,3,1,2,,,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-12T05:58:34+00:00
+ppgs,table_cell,3,2,1,1：,,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-12T05:58:34+00:00
+ppgs,table_cell,3,2,2,於二０二三年出生之北半球自購新馬（將於二０二七年一月一日年滿四歲） 必須 於二０二七年一月一日之前運抵本港。,,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-12T05:58:34+00:00
+ppgs,table_cell,3,3,1,2：,,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-12T05:58:34+00:00
+ppgs,table_cell,3,3,2,**於二０二二年出生之南半球自購新馬（將於二０二六年八月一日年滿四歲） 必須 於二０二六年八月一日之前運抵本港。,,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-12T05:58:34+00:00
+ppgs,table_cell,3,4,1,3：,,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-12T05:58:34+00:00
+ppgs,table_cell,3,4,2,於二０二五年出生之北半球自購新馬，可於二０二七年一月一日後進口，惟須視乎馬房是否有空位容納進口馬匹，以及有關馬房當時擁有馬匹之數目是否已達最高限額而定；同時，該等馬匹須待至二０二七／二０二八年度馬季編入新馬班次後，或由二０二八年一月一日起按練馬師要求獲評分以報名角逐班次賽事，方有資格參賽。,,1,a0667f872a3227bdb283faaa64fb8b21795a446bce960473df75f88f84af4b48,2026-11-12T05:58:34+00:00
