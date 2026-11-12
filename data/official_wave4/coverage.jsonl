@@ -10,3 +10,4 @@
 {"horses_requested": 6151, "horses_skipped": 2, "scraped_at": "2026-11-09T15:52:19+00:00", "skipped": [{"brand_no": "D129", "reason": "D129: C-prefixed page is 哨牙騅 (CD129), not 駿龍駒 (CD129)", "status": "retired"}, {"brand_no": "H078", "reason": "H078: C-prefixed page is 紅山福將 (CH078), not 馬林 (CH078)", "status": "retired"}], "surfaces": ["horse-record"]}
 {"horses_requested": 124, "horses_skipped": 0, "scraped_at": "2026-11-10T04:48:51+00:00", "skipped": [], "surfaces": ["horse-record", "movement", "performance", "rating-weight"]}
 {"horses_requested": 124, "horses_skipped": 0, "scraped_at": "2026-11-11T03:06:06+00:00", "skipped": [], "surfaces": ["horse-record", "movement", "performance", "rating-weight"]}
+{"horses_requested": 171, "horses_skipped": 0, "scraped_at": "2026-11-12T04:21:56+00:00", "skipped": [], "surfaces": ["horse-record", "movement", "performance", "rating-weight"]}
