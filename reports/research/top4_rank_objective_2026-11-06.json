@@ -1,0 +1,126 @@
+{
+ "features": [
+  "days_since",
+  "last_place",
+  "last_lbw",
+  "last3_avg_place",
+  "wt_change",
+  "rating_change",
+  "gear_changed",
+  "class_drop",
+  "runs_count",
+  "trial_30d",
+  "trial_best_pos",
+  "trial_pass",
+  "long_rest_with_trial",
+  "debut"
+ ],
+ "years": [
+  {
+   "year": 2018,
+   "trainRaces": 2404,
+   "testRaces": 776,
+   "pointwise": 1.941,
+   "pairwise": 1.943,
+   "listwise": 1.941,
+   "marketRef": 2.256
+  },
+  {
+   "year": 2019,
+   "trainRaces": 3180,
+   "testRaces": 787,
+   "pointwise": 2.038,
+   "pairwise": 2.034,
+   "listwise": 2.041,
+   "marketRef": 2.342
+  },
+  {
+   "year": 2020,
+   "trainRaces": 3944,
+   "testRaces": 825,
+   "pointwise": 2.015,
+   "pairwise": 2.021,
+   "listwise": 2.021,
+   "marketRef": 2.33
+  },
+  {
+   "year": 2021,
+   "trainRaces": 4560,
+   "testRaces": 803,
+   "pointwise": 1.943,
+   "pairwise": 1.944,
+   "listwise": 1.948,
+   "marketRef": 2.23
+  },
+  {
+   "year": 2022,
+   "trainRaces": 4764,
+   "testRaces": 780,
+   "pointwise": 1.944,
+   "pairwise": 1.945,
+   "listwise": 1.954,
+   "marketRef": 2.153
+  },
+  {
+   "year": 2023,
+   "trainRaces": 4772,
+   "testRaces": 722,
+   "pointwise": 1.927,
+   "pairwise": 1.938,
+   "listwise": 1.935,
+   "marketRef": 2.17
+  },
+  {
+   "year": 2024,
+   "trainRaces": 4693,
+   "testRaces": 657,
+   "pointwise": 1.983,
+   "pairwise": 1.982,
+   "listwise": 1.977,
+   "marketRef": 2.251
+  },
+  {
+   "year": 2025,
+   "trainRaces": 4574,
+   "testRaces": 818,
+   "pointwise": 1.999,
+   "pairwise": 1.987,
+   "listwise": 1.987,
+   "marketRef": 2.24
+  },
+  {
+   "year": 2026,
+   "trainRaces": 4605,
+   "testRaces": 708,
+   "pointwise": 1.976,
+   "pairwise": 1.962,
+   "listwise": 1.968,
+   "marketRef": 2.298
+  }
+ ],
+ "avgHits": {
+  "pointwise": 1.9744,
+  "pairwise": 1.9734,
+  "listwise": 1.9751,
+  "market": 2.2529
+ },
+ "pairedVsPointwise": {
+  "pairwise": {
+   "mean": -0.001,
+   "ci95": [
+    -0.0061,
+    0.0039
+   ],
+   "races": 6876
+  },
+  "listwise": {
+   "mean": 0.0007,
+   "ci95": [
+    -0.0045,
+    0.006
+   ],
+   "races": 6876
+  }
+ },
+ "note": "研究報告；只用賽前紀錄、不用賠率；市場欄只作對照；不改四揀、凍結或戰績，升唔升由用戶決定。"
+}
