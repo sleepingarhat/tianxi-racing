@@ -1,68 +1,68 @@
 {
-  "generatedAt": "2026-11-12T05:00:43.316932+00:00",
+  "generatedAt": "2026-11-13T04:05:03.818749+00:00",
   "source": {
     "name": "香港賽馬會公開馬匹資料",
     "archive": "/home/runner/work/tianxi-racing/tianxi-racing/horses/profiles/horse_profiles.csv",
-    "dataAsOf": "2026-11-12"
+    "dataAsOf": "2026-11-13"
   },
   "cohorts": {
     "active": {
-      "horses": 973,
-      "completeProfiles": 971,
+      "horses": 972,
+      "completeProfiles": 970,
       "completeCoveragePct": 99.8,
       "fields": {
         "countryOfOrigin": {
-          "present": 973,
+          "present": 972,
           "missing": 0,
           "coveragePct": 100.0
         },
         "colour": {
-          "present": 973,
+          "present": 972,
           "missing": 0,
           "coveragePct": 100.0
         },
         "sex": {
-          "present": 973,
+          "present": 972,
           "missing": 0,
           "coveragePct": 100.0
         },
         "importType": {
-          "present": 973,
+          "present": 972,
           "missing": 0,
           "coveragePct": 100.0
         },
         "owner": {
-          "present": 973,
+          "present": 972,
           "missing": 0,
           "coveragePct": 100.0
         },
         "sire": {
-          "present": 973,
+          "present": 972,
           "missing": 0,
           "coveragePct": 100.0
         },
         "dam": {
-          "present": 973,
+          "present": 972,
           "missing": 0,
           "coveragePct": 100.0
         },
         "damSire": {
-          "present": 973,
+          "present": 972,
           "missing": 0,
           "coveragePct": 100.0
         },
         "seasonStakes": {
-          "present": 972,
+          "present": 971,
           "missing": 1,
           "coveragePct": 99.9
         },
         "totalStakes": {
-          "present": 973,
+          "present": 972,
           "missing": 0,
           "coveragePct": 100.0
         },
         "currentTrainer": {
-          "present": 971,
+          "present": 970,
           "missing": 2,
           "coveragePct": 99.8
         }
