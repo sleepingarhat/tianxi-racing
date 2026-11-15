@@ -1,4 +1,5 @@
 ﻿horse_no,race_index,place,date,racecourse,track,course,distance_m,going,race_class,draw,rating,trainer,jockey,lbw,win_odds,actual_wt_lbs,running_position,finish_time,declared_wt_lbs,gear
+G476,190,02,14/11/26,沙田,草地,A,2000,好/黏,4,9,46,鄭俊偉,梁家俊,短馬頭位,28,121,13 13 13 13 2,2.02.05,1155,CP/TT
 G476,153,08,01/11/26,跑馬地,草地,C+3,1800,好,4,7,48,鄭俊偉,梁家俊,1-3/4,10,124,9 8 8 8 8,1.49.43,1146,CP/TT
 G476,062,04,01/10/26,沙田,草地,A,1800,好/快,4,12,50,鄭俊偉,周俊樂,2-1/2,31,124,13 13 11 11 4,1.48.15,1141,CP/TT
 G476,031,04,16/09/26,跑馬地,草地,B,1800,好,4,3,50,鄭俊偉,周俊樂,1-1/2,9.4,126,9 9 9 10 4,1.50.30,1130,CP/TT

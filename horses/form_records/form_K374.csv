@@ -1,4 +1,5 @@
 ﻿horse_no,race_index,place,date,racecourse,track,course,distance_m,going,race_class,draw,rating,trainer,jockey,lbw,win_odds,actual_wt_lbs,running_position,finish_time,declared_wt_lbs,gear
+K374,190,06,14/11/26,沙田,草地,A,2000,好/黏,4,1,46,大衛希斯,班德禮,3-1/4,17,121,7 7 8 6 6,2.02.56,1048,B
 K374,153,04,01/11/26,跑馬地,草地,C+3,1800,好,4,5,46,大衛希斯,班德禮,1,18,122,4 2 2 2 4,1.49.32,1055,B
 K374,081,07,07/10/26,跑馬地,草地,C+3,1650,好/快,4,8,47,大衛希斯,班德禮,5-3/4,42,123,9 10 9 7,1.39.74,1043,B
 K374,041,10,23/09/26,跑馬地,草地,C,1650,好,4,7,47,大衛希斯,班德禮,4-3/4,10,123,8 8 10 10,1.40.29,1047,B
