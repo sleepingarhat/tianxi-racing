@@ -1,5 +1,5 @@
 {
-  "scan_date": "2026-11-15",
+  "scan_date": "2026-11-16",
   "repo_root": "/home/runner/work/tianxi-racing/tianxi-racing",
   "overall_severity": "warn",
   "critical_gap_count": 0,
@@ -21,12 +21,12 @@
     "fixtures_cache": {
       "name": "fixtures_cache",
       "expected": 1,
-      "present": 232,
+      "present": 233,
       "missing": [],
       "stale": [],
       "pending": [],
       "notes": [
-        "total cached race days: 232"
+        "total cached race days: 233"
       ],
       "severity": "ok"
     },
