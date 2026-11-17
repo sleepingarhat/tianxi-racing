@@ -39,9 +39,13 @@ FIELDS = [
     "race_class", "distance", "track", "rating_range", "race_name", "section_label",
     "card_stage", "draw_status", "source_sha256", "scraped_at",
 ]
+# Class races carry 「第N班 … (評分 a-b)」. Group races do not: the 2026-11-22
+# ST card link is exactly 「二級賽 1200米 組別1 中銀香港私人銀行馬會短途錦標」
+# with an empty 評分幅度 cell. A link that matches neither shape still fails closed.
 RACE_LINK = re.compile(
-    r"^(?P<klass>第.+?班(?:（條件限制）)?)\s+(?P<distance>\d+)米\s+組別(?P<section>\S+)\s+"
-    r"(?P<name>.+?)\s+\(評分\s+(?P<rating>\d+\s*-\s*\d+)\)$"
+    r"^(?P<klass>(?:第.+?班(?:（條件限制）)?)|(?:[一二三四]級賽)|(?:Group\s*[123]))"
+    r"\s+(?P<distance>\d+)米\s+組別(?P<section>\S+)\s+"
+    r"(?P<name>.+?)(?:\s+\(評分\s+(?P<rating>\d+\s*-\s*\d+)\))?$"
 )
 HORSE_ID = re.compile(r"horseid=HK_\d{4}_([A-Z]\d+)", re.I)
 DATE_LINE = re.compile(r"賽事日期:\s*(\d{2})/(\d{2})/(\d{4})\s*(沙田|跑馬地)")
@@ -152,7 +156,7 @@ def parse_entries_html(html: str, race_date: str, venue: str, scraped_at: str) -
     for index, link in enumerate(links):
         distance = by_label["途程"][index].replace("米", "").strip()
         rating = by_label["評分幅度"][index].strip("() ").replace(" ", "")
-        link_rating = re.sub(r"\s+", "", link["rating"])
+        link_rating = re.sub(r"\s+", "", link.get("rating") or "")
         track = by_label["賽道"][index]
         if distance != link["distance"] or rating != link_rating:
             raise EntriesParseError(

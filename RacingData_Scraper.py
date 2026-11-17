@@ -32,6 +32,12 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
 from selenium.webdriver.chrome.service import Service as ChromeService
 from results_header_guard import official_header_miss, parse_class_distance
+from results_cancellation import (
+    cancelled_result_row,
+    conflicting_race_header,
+    is_void_result_row,
+    official_cancellation_message,
+)
 
 # Honor env overrides; fall back to Replit Nix paths, then common Linux/macOS
 # locations so local contributors do not have to set env vars manually.
@@ -388,20 +394,24 @@ def scrape_one_date(driver, single_date):
     # so a results file with <30 rows is a partial scrape that must be retried.
     # Fix (2026-09-24 v2): skip decision is a race-number SET comparison, never a
     # row count or link count (HKJC's page always yields 14 probe links vs 8-11
-    # real races). A race counts as "have" only if at least one row carries a
-    # numeric finishing place.
+    # real races). A race counts as "have" when a row carries a numeric place,
+    # or when it is an official cancelled/void slot with no runner.
     def _csv_placed_race_nos(path):
+        # A placed finisher counts. An official cancelled/void row (place 取消,
+        # no horse) also counts, so a hole like 2026-11-14 ST race 6 is complete.
         try:
-            df = pd.read_csv(path, encoding="utf-8-sig", usecols=["race_no", "place"], dtype=str)
+            df = pd.read_csv(path, encoding="utf-8-sig", dtype=str)
         except Exception:
             return set()
+        rows = df.fillna("").to_dict(orient="records")
         out = set()
-        for rn, pl in zip(df["race_no"], df["place"]):
+        for row in rows:
             try:
-                rn_i = int(float(rn))
+                rn_i = int(float(str(row.get("race_no") or "").strip()))
             except Exception:
                 continue
-            if re.match(r"^\s*\d+", str(pl or "")):
+            place = str(row.get("place") or "")
+            if is_void_result_row(row) or re.match(r"^\s*\d+", place):
                 out.add(rn_i)
         return out
 
@@ -410,6 +420,10 @@ def scrape_one_date(driver, single_date):
         url = f"{BASE_URL}?RaceDate={meet_date}&RaceNo={rn}"
         if not load_page(driver, url):
             return None  # unknown
+        # 2026-11-14 ST race 6: refund sentence, no 第 N 場 header, still a real race.
+        page = driver.page_source
+        if official_cancellation_message(page) and not conflicting_race_header(page, rn):
+            return True
         tabs = driver.find_elements(By.CLASS_NAME, "race_tab")
         if not tabs:
             return False
@@ -466,11 +480,27 @@ def scrape_one_date(driver, single_date):
     for race_url in race_urls:
         if not load_page(driver, race_url):
             continue
-        tabs = driver.find_elements(By.CLASS_NAME, "race_tab")
-        if not tabs:
-            continue
         if page_meet_date(driver) != meet_date:
             print(f"[date-guard] {formatted_date}: race page date mismatch -> skip race url {race_url}", flush=True)
+            continue
+        requested = re.search(r"RaceNo=(\d+)", race_url)
+        requested_no = requested.group(1) if requested else ""
+        # 2026-11-14 ST race 6 has the refund sentence and no race_tab table.
+        # Detect it before requiring a results header, or the slot is dropped.
+        race_venue_now = extract_venue(driver) or venue
+        if race_venue_now:
+            venue = race_venue_now
+        if race_venue_now in ("沙田", "跑馬地"):
+            cancelled = cancelled_result_row(driver.page_source, requested_no, formatted_date, race_venue_now)
+        else:
+            cancelled = None
+        if cancelled and cancelled["race_no"] not in seen_race_nos:
+            seen_race_nos.add(cancelled["race_no"])
+            all_results.append(cancelled)
+            print(f"[results] {formatted_date} R{cancelled['race_no']} cancelled/void — kept", flush=True)
+            continue
+        tabs = driver.find_elements(By.CLASS_NAME, "race_tab")
+        if not tabs:
             continue
         header  = parse_race_header(tabs[0])
         race_no = header["race_no"]
@@ -510,6 +540,8 @@ def scrape_one_date(driver, single_date):
         }
         for row in results:
             row.update(meta)
+            row.setdefault("race_status", "")
+            row.setdefault("official_message", "")
         for d in divs:
             d.update({"date": formatted_date, "venue": venue, "race_no": race_no})
         all_results.extend(results)
@@ -531,7 +563,8 @@ def scrape_one_date(driver, single_date):
                 "distance_m","rating_range","going","course","prize_hkd",
                 "race_finish_time","sectional_times_header","place","horse_no",
                 "horse_name","jockey","trainer","actual_wt_lbs","declared_wt_lbs",
-                "draw","lbw","running_position","finish_time","win_odds"]
+                "draw","lbw","running_position","finish_time","win_odds",
+                "race_status","official_message"]
         pd.DataFrame(all_results)[cols].to_csv(results_file, index=False, encoding="utf-8-sig")
 
     if all_dividends:

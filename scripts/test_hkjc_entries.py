@@ -24,7 +24,7 @@ def page(date_line, races, rows, extra=""):
             f'<a href="javascript:ajaxNav(\'/entries?ProvRaceNo=P{index}0\')">{race["label"]}</a>'
         )
         class_cells.append(race["short"])
-        rating_cells.append(f'({race["rating"]})')
+        rating_cells.append(f'({race["rating"]})' if race.get("rating") else "")
         distance_cells.append(f'{race["distance"]}米')
         section_cells.append(race["section"])
         track_cells.append(race["track"])
@@ -106,6 +106,38 @@ class EntriesParserTests(unittest.TestCase):
     def test_unpublished_page_is_empty_not_an_error(self):
         html = "<html><body>沒有相關資料</body></html>"
         self.assertEqual(module.parse_entries_html(html, "2026-11-18", "HV", "2026-11-10T10:00:00Z"), [])
+
+    def test_group_race_link_without_rating_band(self):
+        # 2026-11-22 ST race 1, the link that failed Capy Entries.
+        label = "二級賽 1200米 組別1 中銀香港私人銀行馬會短途錦標"
+        races = [
+            {"label": label, "short": "G2", "rating": "", "distance": "1200", "section": "1", "track": "草地"},
+            RACES[1],
+        ]
+        html = page(
+            "22/11/2026 沙田",
+            races,
+            [("伍鵬志", [("K014", "玩笑"), ("J267", "奮鬥心")])],
+        )
+        rows = module.parse_entries_html(html, "2026-11-22", "ST", "2026-11-16T21:29:18Z")
+        self.assertEqual(rows[0]["race_class"], "二級賽")
+        self.assertEqual(rows[0]["race_name"], "中銀香港私人銀行馬會短途錦標")
+        self.assertEqual(rows[0]["distance"], 1200)
+        self.assertEqual(rows[0]["section_label"], "1")
+        self.assertEqual(rows[0]["rating_range"], "")
+        self.assertEqual(rows[1]["race_class"], "第三班")
+        self.assertEqual(rows[1]["rating_range"], "80-60")
+
+    def test_unreadable_link_still_fails_closed(self):
+        html = page(
+            "22/11/2026 沙田",
+            RACES[:1],
+            [("伍鵬志", [("K014", "玩笑")])],
+        )
+        html = html.replace(RACES[0]["label"], "二級賽 中銀香港私人銀行馬會短途錦標")
+        with self.assertRaises(module.EntriesParseError) as caught:
+            module.parse_entries_html(html, "2026-11-22", "ST", "2026-11-16T21:29:18Z")
+        self.assertIn("unreadable race link", str(caught.exception))
 
     def test_column_mismatch_fails_closed(self):
         html = page(

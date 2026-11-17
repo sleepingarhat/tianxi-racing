@@ -260,7 +260,7 @@ function main() {
   // range (backfilled from HKJC pages). A NULL in the scratch DB means "not known
   // here", never "erase it", so the upsert keeps the existing D1 value.
   const PRESERVE_WHEN_NULL: Record<string, string[]> = {
-    races: ['start_time', 'rating_range', 'video_url'],
+    races: ['start_time', 'rating_range', 'video_url', 'status', 'official_note'],
   };
 
   for (const entry of plan) {

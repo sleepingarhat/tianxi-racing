@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import type { Env } from '../types';
 import { hhmmFromPostTime, fetchPostTimeMap } from '../lib/race-time';
 import { getHorseCareerStats } from '../lib/horse-career-stats';
+import { publicVoidRaceFields } from '../lib/race-cancellation';
 
 export const racesRoutes = new Hono<{ Bindings: Env }>();
 
@@ -73,6 +74,8 @@ racesRoutes.get('/:id', async (c) => {
     prize: race.prize,
     startTime: hhmmFromPostTime(ptMap.get(race.race_number)) ?? race.start_time,
     videoUrl: race.video_url,
+    // Same void fields as /api/meetings/{date}: 取消 / 退款, not a missing race.
+    ...publicVoidRaceFields(race),
     horses: (entries ?? []).map((e: any) => ({
       id: e.horse_id,
       horseNumber: e.horse_number,

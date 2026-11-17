@@ -105,3 +105,20 @@ assert.equal(gappedResult.applied, true);
 assert.equal(gappedResult.picks[3].rank, 5, 'frozen rank kept, not renumbered');
 
 console.log('prediction-lock fail-closed tests OK');
+
+// 2026-11-14 ST race 6 was cancelled. Frozen 4-8-6-3 stays; empty compared is void, not a mismatch.
+const race6Frozen = [
+  { horseNumber: 4, rank: 1 }, { horseNumber: 8, rank: 2 },
+  { horseNumber: 6, rank: 3 }, { horseNumber: 3, rank: 4 },
+];
+const voidAudit = auditTop4Pairs(
+  new Map([[6, race6Frozen], [1, frozen]]),
+  new Map([[1, frozen]]),
+  new Set([6]),
+);
+assert.equal(voidAudit.ok, true);
+assert.equal(voidAudit.mismatches.length, 0);
+assert.equal(voidAudit.races.find((race) => race.raceNumber === 6)?.frozenTop4, '4-8-6-3');
+assert.equal(voidAudit.races.find((race) => race.raceNumber === 6)?.comparedTop4, '');
+assert.equal(voidAudit.races.find((race) => race.raceNumber === 6)?.settlement, 'void');
+console.log('prediction-lock void race ok');

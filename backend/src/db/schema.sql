@@ -35,6 +35,8 @@ CREATE TABLE IF NOT EXISTS races (
   prize TEXT,
   start_time TEXT,
   video_url TEXT,
+  status TEXT,                        -- NULL/resulted = ran. cancelled/void = official void
+  official_note TEXT,                 -- HKJC cancellation sentence. Single-race pools are refunded.
   UNIQUE(meeting_id, race_number)
 );
 

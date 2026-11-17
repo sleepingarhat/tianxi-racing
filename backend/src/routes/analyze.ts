@@ -38,6 +38,7 @@ import { hitRateBodyForNonAdmin } from '../lib/hit-rate-access';
 import { getDataStats } from '../lib/data-stats';
 import { FreezeBlockedError } from '../lib/freeze-recovery';
 import { railKey } from '../lib/result-course';
+import { scoreOfficialPools } from '../lib/pool-scores';
 
 import {
   ADMIN_AUTH_POLICY,
@@ -109,7 +110,8 @@ async function raceDayReportIsSettled(db: D1Database, value: any): Promise<boole
   // P0 architect fix 2026-05-21: cache version tag invalidates pre-ensemble
   // rows so admin doesn't serve stale ELO-only payloads as if they were
   // TX-Oracle v3 ensemble results. Bumping this constant is a one-shot evict.
-  const HIT_RATE_CACHE_VERSION = 'tx3';
+  // tx4: dead-heat 平頭馬 horses with finishingPosition 1, 2, or 3 all count as placed.
+  const HIT_RATE_CACHE_VERSION = 'tx4';
   function _engineKey(engine: string): string {
     return `${engine}-${HIT_RATE_CACHE_VERSION}`;
   }
@@ -1338,46 +1340,38 @@ export async function computeHitRateStats(db: D1Database, date: string, engine: 
     const races = picksData.races.map((race: any) => {
       const actualSorted = (actualByRace.get(race.raceNumber) ?? []).sort((a: any, b: any) => a.finishing_position - b.finishing_position);
       const predictedTop3 = (race.picks ?? []).slice(0, 3);
-      const predictedTop2 = predictedTop3.slice(0, 2);
       const predictedTop4 = (race.picks ?? []).slice(0, 4);
-      const actualTop3 = actualSorted.slice(0, 3);
-      const actualTop2 = actualSorted.slice(0, 2);
-      const actualTop4 = actualSorted.slice(0, 4);
-      const actualTop1Id = actualTop3[0]?.horse_id ?? null;
-      const actualTop3Ids = new Set(actualTop3.map((a: any) => a.horse_id));
-      const actualTop2Ids = new Set(actualTop2.map((a: any) => a.horse_id));
-      const actualTop4Ids = new Set(actualTop4.map((a: any) => a.horse_id));
         // odds lookup by horse_id (covers ALL runners in race_results, not just top 4)
         const oddsById = new Map<string, number | null>(
           (actualByRace.get(race.raceNumber) ?? []).map((a: any) => [a.horse_id, a.win_odds ?? null])
         );
 
-      const top1Hit = actualTop1Id != null && predictedTop3[0]?.horseId === actualTop1Id;
-      const intersect = predictedTop3.filter((p: any) => actualTop3Ids.has(p.horseId)).length;
-      const top3AnyHit = intersect > 0;
+      // Dead-heat 平頭馬: every horse with finishingPosition 1, 2, or 3 is placed.
+      // slice(0, 3) dropped the second dead-heat 3rd (2026-11-14 ST R7 #6 and #13).
+      const pool = scoreOfficialPools(
+        predictedTop4.map((p: any) => String(p?.horseId ?? '')),
+        actualSorted.map((a: any) => ({ id: String(a.horse_id), position: Number(a.finishing_position) })),
+      );
+      const placedIds = new Set(pool.placedIds);
+      const slotTop4Ids = new Set(pool.top4Ids);
+      const top1Hit = pool.top1Hit;
+      const intersect = pool.top3Intersect;
+      const top3AnyHit = pool.top3AnyHit;
+      const quinellaHit = pool.quinellaHit;
+      const qpHit = pool.qpHit;
+      const trioHit = pool.trioHit;
+      const tierceHit = pool.tierceHit;
+      const first4Hit = pool.first4Hit;
+      const quartetHit = pool.quartetHit;
+      // Display every officially placed horse, including a dead-heat 3rd the
+      // old slice(0, 3) dropped. Slot top-4 is every horse who can fill 1st–4th.
+      const actualTop3 = actualSorted.filter((a: any) => placedIds.has(String(a.horse_id)));
+      const actualTop4 = actualSorted.filter((a: any) => slotTop4Ids.has(String(a.horse_id)));
 
-      // Quinella (Q): our top 2 == actual top 2 (any order)
-      const quinellaHit = predictedTop2.length === 2 && actualTop2.length === 2
-        && predictedTop2.every((p: any) => actualTop2Ids.has(p.horseId));
-      // Quinella Place (QP): both our top 2 finish in actual top 3 (any order)
-      const qpHit = predictedTop2.length === 2 && actualTop3.length >= 3
-        && predictedTop2.every((p: any) => actualTop3Ids.has(p.horseId));
-      // Trio: our top 3 == actual top 3 (any order, exact set)
-      const trioHit = predictedTop3.length === 3 && actualTop3.length === 3
-        && predictedTop3.every((p: any) => actualTop3Ids.has(p.horseId));
-      // Tierce (3T): our top 3 == actual top 3 in EXACT order
-      const tierceHit = predictedTop3.length === 3 && actualTop3.length === 3
-        && predictedTop3[0]?.horseId === actualTop3[0]?.horse_id
-        && predictedTop3[1]?.horseId === actualTop3[1]?.horse_id
-        && predictedTop3[2]?.horseId === actualTop3[2]?.horse_id;
-      // First 4 (F4): our top 4 == actual top 4 (any order)
-      const first4Hit = predictedTop4.length === 4 && actualTop4.length === 4
-        && predictedTop4.every((p: any) => actualTop4Ids.has(p.horseId));
-      // Quartet (4T, 四重彩): our top 4 == actual top 4 in EXACT order
-      const quartetHit = predictedTop4.length === 4 && actualTop4.length === 4
-        && predictedTop4.every((p: any, i: number) => p.horseId === actualTop4[i]?.horse_id);
-
-      if (actualTop3.length >= 3) {
+      // Void races are not in this loop (no finishing rows). evaluated stays
+      // false until three horses have finishingPosition 1, 2, or 3, so a
+      // cancelled race never enters racesEvaluated.
+      if (pool.evaluated) {
         racesEvaluated++;
         if (top1Hit) top1Hits++;
         if (top3AnyHit) top3AnyHits++;
@@ -1388,8 +1382,8 @@ export async function computeHitRateStats(db: D1Database, date: string, engine: 
         if (tierceHit) tierceHits++;
       }
       // ── New: 首選/次選/三選/四選 命中數（top-4 set overlap, 0..4） ──
-      const top4IntersectCount = predictedTop4.filter((p: any) => actualTop4Ids.has(p.horseId)).length;
-      if (actualTop4.length >= 4) {
+      const top4IntersectCount = pool.top4Intersect;
+      if (pool.first4Eligible) {
         first4Eligible++;
         if (first4Hit) first4Hits++;
         if (quartetHit) quartetHits++;
@@ -1456,7 +1450,7 @@ export async function computeHitRateStats(db: D1Database, date: string, engine: 
           scoreSource: p.scoreSource ?? null,
           factorBonus: p.factorBonus,
           reason: buildPickReason(p),
-          hit: actualTop4Ids.has(p.horseId),
+          hit: slotTop4Ids.has(String(p.horseId)),
           winOdds: oddsById.get(p.horseId) ?? null,
         })),
         actualTop3: actualTop3.map((a: any) => ({

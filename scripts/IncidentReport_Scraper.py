@@ -43,7 +43,24 @@ def quoted_sentences(narrative, keywords):
     sentences = re.findall(r'[^。！？]+[。！？]?', narrative)
     return ' '.join(s.strip() for s in sentences if any(k in s for k in keywords))
 
-def parse_report(raw, date, venue, captured, expected_races=None):
+def void_race_numbers(rows):
+    """Cancelled/void results rows. A void race may have no incident table."""
+    out = set()
+    for row in rows or []:
+        horse = str(row.get('horse_no') or '').strip()
+        if horse:
+            continue
+        status = str(row.get('race_status') or '').strip().lower()
+        place = str(row.get('place') or '').strip()
+        if status not in ('cancelled', 'void') and place not in ('取消', 'VOID', 'void'):
+            continue
+        try:
+            out.add(int(str(row.get('race_no') or '').strip()))
+        except ValueError:
+            continue
+    return out
+
+def parse_report(raw, date, venue, captured, expected_races=None, void_races=None):
     datetime.strptime(date, '%Y-%m-%d')
     if venue not in ('ST', 'HV'):
         raise ValueError('invalid requested venue')
@@ -118,14 +135,22 @@ def parse_report(raw, date, venue, captured, expected_races=None):
                          quoted_sentences(narrative, ['獸醫', '流鼻血', '心律', '不良於行', '試閘及格']),
                          captured, url, digest, 'true']))
             rows.append(row)
-    if expected_races is not None and race_numbers != set(expected_races):
-        if race_numbers < set(expected_races):
+    voids = {int(n) for n in (void_races or set())}
+    # A cancelled race (2026-11-14 ST race 6) is a complete slot even when HKJC
+    # publishes no incident table for it. Any other hole is still incomplete.
+    if expected_races is not None:
+        required = set(expected_races) - voids
+        missing = required - race_numbers
+        extra = race_numbers - set(expected_races) - voids
+        if missing and not extra:
             # HKJC publishes the race-day report race by race during the evening
             # (seen 2026-10-25 11:07/11:46 UTC). A strict subset is an unfinished
             # publication: pending and retried, never archived as evidence.
             raise ReportUnavailable('official report still partially published; pending, not archived')
-        raise ValueError('report race coverage differs from stored official results')
-    if race_numbers != set(range(1, max(race_numbers) + 1)):
+        if missing or extra:
+            raise ValueError('report race coverage differs from stored official results')
+    covered = set(race_numbers) | voids
+    if not covered or covered != set(range(1, max(covered) + 1)):
         raise ValueError('incomplete report race sequence')
     extras = []
     # General includes additions about EARLIER meetings, laboratory results and
@@ -167,9 +192,9 @@ def read_manifest(base):
                 raise ValueError('source/archive SHA mismatch')
     return entries
 
-def archive(base, raw, date, venue, captured, expected_races=None):
+def archive(base, raw, date, venue, captured, expected_races=None, void_races=None):
     # Parse and identity-check BEFORE creating files: fallback pages never become certified evidence.
-    rows, extras = parse_report(raw, date, venue, captured, expected_races)
+    rows, extras = parse_report(raw, date, venue, captured, expected_races, void_races)
     base.mkdir(parents=True, exist_ok=True)
     entries = read_manifest(base)
     digest = sha(raw)
@@ -240,7 +265,8 @@ def targets(root, explicit='', days=30, now=None):
         if not rows or labels not in ({'沙田'}, {'跑馬地'}) or {r['date'] for r in rows} != {date}:
             raise ValueError('stored results identity incomplete')
         races = {int(r['race_no']) for r in rows}
-        result.append((date, 'ST' if labels == {'沙田'} else 'HV', races))
+        voids = void_race_numbers(rows)
+        result.append((date, 'ST' if labels == {'沙田'} else 'HV', races, voids))
     return result
 
 def fetch_report(date):
@@ -268,10 +294,10 @@ def main():
     failed = []
     if not jobs:
         print(json.dumps({'skipped': 'no collected fixture results in refresh window'}))
-    for date, venue, races in jobs:
+    for date, venue, races, voids in jobs:
         try:
             output = archive(root / 'data/incidents', fetch_report(date), date, venue,
-                             datetime.now(timezone.utc).isoformat(), races)
+                             datetime.now(timezone.utc).isoformat(), races, voids)
             print(json.dumps({'date': date, 'venue': venue, **output}))
         except ReportUnavailable as error:
             # Pending is not successful no-event evidence. Retry on every refresh.

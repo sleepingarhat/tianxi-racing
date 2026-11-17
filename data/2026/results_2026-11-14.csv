@@ -1,4 +1,4 @@
-﻿date,venue,race_no,race_meeting_no,race_name,race_class,distance_m,rating_range,going,course,prize_hkd,race_finish_time,sectional_times_header,place,horse_no,horse_name,jockey,trainer,actual_wt_lbs,declared_wt_lbs,draw,lbw,running_position,finish_time,win_odds
+﻿date,venue,race_no,race_meeting_no,race_name,race_class,distance_m,rating_range,going,course,prize_hkd,race_finish_time,sectional_times_header,place,horse_no,horse_name,jockey,trainer,actual_wt_lbs,declared_wt_lbs,draw,lbw,running_position,finish_time,win_odds,race_status,official_message
 2026-11-14,沙田,1,187,PANASONIC水機讓賽,第四班（條件限制）,1200,60-40,好地至黏地,"草地 - ""A"" 賽道",1170000,(23.59) (46.07) (1:09.18),23.59 22.48,1,12,精算無雙 (L438),蔡明紹,蔡約翰,125,1128,14,---,8 7 1,1:09.18,34
 2026-11-14,沙田,1,187,PANASONIC水機讓賽,第四班（條件限制）,1200,60-40,好地至黏地,"草地 - ""A"" 賽道",1170000,(23.59) (46.07) (1:09.18),23.59 22.48,2,2,丙午傳奇 (M046),周俊樂,沈集成,131,1171,13,1,5 5 2,1:09.33,2.4
 2026-11-14,沙田,1,187,PANASONIC水機讓賽,第四班（條件限制）,1200,60-40,好地至黏地,"草地 - ""A"" 賽道",1170000,(23.59) (46.07) (1:09.18),23.59 22.48,3,8,逍遙 (L388),霍宏聲,游達榮,125,1153,3,1,9 8 3,1:09.34,8
@@ -139,3 +139,4 @@
 2026-11-14,沙田,11,197,PANASONIC日本廚櫃讓賽,第三班,1600,80-60,好地,"草地 - ""A"" 賽道",2050000,(24.79) (47.60) (1:11.75) (1:34.85),24.79 22.81 24.15,11,13,勁無限 (L379),潘明輝,沈集成,119,1099,10,7-1/4,13 13 13 11,1:36.01,37
 2026-11-14,沙田,11,197,PANASONIC日本廚櫃讓賽,第三班,1600,80-60,好地,"草地 - ""A"" 賽道",2050000,(24.79) (47.60) (1:11.75) (1:34.85),24.79 22.81 24.15,12,4,美麗飛馳 (M065),巴度,告東尼,130,1034,11,9-3/4,4 4 4 12,1:36.40,25
 2026-11-14,沙田,11,197,PANASONIC日本廚櫃讓賽,第三班,1600,80-60,好地,"草地 - ""A"" 賽道",2050000,(24.79) (47.60) (1:11.75) (1:34.85),24.79 22.81 24.15,13,2,仁心星 (J092),黃智弘,方嘉柏,130,1278,1,11-3/4,2 2 1 13,1:36.72,32
+2026-11-14,沙田,6,,,,,,,,,,,取消,,,,,,,,,,,,cancelled,此場賽事宣佈取消。根據賽馬博彩規例，若此賽事設有單場彩池，有關注項將予以退款。
