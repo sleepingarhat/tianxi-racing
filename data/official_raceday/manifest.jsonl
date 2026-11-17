@@ -244,3 +244,13 @@
 {"rows": {"pool_dividend": 169, "pool_status": 119, "track_probe": 4}, "scraped_at": "2026-11-15T15:45:09+00:00", "sha256": "db3ca5d5be1c042f0700e92ac7c4d063b55d172eb9d2c1bd9190fe2fcceae3d5", "surface": "pools"}
 {"rows": 1, "scraped_at": "2026-11-16T18:44:30+00:00", "sha256": "939e6abedbdbac7c4886e5607ffb107538554638c30590eeb6f93d799d4608e2", "surface": "raceday_focus"}
 {"rows": {"pool_dividend": 0, "pool_status": 97, "track_probe": 0}, "scraped_at": "2026-11-16T18:44:33+00:00", "sha256": "20f350a83b28979d9e9c4b23d4f51a3afd91e12bd6cfe6d2106b4f07a0fe08c6", "surface": "pools"}
+{"rows": 125, "scraped_at": "2026-11-17T08:13:46+00:00", "sha256": "f3062f48d9ebe80e32832111ef9cac66de33b56c375bfc32f1de01ad91aed04b", "surface": "report"}
+{"rows": 153, "scraped_at": "2026-11-17T08:13:46+00:00", "sha256": "563f16da5e4703624a6defbceb4f62addeae8fe054e060e54559618e57dc072c", "surface": "formline"}
+{"rows": 70, "scraped_at": "2026-11-17T08:13:46+00:00", "sha256": "3c43b6216aef2c6f24aa35181304ef2a42a773c8dc6ab202cb07b13bd7dcd14c", "surface": "exceptional"}
+{"rows": 152, "scraped_at": "2026-11-17T08:13:46+00:00", "sha256": "8ea76fa58f10a6f730fb5dbfb1caa2a4ad01288227c7aef5f825a09645f8cbd5", "surface": "veterinary"}
+{"rows": 4692, "scraped_at": "2026-11-17T08:13:46+00:00", "sha256": "cc8eebd3bfd89ab5dddb58be45dbe19e517649733afa82df1f927983378e1a05", "surface": "trackwork"}
+{"rows": 250, "scraped_at": "2026-11-17T08:13:46+00:00", "sha256": "7d12e5c0abac85b90a6b0ea0de58ed81e469bf328d60550a8762fda2d3b5caa2", "surface": "rides"}
+{"rows": 1, "scraped_at": "2026-11-17T08:13:46+00:00", "sha256": "d68194e9ab183972c56e0373d36e90e8e2dcfb4dc8a95c1e3d26373d79b463c2", "surface": "summary"}
+{"rows": 1, "scraped_at": "2026-11-17T08:15:06+00:00", "sha256": "939e6abedbdbac7c4886e5607ffb107538554638c30590eeb6f93d799d4608e2", "surface": "raceday_focus"}
+{"rows": 14, "scraped_at": "2026-11-17T08:15:06+00:00", "sha256": "40e718df5c5c87b840d7af8b75d84cb6d48a80899ecf16f6dd8df84adf1096f8", "surface": "last_run_reminder"}
+{"rows": {"pool_dividend": 0, "pool_status": 97, "track_probe": 0}, "scraped_at": "2026-11-17T08:15:10+00:00", "sha256": "d68194e9ab183972c56e0373d36e90e8e2dcfb4dc8a95c1e3d26373d79b463c2", "surface": "pools"}
