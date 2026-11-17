@@ -96,7 +96,8 @@ const insertFixture = db.prepare(`INSERT INTO official_fixtures (date, venue, we
 const nov = csvMonth('2026-11');
 const dec = csvMonth('2026-12');
 assert.equal(nov.length, 9, 'fixtures.csv November 2026 official days');
-assert.equal(dec.length, 8, 'fixtures.csv December 2026 official days');
+// 2026-12-29 HV was added to the official fixture cache on 2026-11-16.
+assert.equal(dec.length, 9, 'fixtures.csv December 2026 official days');
 for (const row of [...nov, ...dec]) {
   insertFixture.run(row.date, row.venue, row.weekday, row.timing, row.race_count ? Number(row.race_count) : null, row.surface);
 }
