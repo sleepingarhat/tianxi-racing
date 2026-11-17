@@ -10,6 +10,7 @@ import {
   resolveCardStatus,
   type CardSignals,
 } from '../lib/meeting-card';
+import { publicVoidRaceFields } from '../lib/race-cancellation';
 
 export const meetingsRoutes = new Hono<{ Bindings: Env }>();
 
@@ -536,6 +537,7 @@ meetingsRoutes.get('/:date', async (c) => {
           ORDER BY rr.finishing_position ASC
         `).bind(race.id).all();
         const profiles = await profilesFor((entries ?? []).map((e: any) => e.horse_id));
+        const settlement = publicVoidRaceFields(race);
         return {
           id: race.id,
           raceNumber: race.race_number,
@@ -550,6 +552,9 @@ meetingsRoutes.get('/:date', async (c) => {
           startTime: hhmmFromPostTime(ptMap.get(race.race_number)) ?? race.start_time,
           videoUrl: race.video_url,
           isDeclaredCard: true,
+          // Void race contract for the existing site: label 「取消」, reason is the
+          // official sentence, refund true. Not 待核. Frozen picks are untouched.
+          ...settlement,
           horses: (entries ?? []).map((e: any) => ({
             id: e.horse_id,
             horseNumber: e.horse_number,

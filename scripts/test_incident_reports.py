@@ -123,6 +123,55 @@ class IncidentTests(unittest.TestCase):
         with self.assertRaises(module.ReportUnavailable):
             self.parse('<html>沒有相關資料。</html>'.encode())
 
+    def race_block(self, number, hid, code):
+        note = '無特別報告。'
+        return (
+            f'<p><span>第 {number} 場 ({100 + number})</span></p><table class="rirr"><thead><tr>'
+            + ''.join('<td>' + h + '</td>' for h in ['名次', '馬號', '綵衣', '馬名', '檔位', '騎師', '競賽事件'])
+            + '</tr></thead><tbody><tr>'
+            + f'<td>1</td><td>{number}</td><td></td><td><a href="/horse?horseid={hid}">馬{number}</a> ({code})</td>'
+            + f'<td>1</td><td>蔡明紹</td><td>{note}</td></tr></tbody></table>'
+        )
+
+    def meeting_page(self, numbers):
+        blocks = ''.join(
+            self.race_block(n, f'HK_2024_K{n:03d}', f'K{n:03d}') for n in numbers
+        )
+        return (
+            '<select id="selects"><option selected value="2026/11/14">14/11/2026</option></select>'
+            '<div>賽事日期: 14/11/2026 (星期六)</div>'
+            '<a href="/zh-hk/local/page/racing-course">沙田 - 草地A賽道</a>'
+            + blocks
+        ).encode()
+
+    def test_cancelled_race_6_fills_the_incident_sequence(self):
+        # HKJC incident report for 2026-11-14 ST has no table for cancelled race 6.
+        # Stored results that omit the race match the report, then the sequence
+        # check used to fail closed on the hole.
+        raw = self.meeting_page([1, 2, 3, 4, 5, 7])
+        omitted = {1, 2, 3, 4, 5, 7}
+        with self.assertRaises(ValueError) as caught:
+            module.parse_report(raw, '2026-11-14', 'ST', '2026-11-16T18:00:00+00:00', omitted)
+        self.assertEqual(str(caught.exception), 'incomplete report race sequence')
+        self.assertNotIsInstance(caught.exception, module.ReportUnavailable)
+        rows, _extra = module.parse_report(
+            raw, '2026-11-14', 'ST', '2026-11-16T18:00:00+00:00', omitted, {6},
+        )
+        self.assertEqual({int(row['race_no']) for row in rows}, omitted)
+        # After results ingest stores race 6 as void, expected includes it.
+        stored = {1, 2, 3, 4, 5, 6, 7}
+        rows, _extra = module.parse_report(
+            raw, '2026-11-14', 'ST', '2026-11-16T18:00:00+00:00', stored, {6},
+        )
+        self.assertEqual({int(row['race_no']) for row in rows}, omitted)
+
+    def test_void_slot_does_not_excuse_a_missing_run_race(self):
+        raw = self.meeting_page([1, 2, 3, 4, 5])
+        with self.assertRaises(module.ReportUnavailable):
+            module.parse_report(
+                raw, '2026-11-14', 'ST', '2026-11-16T18:00:00+00:00', {1, 2, 3, 4, 5, 6, 7}, {6},
+            )
+
     def test_empty_page_is_failure_not_pending(self):
         with self.assertRaises(ValueError) as ctx:
             self.parse(b'<html></html>')

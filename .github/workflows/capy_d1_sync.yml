@@ -18,7 +18,7 @@ on:
   workflow_dispatch:
     inputs:
       date:
-        description: 'Race date YYYY-MM-DD (blank = today HK)'
+        description: 'Race date YYYY-MM-DD to replay into D1 (blank = today HK). After a cancelled-race CSV backfill, dispatch 2026-11-14. Do not treat this as a deploy.'
         required: false
         default: ''
       since:
@@ -183,6 +183,18 @@ jobs:
           else
             wrangler d1 execute tianxi-db --remote --command="ALTER TABLE races ADD COLUMN rating_range TEXT"
           fi
+          ensure_col() {
+            local col="$1"
+            local ddl="$2"
+            if printf '%s' "$INFO" | grep -q "\"name\": \"${col}\""; then
+              echo "exists: races.${col}"
+            else
+              wrangler d1 execute tianxi-db --remote --command="$ddl"
+              INFO=$(wrangler d1 execute tianxi-db --remote --command="PRAGMA table_info(races)" --json)
+            fi
+          }
+          ensure_col status "ALTER TABLE races ADD COLUMN status TEXT"
+          ensure_col official_note "ALTER TABLE races ADD COLUMN official_note TEXT"
 
       - name: Ensure horse_sectional_times in D1 (idempotent) + schema guard
         if: steps.csv.outputs.skip != 'true'

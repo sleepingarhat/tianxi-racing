@@ -28,6 +28,7 @@
  */
 import { writeFileSync } from 'node:fs';
 import { parseScrapedFinishingPosition } from '../src/lib/finishing-position';
+import { cancelledRaceFromPage } from '../src/lib/race-cancellation';
 import { normalizeRatingRange, splitOfficialCourse } from '../src/lib/result-course';
 
 interface Args {
@@ -107,6 +108,7 @@ interface RaceResultRow {
 interface ParsedRace {
   header: RaceHeader;
   results: RaceResultRow[];
+  voidMessage?: string | null;
 }
 
 function parseRaceHeader(html: string, raceNumber: number): RaceHeader | null {
@@ -202,6 +204,8 @@ async function fetchRace(date: string, venue: string, raceNo: number): Promise<s
   const r = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
   if (!r.ok) return null;
   const t = await r.text();
+  // A cancelled race (2026-11-14 ST R6) has the refund sentence and no 名次 table.
+  if (cancelledRaceFromPage(t, raceNo)) return t;
   if (t.length < 150000) return null;
   if (!t.includes('名次') || !/\d:\d{2}\.\d{2}/.test(t)) return null;
   return t;
@@ -231,6 +235,26 @@ async function main() {
       continue;
     }
     misses = 0;
+    const cancelled = cancelledRaceFromPage(html, n);
+    if (cancelled) {
+      console.error(`[results] race ${n}: cancelled/void — kept (${cancelled.officialMessage})`);
+      parsed.push({
+        header: {
+          race_number: n,
+          klass: null,
+          distance: null,
+          going: null,
+          track: null,
+          course: null,
+          prize: null,
+          title: null,
+          rating_range: null,
+        },
+        results: [],
+        voidMessage: cancelled.officialMessage,
+      });
+      continue;
+    }
     const header = parseRaceHeader(html, n);
     if (!header) {
       console.error(`[results] race ${n}: header parse failed — skipping`);
@@ -305,17 +329,22 @@ async function main() {
   for (const p of parsed) {
     const raceId = `race_${a.date}_${a.venue}_${p.header.race_number}`;
     sql.push(
-      `INSERT INTO races (id, meeting_id, race_number, title, class, distance, going, track, course, prize, rating_range, start_time) ` +
+      `INSERT INTO races (id, meeting_id, race_number, title, class, distance, going, track, course, prize, rating_range, start_time, status, official_note) ` +
       `SELECT ${esc(raceId)}, ${esc(meetingId)}, ${p.header.race_number}, ${esc(p.header.title)}, ` +
       `${esc(p.header.klass)}, ${p.header.distance ?? 'NULL'}, ${esc(p.header.going)}, ` +
       `${esc(p.header.track)}, ${esc(p.header.course)}, ${esc(p.header.prize)}, ${esc(p.header.rating_range)}, ` +
-      `(SELECT MIN(post_time) FROM entries_upcoming WHERE race_date = ${esc(a.date)} AND venue = ${esc(a.venue)} AND race_number = ${p.header.race_number} AND post_time IS NOT NULL) ` +
+      `(SELECT MIN(post_time) FROM entries_upcoming WHERE race_date = ${esc(a.date)} AND venue = ${esc(a.venue)} AND race_number = ${p.header.race_number} AND post_time IS NOT NULL), ` +
+      `${p.voidMessage ? "'cancelled'" : 'NULL'}, ${esc(p.voidMessage ?? null)} ` +
       `WHERE EXISTS (SELECT 1 FROM race_meetings WHERE id = ${esc(meetingId)}) ` +
-      `ON CONFLICT(id) DO UPDATE SET title = excluded.title, class = excluded.class, ` +
-      `distance = excluded.distance, going = excluded.going, track = excluded.track, ` +
-      `course = excluded.course, prize = excluded.prize, ` +
+      `ON CONFLICT(id) DO UPDATE SET ` +
+      `title = COALESCE(excluded.title, races.title), class = COALESCE(excluded.class, races.class), ` +
+      `distance = COALESCE(excluded.distance, races.distance), going = COALESCE(excluded.going, races.going), ` +
+      `track = COALESCE(excluded.track, races.track), course = COALESCE(excluded.course, races.course), ` +
+      `prize = COALESCE(excluded.prize, races.prize), ` +
       `rating_range = COALESCE(excluded.rating_range, races.rating_range), ` +
-      `start_time = COALESCE(races.start_time, excluded.start_time);`
+      `start_time = COALESCE(races.start_time, excluded.start_time), ` +
+      `status = COALESCE(excluded.status, races.status), ` +
+      `official_note = COALESCE(excluded.official_note, races.official_note);`
     );
   }
 

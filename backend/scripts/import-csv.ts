@@ -18,6 +18,7 @@ import Database from 'better-sqlite3';
 import * as fs from 'fs';
 import * as path from 'path';
 import { parseFinishingPositionText } from '../src/lib/finishing-position';
+import { isVoidResultRow, OFFICIAL_RACE_CANCELLED } from '../src/lib/race-cancellation';
 import { normalizeRatingRange, splitOfficialCourse } from '../src/lib/result-course';
 
 // =============================================
@@ -252,6 +253,15 @@ function initDatabase(db: Database.Database) {
       console.warn(`Schema warning: ${String(err.message).slice(0, 150)}`);
     }
   }
+  for (const column of ['status TEXT', 'official_note TEXT']) {
+    try {
+      db.exec(`ALTER TABLE races ADD COLUMN ${column}`);
+    } catch (err: any) {
+      if (!String(err.message).includes('duplicate column')) {
+        console.warn(`Schema warning: ${String(err.message).slice(0, 150)}`);
+      }
+    }
+  }
 }
 
 // =============================================
@@ -269,8 +279,8 @@ function prepareStatements(db: Database.Database) {
     `),
     insertRace: db.prepare(`
       INSERT OR REPLACE INTO races
-      (id, meeting_id, race_number, title, class, distance, going, track, course, prize, start_time, rating_range)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      (id, meeting_id, race_number, title, class, distance, going, track, course, prize, start_time, rating_range, status, official_note)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `),
     insertHorse: db.prepare(`
       INSERT OR IGNORE INTO horses (id, name_en, name_ch, code)
@@ -352,8 +362,18 @@ function importResults(stmts: Stmts, db: Database.Database, filePath: string) {
       const rId = raceId(date, venue, raceNo);
       const first = entries[0];
 
-      const courseSplit = splitOfficialCourse(first.course);
+      const runners = entries.filter((entry) => !isVoidResultRow(entry));
+      const voidRows = entries.filter((entry) => isVoidResultRow(entry));
+      const voidOnly = runners.length === 0 && voidRows.length > 0;
+      // A cancelled race has no 賽道 sentence. A run race with an empty course still fails closed.
+      const courseSplit = voidOnly && !String(first.course || '').trim()
+        ? { track: null, course: null }
+        : splitOfficialCourse(first.course);
       const ratingRange = normalizeRatingRange(first.rating_range);
+      const voidMessage = voidRows.map((entry) => String(entry.official_message || '').trim()).find(Boolean)
+        || (voidRows.length ? OFFICIAL_RACE_CANCELLED : '');
+      // A void race with no runners is stored on the race row only. Never invent a horse.
+      const raceStatus = runners.length === 0 && voidRows.length ? 'cancelled' : null;
       stmts.insertRace.run(
         rId,
         mId,
@@ -368,10 +388,12 @@ function importResults(stmts: Stmts, db: Database.Database, filePath: string) {
         // race_finish_time CSV 欄位實際係分段時間 splits，唔係 clock 時間。
         // HKJC results CSV 冇 start_time，留 null；scheduled 賽事 start time 由另一個 source 填入。
         null,
-        ratingRange
+        ratingRange,
+        raceStatus,
+        raceStatus ? voidMessage : null,
       );
 
-      for (const entry of entries) {
+      for (const entry of runners) {
         const { name: horseName, code: horseCode } = extractHorseCode(entry.horse_name);
         const hId = horseId(horseCode, horseName);
 

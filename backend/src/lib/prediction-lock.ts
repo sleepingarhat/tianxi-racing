@@ -100,18 +100,36 @@ export type LockRaceAudit = {
   frozenTop4: string;
   comparedTop4: string;
   ok: boolean;
+  /** Officially cancelled/void. Frozen picks are unchanged and this is not a mismatch. */
+  void?: boolean;
+  settlement?: 'void';
 };
 
 export function auditTop4Pairs(
   frozenByRace: Map<number, any[]>,
   comparedByRace: Map<number, any[]>,
+  voidRaces?: Set<number> | null,
 ): { ok: boolean; races: LockRaceAudit[]; mismatches: LockRaceAudit[] } {
+  const voids = voidRaces ?? new Set<number>();
   const races: LockRaceAudit[] = [];
   for (const [rn, frozen] of frozenByRace) {
     const compared = comparedByRace.get(rn) || [];
     const frozenTop4 = predictedTop4Key(frozen);
     const comparedTop4 = predictedTop4Key(compared);
     if (!frozenTop4) continue;
+    // A cancelled race has no finishing order. Empty comparedTop4 is settled void,
+    // not a mismatch, and the frozen key is left exactly as stored.
+    if (voids.has(rn)) {
+      races.push({
+        raceNumber: rn,
+        frozenTop4,
+        comparedTop4,
+        ok: true,
+        void: true,
+        settlement: 'void',
+      });
+      continue;
+    }
     const row = {
       raceNumber: rn,
       frozenTop4,

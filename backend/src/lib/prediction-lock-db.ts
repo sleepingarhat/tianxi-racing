@@ -2,6 +2,22 @@ import { assertOriginalFreezeReadable } from './freeze-recovery';
 import { applyFrozenOrder, auditTop4Pairs } from './prediction-lock';
 import { getMeetingLockState } from './lock-window';
 
+/** Race numbers officially stored as cancelled/void. Missing column → empty, never a throw. */
+export async function voidRaceNumbers(db: D1Database, date: string): Promise<Set<number>> {
+  try {
+    const res = await db.prepare(
+      `SELECT r.race_number AS n
+         FROM races r
+         JOIN race_meetings m ON m.id = r.meeting_id
+        WHERE m.date = ? AND m.venue IN ('ST','HV')
+          AND lower(COALESCE(r.status, '')) IN ('cancelled', 'void')`,
+    ).bind(date).all<{ n: number }>();
+    return new Set((res?.results ?? []).map((row) => Number(row.n)).filter((n) => Number.isInteger(n)));
+  } catch {
+    return new Set();
+  }
+}
+
 /**
  * APPROVED FREEZE SPEC (T−1.5h): the published Top-4 must come from the frozen
  * prediction_log from 90 minutes before the first race onward — not only after
@@ -199,11 +215,13 @@ export async function auditPredictionLock(
   source: string;
   races: any[];
   mismatches: any[];
+  voidRaces?: number[];
 }> {
   const settled = await dateHasSettledResults(db, date);
   if (!settled) {
     return { date, engine, settled: false, ok: true, source: 'unsettled', races: [], mismatches: [] };
   }
+  const voidRaces = await voidRaceNumbers(db, date);
   const frozen = await loadFrozenPicksForDate(db, date, engine);
   if (!frozen.ok) {
     return { date, engine, settled: true, ok: false, source: 'frozen-read-error', races: [], mismatches: [{ reason: frozen.error }] };
@@ -223,7 +241,7 @@ export async function auditPredictionLock(
       }
     }
   } catch { /* cache miss is not a ranking leak by itself */ }
-  const audit = auditTop4Pairs(frozen.byRace, compared);
+  const audit = auditTop4Pairs(frozen.byRace, compared, voidRaces);
   return {
     date,
     engine,
@@ -232,6 +250,7 @@ export async function auditPredictionLock(
     source: 'prediction_log-vs-hit-rate',
     races: audit.races,
     mismatches: audit.mismatches,
+    voidRaces: [...voidRaces].sort((a, b) => a - b),
   };
 }
 
