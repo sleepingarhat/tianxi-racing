@@ -182,11 +182,14 @@ officialVisibleRoutes.get('/jt-combo', async (c) => {
   const filters = ['meeting_date = ?', 'venue = ?'];
   const params: unknown[] = [meeting.date, meeting.venue];
   if (section) { filters.push('section = ?'); params.push(section); }
+  // Reserve debutants share a bare number with a starter; only callers that
+  // render the 後備 flag ask for them, older readers keep seeing starters only.
+  if (c.req.query('includeReserve') !== '1') filters.push('is_reserve = 0');
   const list = await rows<Record<string, unknown>>(
     c.env.DB,
-    `SELECT section, race_no, horse_no, horse_name, import_type, trainer_name, win_rate, place_rate, as_of_text
+    `SELECT section, race_no, horse_no, is_reserve, horse_name, import_type, trainer_name, win_rate, place_rate, as_of_text
        FROM official_jt_combo WHERE ${filters.join(' AND ')}
-      ORDER BY section, race_no, horse_no`,
+      ORDER BY section, race_no, is_reserve, horse_no`,
     params,
   );
   if (!list) return unavailable(c, 'official_jt_combo');
@@ -200,6 +203,7 @@ officialVisibleRoutes.get('/jt-combo', async (c) => {
       section: row.section,
       raceNo: row.race_no,
       horseNo: row.horse_no,
+      reserve: row.is_reserve === 1,
       horseName: row.horse_name,
       importType: row.import_type,
       trainerName: row.trainer_name,

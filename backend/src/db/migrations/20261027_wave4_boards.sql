@@ -83,6 +83,7 @@ CREATE TABLE IF NOT EXISTS official_pool_result (
   seconds INTEGER NOT NULL,
   thirds INTEGER NOT NULL,
   fourths INTEGER NOT NULL,
+  dead_heat_places TEXT NOT NULL DEFAULT '',
   remark TEXT NOT NULL DEFAULT '',
   not_race_result INTEGER NOT NULL DEFAULT 1 CHECK (not_race_result = 1),
   source_sha256 TEXT NOT NULL,

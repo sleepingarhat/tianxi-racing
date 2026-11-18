@@ -278,6 +278,26 @@ class PoolResultTests(unittest.TestCase):
         self.assertEqual(rows[0]['remark'], '勝出')
         self.assertEqual(rows[0]['not_race_result'], 1)
 
+    def test_dead_heat_star_keeps_the_count_and_the_place(self):
+        # 2026-11-14 race 7: 小霸王 and 實力股 dead-heated for third.
+        page = JKC_HTML.replace(b'<td>1</td><td>0</td><td>\xe5\x8b\x9d', b'<td>1*</td><td>0</td><td>\xe5\x8b\x9d').replace(
+            b'</table>', '</table><p>*顯示數目包括平頭馬</p>'.encode('utf-8'))
+        rows = wave4.parse_pool_result(page, 'jkc', TODAY, 'abc', SCRAPED, '2026-10-25')
+        self.assertEqual(rows[0]['thirds'], 1)
+        self.assertEqual(rows[0]['dead_heat_places'], 'thirds')
+        self.assertEqual(rows[1]['dead_heat_places'], '')
+
+    def test_dead_heat_star_without_the_official_legend_refused(self):
+        page = JKC_HTML.replace(b'<td>1</td><td>0</td><td>\xe5\x8b\x9d', b'<td>1*</td><td>0</td><td>\xe5\x8b\x9d')
+        with self.assertRaises(wave4.IdentityError):
+            wave4.parse_pool_result(page, 'jkc', TODAY, 'abc', SCRAPED, '2026-10-25')
+
+    def test_other_placing_text_still_refused(self):
+        page = JKC_HTML.replace(b'<td>1</td><td>0</td><td>\xe5\x8b\x9d', b'<td>1#</td><td>0</td><td>\xe5\x8b\x9d').replace(
+            b'</table>', '</table><p>*顯示數目包括平頭馬</p>'.encode('utf-8'))
+        with self.assertRaises(wave4.IdentityError):
+            wave4.parse_pool_result(page, 'jkc', TODAY, 'abc', SCRAPED, '2026-10-25')
+
     def test_wrong_role_label_refused(self):
         with self.assertRaises(wave4.IdentityError):
             wave4.parse_pool_result(JKC_HTML, 'tnc', TODAY, 'abc', SCRAPED)
@@ -390,6 +410,18 @@ class StoreTests(unittest.TestCase):
         with sqlite3.connect(db) as connection:
             self.assertEqual(connection.execute("SELECT from_loc FROM official_movement WHERE arrive_date='2026-03-24'").fetchone(), ('',))
             self.assertEqual(connection.execute("SELECT remark FROM official_pool_result WHERE person_name='袁幸堯'").fetchone(), ('',))
+
+    def test_pool_result_csv_from_before_dead_heat_column_still_reads(self):
+        path = self.root / 'data' / 'official_wave4' / 'pool_result.csv'
+        legacy = [c for c in wave4.POOL_RESULT_COLUMNS if c != 'dead_heat_places']
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(','.join(legacy) + '\n' + 'jkc,2026-10-25,10,艾道拿,40,2,2,1,0,勝出,1,abc,' + SCRAPED + '\n', encoding='utf-8')
+        rows = wave4.read_csv(path, wave4.POOL_RESULT_COLUMNS)
+        self.assertEqual(rows[0]['dead_heat_places'], '')
+        self.assertEqual(rows[0]['remark'], '勝出')
+        path.write_text('pool,meeting_date\njkc,2026-10-25\n', encoding='utf-8')
+        with self.assertRaises(wave4.IdentityError):
+            wave4.read_csv(path, wave4.POOL_RESULT_COLUMNS)
 
     def test_apply_sql_creates_all_six_tables(self):
         db = self.root / 'empty.db'

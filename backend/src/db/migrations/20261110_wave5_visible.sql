@@ -70,6 +70,7 @@ CREATE TABLE IF NOT EXISTS official_jt_combo (
   section TEXT NOT NULL CHECK (section IN ('combo', 'debut')),
   race_no INTEGER NOT NULL,
   horse_no INTEGER NOT NULL,
+  is_reserve INTEGER NOT NULL DEFAULT 0 CHECK (is_reserve IN (0, 1)),
   horse_name TEXT,
   import_type TEXT,
   trainer_name TEXT,

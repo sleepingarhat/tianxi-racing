@@ -127,6 +127,24 @@ class Wave7Tests(unittest.TestCase):
                 [],
             ), 'csum', 'abc', SCRAPED)
 
+    def test_summary_board_overweight_note_covers_both_marks(self):
+        # Horses/csum on 2026-11-18 reads 「(2)騎師超重兩磅 (1)騎師超重一磅」.
+        rows, notes = parse_rating_board(rating_html(
+            [('(2)', 'JOHANNES BRAHMS', '玩笑', 'K014', '91', '+8')],
+            [('(1)', 'MEGASTAR HEART', '正本巨星', 'L056', '87', '+3')],
+            '(2)騎師超重兩磅 (1)騎師超重一磅',
+        ), 'csum', 'abc', SCRAPED)
+        self.assertEqual({row['mark_text'] for row in rows}, {'(1)', '(2)'})
+        self.assertEqual(notes[0]['note_ch'], '(2)騎師超重兩磅 (1)騎師超重一磅')
+
+    def test_note_missing_one_of_the_marks_still_fails(self):
+        with self.assertRaises(ParseMiss):
+            parse_rating_board(rating_html(
+                [('(2)', 'JOHANNES BRAHMS', '玩笑', 'K014', '91', '+8')],
+                [('(1)', 'MEGASTAR HEART', '正本巨星', 'L056', '87', '+3')],
+                '(1)騎師超重一磅',
+            ), 'csum', 'abc', SCRAPED)
+
     def test_top50_requires_fifty_named_horses(self):
         header = '<tr><td>評分</td><td>馬名</td><td>Name</td><td>烙號</td><td>練馬師</td></tr>'
         body = ''.join(

@@ -395,7 +395,8 @@ def parse_rating_board(html: str, board: str, digest: str, scraped_at: str) -> t
     seen_notes = set()
     for td in soup.find_all('td'):
         text = collapse(td.get_text(' ', strip=True))
-        if '比應負' not in text and not text.startswith('(1)'):
+        # Notes read 「(1)…比應負…」 or, on the summary board, 「(2)騎師超重兩磅 (1)騎師超重一磅」.
+        if '比應負' not in text and not re.match(r'\(\d{1,2}\)', text):
             continue
         if len(td.parent.find_all('td', recursive=False)) != 1 or text in seen_notes:
             continue

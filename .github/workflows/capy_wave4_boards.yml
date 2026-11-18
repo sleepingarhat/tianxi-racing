@@ -186,6 +186,7 @@ jobs:
           fi
           wrangler d1 execute tianxi-db --remote --file=src/db/migrations/20261027_wave4_boards.sql --yes
           wrangler d1 execute tianxi-db --remote --file=src/db/migrations/20261103_official_horse_record.sql --yes
+          bash ../scripts/d1_add_column.sh official_pool_result dead_heat_places "TEXT NOT NULL DEFAULT ''"
           python3 ../scripts/hkjc_wave4_boards.py --root=.. --emit-sql /tmp/official_wave4.sql
           python3 - << 'PY'
           from pathlib import Path
