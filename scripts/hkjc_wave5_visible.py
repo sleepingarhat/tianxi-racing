@@ -70,7 +70,7 @@ ODDS_COLUMNS = [
     'chart_updated_at', 'not_race_result', 'source_sha256', 'scraped_at',
 ]
 COMBO_COLUMNS = [
-    'meeting_date', 'venue', 'section', 'race_no', 'horse_no', 'horse_name', 'import_type', 'trainer_name',
+    'meeting_date', 'venue', 'section', 'race_no', 'horse_no', 'is_reserve', 'horse_name', 'import_type', 'trainer_name',
     'win_rate', 'place_rate', 'as_of_text', 'not_race_result', 'source_sha256', 'scraped_at',
 ]
 CONGHUA_COLUMNS = [
@@ -84,6 +84,11 @@ FILES = {
     'challenge_odds': ('challenge_odds.csv', ODDS_COLUMNS),
     'jt_combo': ('jt_combo.csv', COMBO_COLUMNS),
     'conghua_movement': ('conghua_movement.csv', CONGHUA_COLUMNS),
+}
+# Columns added after a CSV was first committed: the old header is read with an
+# explicit default, any other header change still fails closed.
+LEGACY_COLUMNS = {
+    'jt_combo.csv': ([column for column in COMBO_COLUMNS if column != 'is_reserve'], {'is_reserve': '0'}),
 }
 INTEGER_COLUMNS = {
     'line_no', 'race_no', 'horse_no', 'is_reserve', 'not_race_result', 'show_play', 'season_enabled', 'points',
@@ -599,7 +604,7 @@ def parse_combo_rows(rows: list[list[str]], meeting_date: str, venue: str, race_
         for race_no in range(1, race_count + 1):
             out.append({
                 'meeting_date': meeting_date, 'venue': venue, 'section': 'combo', 'race_no': race_no,
-                'horse_no': horse_no, 'horse_name': None, 'import_type': None, 'trainer_name': None,
+                'horse_no': horse_no, 'is_reserve': 0, 'horse_name': None, 'import_type': None, 'trainer_name': None,
                 'win_rate': rate_text(row[1 + (race_no - 1) * 2], 'win rate'),
                 'place_rate': rate_text(row[2 + (race_no - 1) * 2], 'place rate'),
                 'as_of_text': stamps[0], 'not_race_result': 1, 'source_sha256': digest, 'scraped_at': scraped_at,
@@ -613,22 +618,30 @@ def parse_combo_rows(rows: list[list[str]], meeting_date: str, venue: str, race_
     expected = ['場次', '馬號', '馬名', '', '進口類別', '', '練馬師', '', '勝出率', '上名率']
     if [cell.strip() for cell in debut_header[:len(expected)]] != [cell.strip() for cell in expected]:
         raise ParseMiss('debutant header changed')
+    debut_seen = set()
     for row in rows[debut_at + 2:]:
         if not row or not str(row[0]).strip() or str(row[0]).startswith('最後更新'):
             continue
-        if not re.fullmatch(r'\d+', str(row[0]).strip()) or not re.fullmatch(r'\d+', str(row[1]).strip()):
+        number = re.fullmatch(r'(R)?(\d+)', str(row[1]).strip())
+        if not re.fullmatch(r'\d+', str(row[0]).strip()) or not number:
             raise ParseMiss('debutant race or horse number is not official')
         race_no = int(row[0])
-        horse_no = int(row[1])
+        horse_no = int(number.group(2))
+        reserve = 1 if number.group(1) else 0
         if race_no < 1 or race_no > race_count or horse_no < 1:
             raise IdentityError('debutant row is outside the fixture')
+        if (race_no, horse_no) in debut_seen:
+            # The stored key is (race, horse number); a starter and a reserve
+            # sharing one number cannot both be kept without guessing.
+            raise IdentityError(f'debutant race {race_no} horse {horse_no} is listed twice')
+        debut_seen.add((race_no, horse_no))
         name = str(row[2]).strip()
         trainer = str(row[6]).strip()
         if not name or not trainer:
             raise IdentityError('debutant horse name or trainer is empty')
         out.append({
             'meeting_date': meeting_date, 'venue': venue, 'section': 'debut', 'race_no': race_no,
-            'horse_no': horse_no, 'horse_name': name, 'import_type': str(row[4]).strip() or None,
+            'horse_no': horse_no, 'is_reserve': reserve, 'horse_name': name, 'import_type': str(row[4]).strip() or None,
             'trainer_name': trainer, 'win_rate': rate_text(row[8], 'debut win rate'),
             'place_rate': rate_text(row[9], 'debut place rate'), 'as_of_text': stamps[0],
             'not_race_result': 1, 'source_sha256': digest, 'scraped_at': scraped_at,
@@ -725,7 +738,10 @@ def read_csv(path: Path, columns: list[str]) -> list[dict]:
     with path.open(encoding='utf-8-sig', newline='') as handle:
         reader = csv.DictReader(handle)
         if reader.fieldnames != columns:
-            raise IdentityError(f'{path.name} columns changed')
+            legacy = LEGACY_COLUMNS.get(path.name)
+            if legacy is None or reader.fieldnames != legacy[0]:
+                raise IdentityError(f'{path.name} columns changed')
+            return [{column: row.get(column, legacy[1].get(column, '')) for column in columns} for row in reader]
         return [dict(row) for row in reader]
 
 

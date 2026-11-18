@@ -66,6 +66,29 @@ async function main(): Promise<void> {
   const comboBody = await combo.json() as { rows: Array<{ winRate: string; placeRate: string }> };
   assert.equal(comboBody.rows[0].winRate, '0.0000');
   assert.equal(comboBody.rows[0].placeRate, '0.0900');
+  // The table above predates is_reserve: starters are served, flagged as not reserve.
+  const legacyDebut = await app.request('/api/official/jt-combo?date=2026-11-11&venue=HV&includeReserve=1', {}, env);
+  assert.equal(legacyDebut.status, 200);
+  assert.equal(((await legacyDebut.json()) as { rows: Array<{ reserve: boolean }> }).rows[0].reserve, false);
+
+  const reserveDb = new Database(':memory:');
+  reserveDb.exec(`
+    CREATE TABLE official_jt_combo (
+      meeting_date TEXT, venue TEXT, section TEXT, race_no INTEGER, horse_no INTEGER, is_reserve INTEGER NOT NULL DEFAULT 0,
+      horse_name TEXT, import_type TEXT, trainer_name TEXT, win_rate TEXT, place_rate TEXT, as_of_text TEXT,
+      not_race_result INTEGER, source_sha256 TEXT, scraped_at TEXT
+    );
+    INSERT INTO official_jt_combo VALUES
+      ('2026-11-18','HV','debut',7,6,0,'獅子精神','自購馬','徐雨石','0.0000','0.0700','17/11/2026 12:00',1,'abc','2026-11-18T06:00:00+00:00'),
+      ('2026-11-18','HV','debut',7,2,1,'川河靈駒','自購馬','方嘉柏','0.1000','0.3000','17/11/2026 12:00',1,'abc','2026-11-18T06:00:00+00:00');
+  `);
+  const reserveEnv = { DB: new D1(reserveDb) };
+  const starters = await app.request('/api/official/jt-combo?date=2026-11-18&venue=HV&section=debut', {}, reserveEnv);
+  const startersBody = await starters.json() as { rows: Array<{ horseNo: number; reserve: boolean }> };
+  assert.deepEqual(startersBody.rows.map((row) => [row.horseNo, row.reserve]), [[6, false]]);
+  const withReserve = await app.request('/api/official/jt-combo?date=2026-11-18&venue=HV&section=debut&includeReserve=1', {}, reserveEnv);
+  const withReserveBody = await withReserve.json() as { rows: Array<{ horseNo: number; reserve: boolean; horseName: string }> };
+  assert.deepEqual(withReserveBody.rows.map((row) => [row.horseNo, row.reserve, row.horseName]), [[6, false, '獅子精神'], [2, true, '川河靈駒']]);
 
   const bad = await app.request('/api/official/ove-record?date=11-11&venue=HV', {}, env);
   assert.equal(bad.status, 400);

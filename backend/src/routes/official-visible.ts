@@ -182,13 +182,23 @@ officialVisibleRoutes.get('/jt-combo', async (c) => {
   const filters = ['meeting_date = ?', 'venue = ?'];
   const params: unknown[] = [meeting.date, meeting.venue];
   if (section) { filters.push('section = ?'); params.push(section); }
-  const list = await rows<Record<string, unknown>>(
-    c.env.DB,
-    `SELECT section, race_no, horse_no, horse_name, import_type, trainer_name, win_rate, place_rate, as_of_text
-       FROM official_jt_combo WHERE ${filters.join(' AND ')}
-      ORDER BY section, race_no, horse_no`,
-    params,
-  );
+  // Reserve debutants share a bare number with a starter; only callers that
+  // render the 後備 flag ask for them, older readers keep seeing starters only.
+  const includeReserve = c.req.query('includeReserve') === '1';
+  const select = (hasReserveColumn: boolean) =>
+    `SELECT section, race_no, horse_no, ${hasReserveColumn ? 'is_reserve' : '0 AS is_reserve'}, horse_name, import_type,
+            trainer_name, win_rate, place_rate, as_of_text
+       FROM official_jt_combo
+      WHERE ${[...filters, ...(hasReserveColumn && !includeReserve ? ['is_reserve = 0'] : [])].join(' AND ')}
+      ORDER BY section, race_no, ${hasReserveColumn ? 'is_reserve, ' : ''}horse_no`;
+  let list: Record<string, unknown>[] | null;
+  try {
+    list = await rows<Record<string, unknown>>(c.env.DB, select(true), params);
+  } catch (err) {
+    // Before the collector adds is_reserve, the table can only hold starters.
+    if (!/no such column: is_reserve/i.test(String((err as { message?: string })?.message ?? err))) throw err;
+    list = await rows<Record<string, unknown>>(c.env.DB, select(false), params);
+  }
   if (!list) return unavailable(c, 'official_jt_combo');
   return c.json({
     source: 'official_jt_combo',
@@ -200,6 +210,7 @@ officialVisibleRoutes.get('/jt-combo', async (c) => {
       section: row.section,
       raceNo: row.race_no,
       horseNo: row.horse_no,
+      reserve: row.is_reserve === 1,
       horseName: row.horse_name,
       importType: row.import_type,
       trainerName: row.trainer_name,

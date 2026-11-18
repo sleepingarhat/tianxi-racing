@@ -150,6 +150,55 @@ class Wave5Tests(unittest.TestCase):
         with self.assertRaises(IdentityError):
             parse_combo_rows(rows, '2026-11-11', 'HV', 9, 'abc', SCRAPED)
 
+    def combo_with_debut(self, *debut):
+        return [
+            ['騎練配對成績 (2025/26- 14/11/2026)'],
+            ['', '第一場', '', '第二場'],
+            ['馬號', '勝出率 ', '上名率 ', '勝出率 ', '上名率 '],
+            ['1', '0', '0.09', '0.07', '0.34'],
+            ['最後更新 : 17/11/2026 12:00'],
+            ['練馬師在港初出馬成績 (2025/26 - 14/11/2026)'],
+            ['場次', '馬號', '馬名', '', '進口類別', '', '練馬師', '', '勝出率', '上名率'],
+            *debut,
+            ['', '', '', '', '', '', '', '', '', '最後更新 : 17/11/2026 12:00'],
+        ]
+
+    def test_reserve_debutant_keeps_its_number_and_flag(self):
+        # 2026-11-18 workbook lists race 7 reserve 「R2 川河靈駒」.
+        rows = self.combo_with_debut(
+            ['2', '6', '獅子精神', '', '自購馬', '', '徐雨石', '', '0', '0.07'],
+            ['2', 'R2', '川河靈駒', '', '自購馬', '', '方嘉柏', '', '0.1', '0.3'],
+        )
+        debut = [row for row in parse_combo_rows(rows, '2026-11-18', 'HV', 2, 'abc', SCRAPED) if row['section'] == 'debut']
+        self.assertEqual([(row['horse_no'], row['is_reserve']) for row in debut], [(6, 0), (2, 1)])
+        self.assertEqual(debut[1]['horse_name'], '川河靈駒')
+
+    def test_reserve_and_starter_sharing_a_number_fail_closed(self):
+        rows = self.combo_with_debut(
+            ['2', '2', '甲', '', '自購馬', '', '徐雨石', '', '0', '0'],
+            ['2', 'R2', '乙', '', '自購馬', '', '方嘉柏', '', '0', '0'],
+        )
+        with self.assertRaises(IdentityError):
+            parse_combo_rows(rows, '2026-11-18', 'HV', 2, 'abc', SCRAPED)
+
+    def test_other_debutant_number_text_still_fails(self):
+        rows = self.combo_with_debut(['2', 'S2', '乙', '', '自購馬', '', '方嘉柏', '', '0', '0'])
+        with self.assertRaises(ParseMiss):
+            parse_combo_rows(rows, '2026-11-18', 'HV', 2, 'abc', SCRAPED)
+
+    def test_combo_csv_from_before_reserve_column_still_emits(self):
+        root = Path(tempfile.mkdtemp())
+        folder = root / 'data' / 'official_wave5'
+        folder.mkdir(parents=True)
+        legacy = ['meeting_date', 'venue', 'section', 'race_no', 'horse_no', 'horse_name', 'import_type', 'trainer_name',
+                  'win_rate', 'place_rate', 'as_of_text', 'not_race_result', 'source_sha256', 'scraped_at']
+        (folder / 'jt_combo.csv').write_text(
+            ','.join(legacy) + '\n2026-11-14,ST,debut,3,6,威武凱旋,自購新馬,甘敏斯,0.0000,0.0000,x,1,abc,' + SCRAPED + '\n',
+            encoding='utf-8')
+        sql = emit_sql(root)
+        self.assertIn('is_reserve', sql)
+        self.assertIn("'debut', 3, 6, 0, '威武凱旋'", sql)
+
     def test_conghua_text_uses_the_heading_date_and_does_not_invent_a_brand(self):
         text = '''二〇二六年十一月十一日星期三賽事
 HORSES STABLED IN CONGHUA SINCE LAST START

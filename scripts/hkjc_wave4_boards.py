@@ -72,8 +72,18 @@ OVEROAR_COLUMNS = [
 ]
 POOL_RESULT_COLUMNS = [
     'pool', 'meeting_date', 'rank_no', 'person_name', 'points', 'wins', 'seconds', 'thirds',
-    'fourths', 'remark', 'not_race_result', 'source_sha256', 'scraped_at',
+    'fourths', 'dead_heat_places', 'remark', 'not_race_result', 'source_sha256', 'scraped_at',
 ]
+# Columns added after a CSV was first committed: the old header is read with an
+# explicit default, any other header change still fails closed.
+LEGACY_COLUMNS = {
+    'pool_result.csv': ([column for column in POOL_RESULT_COLUMNS if column != 'dead_heat_places'],
+                        {'dead_heat_places': ''}),
+}
+# Official legend under the jockey / trainer challenge results: a count marked
+# with * includes a dead-heat placing.
+DEAD_HEAT_LEGEND = '*顯示數目包括平頭馬'
+PLACING_KEYS = ('wins', 'seconds', 'thirds', 'fourths')
 DRAW_ADV_COLUMNS = [
     'season_code', 'racecourse', 'course_label', 'distance_m', 'going', 'draw', 'starts', 'wins',
     'seconds', 'thirds', 'fourths', 'win_pct', 'quinella_pct', 'place_pct', 'top4_pct',
@@ -432,6 +442,7 @@ def parse_pool_result(raw: bytes, pool: str, today: date, digest: str, scraped_a
     if requested_date and iso(meeting) != requested_date:
         raise IdentityError(f'pool result is {iso(meeting)}, not requested {requested_date}')
     role_label = '騎師' if pool == 'jkc' else '練馬師'
+    text_all = re.sub(r'\s+', '', text)
     tables = soup.find_all('table')
     if not tables:
         raise IdentityError('pool result page has no table')
@@ -448,11 +459,21 @@ def parse_pool_result(raw: bytes, pool: str, today: date, digest: str, scraped_a
         if not person:
             raise IdentityError('pool result person name missing')
         points = whole(row[2], 'pool points')
-        wins, seconds, thirds, fourths = (whole(row[i], 'pool placing') for i in range(3, 7))
+        counts = []
+        dead_heat = []
+        for key, cell in zip(PLACING_KEYS, row[3:7]):
+            text = (cell or '').strip()
+            if text.endswith('*'):
+                if DEAD_HEAT_LEGEND not in text_all:
+                    raise IdentityError(f'pool placing {text!r} is marked without the official dead-heat legend')
+                text = text[:-1]
+                dead_heat.append(key)
+            counts.append(whole(text, 'pool placing'))
+        wins, seconds, thirds, fourths = counts
         out.append({
             'pool': pool, 'meeting_date': iso(meeting), 'rank_no': rank_no, 'person_name': person,
             'points': points, 'wins': wins, 'seconds': seconds, 'thirds': thirds, 'fourths': fourths,
-            'remark': row[7], 'not_race_result': 1, 'source_sha256': digest, 'scraped_at': scraped_at,
+            'dead_heat_places': ','.join(dead_heat), 'remark': row[7], 'not_race_result': 1, 'source_sha256': digest, 'scraped_at': scraped_at,
         })
     if not out:
         raise IdentityError('pool result table is empty')
@@ -822,7 +843,10 @@ def read_csv(path: Path, columns: list[str]) -> list[dict]:
     with path.open(encoding='utf-8-sig', newline='') as handle:
         rows = list(csv.DictReader(handle))
     if rows and list(rows[0].keys()) != columns:
-        raise IdentityError(f'{path.name} columns changed')
+        legacy = LEGACY_COLUMNS.get(path.name)
+        if legacy is None or list(rows[0].keys()) != legacy[0]:
+            raise IdentityError(f'{path.name} columns changed')
+        rows = [{column: row.get(column, legacy[1].get(column, '')) for column in columns} for row in rows]
     return rows
 
 
