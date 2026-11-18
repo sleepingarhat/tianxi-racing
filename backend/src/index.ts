@@ -1,4 +1,5 @@
 import { collectDisplayOdds } from './lib/odds-collection';
+import { captureLockOdds, readLockOdds } from './lib/lock-odds';
 import { recoverOriginalFreeze, recentlyVerifiedOriginal } from './lib/freeze-recovery';
 import { computeFreezeLedger } from './lib/freeze-ledger';
 import { Hono } from 'hono';
@@ -295,6 +296,12 @@ app.onError((err, c) => {
       const lock = await getMeetingLockState(env.DB, meeting.date, meeting.venue);
       if (!lock.locked) return { ok: true, action: 'pre-lock', date: meeting.date, lockAt: lock.lockAt };
       if (lock.source === 'error' || !lock.lockAt || !meeting.venue) return { ok: false, action: 'blocked', error: 'lock-state-unavailable' };
+      // Lock-time market odds: separate append-only record, never a freeze input; failures only log.
+      try {
+        const lockOdds = await captureLockOdds(env.DB, meeting.date, meeting.venue, lock.lockAt);
+        if (lockOdds.action === 'captured') console.log('[lock-odds] captured', { date: meeting.date, ...lockOdds });
+        else if (!lockOdds.ok) console.warn('[lock-odds] capture failed', lockOdds.error);
+      } catch (e) { console.warn('[lock-odds] capture threw', String(e)); }
       // Already verified within the last hour and the baseline row count still matches the
       // immutable snapshot → skip the full re-verification this tick (re-checked hourly, or
       // immediately if any row is added/removed). Status stays ok=1, so lock-state is unchanged.
@@ -435,6 +442,33 @@ app.onError((err, c) => {
     if (!(await hasAdminAccess(c, ADMIN_AUTH_POLICY.SESSION_OR_BEARER))) return c.json({ error: 'Not found' }, 404);
     const out = await pruneOddsToLatestDay(c.env);
     return c.json({ ...out, ranAt: new Date().toISOString() });
+  });
+
+  // Lock-time market odds (public HKJC prices captured at the T−90 freeze instant).
+  app.get('/api/analyze/lock-odds', async (c) => {
+    const date = String(c.req.query('date') ?? '');
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return c.json({ error: 'date=YYYY-MM-DD required' }, 400);
+    const venue = c.req.query('venue');
+    if (venue && !/^(ST|HV)$/.test(venue)) return c.json({ error: 'venue must be ST or HV' }, 400);
+    try {
+      const out = await readLockOdds(c.env.DB, date, venue ?? null);
+      return c.json(out, 200, { 'Cache-Control': 'public, max-age=300' });
+    } catch {
+      return c.json({ error: 'lock_odds_unavailable' }, 503, { 'Cache-Control': 'no-store' });
+    }
+  });
+
+  // Manual capture for a locked meeting whose odds_snapshots day is still retained (same rules as the tick).
+  app.post('/admin/api/lock-odds/capture', async (c) => {
+    if (!(await hasAdminAccess(c, ADMIN_AUTH_POLICY.SESSION_OR_BEARER))) return c.json({ error: 'Not found' }, 404);
+    const body = await c.req.json<{ date?: string; venue?: string }>().catch(() => ({} as { date?: string; venue?: string }));
+    const date = String(body?.date ?? '');
+    const venue = String(body?.venue ?? '');
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !/^(ST|HV)$/.test(venue)) return c.json({ error: 'date and venue (ST|HV) required' }, 400);
+    const lock = await getMeetingLockState(c.env.DB, date, venue);
+    if (!lock.locked || lock.source === 'error' || !lock.lockAt) return c.json({ ok: false, error: 'meeting-not-locked-or-lock-time-unknown', lock }, 409);
+    const out = await captureLockOdds(c.env.DB, date, venue, lock.lockAt);
+    return c.json({ ...out, lockAt: lock.lockAt }, out.ok ? 200 : 500);
   });
 
   app.post('/admin/api/archive-odds', async (c) => {

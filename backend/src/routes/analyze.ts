@@ -1,3 +1,4 @@
+import { conditionFromCounts, goingFitFromRows, TRACKWORK_COUNT_SQL, type FactorResult as ExplainFactorResult, type GoingRow } from '../lib/factor-explain';
 import { assertOriginalFreezeReadable, validateRows } from '../lib/freeze-recovery';
 import { Hono } from 'hono';
 import type { Env, AnalyzeRequest } from '../types';
@@ -1071,7 +1072,7 @@ function buildPickReason(pick: any): string {
     else if (bn('distance') <= -2) neg.push('今仗距離未必最啱');
     if (bn('going') >= 2) pos.push(`往績適應今日${ctx.going || ''}場地`);
     else if (bn('going') <= -2) neg.push(`今日${ctx.going || ''}場地未必合適`);
-    if (bn('condition') >= 2) pos.push('近期晨操狀態理想');
+    if (bn('condition') <= -2) neg.push('近兩星期未見快操或試閘');
     if (bn('jtCombo') >= 2) pos.push('騎練配搭往績出色');
     if (bn('injury') <= -2) neg.push('近期有傷患記錄需留意');
 
@@ -1798,7 +1799,7 @@ function recencyBonus(daysSinceLast: number | null): number {
 //   — returns {bonus, conf, note} so `/explain` can render dual-line breakdown
 // ──────────────────────────────────────────────────────────────────────────
 
-type FactorResult = { bonus: number; conf: number; note: string };
+type FactorResult = ExplainFactorResult;
 
 // Distance bucket: round to nearest 200m; "fit" = same bucket, "near" = ±200m.
 function distBucket(d: number | null | undefined): number | null {
@@ -1845,10 +1846,11 @@ async function goingFit(
   horseId: string,
   going: string | null,
   asOf: string,
+  track: string | null = null,
 ): Promise<FactorResult> {
-  if (!going) return { bonus: 0, conf: 0, note: '場地狀況未定' };
-  const row = await db.prepare(`
-    SELECT
+  if (!going) return goingFitFromRows([], going, track);
+  const { results } = await db.prepare(`
+    SELECT r.track AS track, r.going AS going,
       SUM(CASE WHEN rr.finishing_position BETWEEN 1 AND 3 THEN 1 ELSE 0 END) AS top3,
       COUNT(*) AS starts
     FROM race_results rr
@@ -1856,18 +1858,10 @@ async function goingFit(
     JOIN race_meetings rm ON rm.id = r.meeting_id
     WHERE rr.horse_id = ?
       AND rm.date < ?
-      AND r.going = ?
       AND rr.finishing_position > 0 AND rr.finishing_position < 99
-  `).bind(horseId, asOf, going).first<any>();
-  const starts = row?.starts ?? 0;
-  if (starts < 2) return { bonus: 0, conf: 0, note: `${going} 場無足夠往績` };
-  const top3Rate = (row.top3 ?? 0) / starts;
-  const bonus = Math.max(-15, Math.min(15, (top3Rate - 0.3) * 40));
-  return {
-    bonus,
-    conf: Math.min(1, starts / 4),
-    note: `${going} ${starts} 戰 ${row.top3 ?? 0}上 (${Math.round(top3Rate * 100)}%)`,
-  };
+    GROUP BY r.track, r.going
+  `).bind(horseId, asOf).all<GoingRow>();
+  return goingFitFromRows(results ?? [], going, track);
 }
 
 async function drawBias(
@@ -1904,7 +1898,7 @@ async function drawBias(
   };
 }
 
-// Condition (晨操強度) — trackwork 14d window; 4-6 sessions = sweet spot.
+// Condition (晨操) — 14d window; only 快操／試閘 count (see lib/factor-explain.ts).
 async function conditionFit(
   db: D1Database,
   horseId: string,
@@ -1912,25 +1906,13 @@ async function conditionFit(
 ): Promise<FactorResult> {
   try {
     const row = await db.prepare(`
-      SELECT COUNT(*) AS sessions
+      SELECT ${TRACKWORK_COUNT_SQL}
       FROM horse_trackwork
       WHERE horse_id = ?
         AND trackwork_date >= date(?, '-14 days')
         AND trackwork_date < ?
     `).bind(horseId, asOf, asOf).first<any>();
-    const n = row?.sessions ?? 0;
-    if (n === 0) return { bonus: 0, conf: 0, note: '無晨操記錄' };
-    // Sweet spot: 4-6 sessions in 14 days.
-    let bonus = 0;
-    if (n >= 4 && n <= 6) bonus = 8;
-    else if (n >= 2 && n <= 8) bonus = 3;
-    else if (n === 1) bonus = -3;
-    else if (n > 8) bonus = -5; // over-training
-    return {
-      bonus,
-      conf: Math.min(1, n / 4),
-      note: `14 天 ${n} 課晨操`,
-    };
+    return conditionFromCounts({ total: row?.total ?? 0, fast: row?.fast ?? 0, trials: row?.trials ?? 0, races: row?.races ?? 0 });
   } catch {
     return { bonus: 0, conf: 0, note: '晨操資料不全' };
   }
@@ -2043,12 +2025,13 @@ async function computeComposite(
 ): Promise<Array<any>> {
   // Load race context once so factor helpers can read distance/going/venue.
   const raceCtx = await db.prepare(`
-    SELECT r.distance, r.going, rm.venue
+    SELECT r.distance, r.going, r.track, rm.venue
     FROM races r JOIN race_meetings rm ON rm.id = r.meeting_id
     WHERE r.id = ? AND rm.venue IN ('ST','HV')
   `).bind(raceId).first<any>();
   const raceDistance: number | null = raceCtx?.distance ?? null;
   const raceGoing: string | null = raceCtx?.going ?? null;
+  const raceTrackCtx: string | null = raceCtx?.track ?? null;
   const raceVenue: string | null = raceCtx?.venue ?? null;
 
   // ── Stage 7 (2026-05-19): LGB pre-computed score lookup ─────────────────
@@ -2146,7 +2129,7 @@ async function computeComposite(
     // Per-race adjustment factors (constitutional spec 2026-04-28)
     const [fDist, fGoing, fDraw, fWeight, fCond, fInjury, fJT] = await Promise.all([
       distanceFit(db, r.horse_id, raceDistance, raceDate),
-      goingFit(db, r.horse_id, raceGoing, raceDate),
+      goingFit(db, r.horse_id, raceGoing, raceDate, raceTrackCtx),
       drawBias(db, r.draw, raceVenue, raceDistance, raceDate),
       weightDelta(db, r.horse_id, r.actual_weight, raceDate),
       conditionFit(db, r.horse_id, raceDate),
@@ -2531,8 +2514,8 @@ analyzeRoutes.get('/factors', (c) => {
     return map;
   }
 
-  async function batchGoingFit(db: D1Database, horseIds: string[], asOf: string): Promise<Map<string, FactorResult>> {
-    const map = new Map<string, FactorResult>();
+  async function batchGoingFit(db: D1Database, horseIds: string[], asOf: string): Promise<Map<string, GoingRow[]>> {
+    const map = new Map<string, GoingRow[]>();
     if (!horseIds.length) return map;
     const CHUNK = 80;
     for (let i = 0; i < horseIds.length; i += CHUNK) {
@@ -2540,17 +2523,18 @@ analyzeRoutes.get('/factors', (c) => {
       const ph = chunk.map(() => '?').join(', ');
       try {
       const { results } = await db.prepare(
-        `SELECT rr.horse_id, r.going,
+        `SELECT rr.horse_id, r.track AS track, r.going AS going,
                 SUM(CASE WHEN rr.finishing_position BETWEEN 1 AND 3 THEN 1 ELSE 0 END) AS top3, COUNT(*) AS starts
          FROM race_results rr JOIN races r ON r.id = rr.race_id JOIN race_meetings rm ON rm.id = r.meeting_id
          WHERE rr.horse_id IN (${ph}) AND rm.date < ?
            AND rr.finishing_position > 0 AND rr.finishing_position < 99
-         GROUP BY rr.horse_id, r.going`
+         GROUP BY rr.horse_id, r.track, r.going`
       ).bind(...chunk, asOf).all<any>();
       for (const row of (results ?? [])) {
-        if (!row.going) continue; const starts = row.starts ?? 0; if (starts < 2) continue;
-        const top3Rate = (row.top3 ?? 0) / starts;
-        map.set(`${row.horse_id}:${row.going}`, { bonus: Math.max(-15, Math.min(15, (top3Rate - 0.3) * 40)), conf: Math.min(1, starts / 4), note: `${row.going} ${starts} 戰 ${row.top3 ?? 0}上 (${Math.round(top3Rate * 100)}%)` });
+        if (!row.going) continue;
+        const list = map.get(row.horse_id) ?? [];
+        list.push({ track: row.track ?? null, going: row.going, starts: Number(row.starts) || 0, top3: Number(row.top3) || 0 });
+        map.set(row.horse_id, list);
       }
       } catch { /* skip */ }
     }
@@ -2771,15 +2755,13 @@ analyzeRoutes.get('/factors', (c) => {
       const ph = chunk.map(() => '?').join(', ');
       try {
       const { results } = await db.prepare(
-        `SELECT horse_id, COUNT(*) AS sessions
+        `SELECT horse_id, ${TRACKWORK_COUNT_SQL}
          FROM horse_trackwork
          WHERE horse_id IN (${ph}) AND trackwork_date >= date(?, '-14 days') AND trackwork_date < ?
          GROUP BY horse_id`
       ).bind(...chunk, asOf, asOf).all<any>();
       for (const row of (results ?? [])) {
-        const n = row.sessions ?? 0; let bonus = 0;
-        if (n >= 4 && n <= 6) bonus = 8; else if (n >= 2 && n <= 8) bonus = 3; else if (n === 1) bonus = -3; else if (n > 8) bonus = -5;
-        map.set(row.horse_id, { bonus, conf: Math.min(1, n / 4), note: `14 天 ${n} 課晨操` });
+        map.set(row.horse_id, conditionFromCounts({ total: row.total ?? 0, fast: row.fast ?? 0, trials: row.trials ?? 0, races: row.races ?? 0 }));
       }
       } catch { /* skip */ }
     }
@@ -3128,7 +3110,7 @@ analyzeRoutes.get('/factors', (c) => {
             const daysSince = lastDate ? Math.round((new Date(targetDate).getTime() - new Date(lastDate).getTime()) / 86400000) : null;
             const recency = recencyBonus(daysSince);
             const fDist = distMap.get(`${horseId}:${distBucket(raceDistance)}`) ?? { bonus: 0, conf: 0, note: '無距離往績' };
-            const fGoing = goingMap.get(`${horseId}:${raceGoing ?? ''}`) ?? { bonus: 0, conf: 0, note: '無場地往績' };
+            const fGoing = goingFitFromRows(goingMap.get(horseId) ?? [], raceGoing, raceTrack);
             const _dKey = `${e.draw}:${meeting.venue}:${distBucket(raceDistance)}`;
             const fDraw = resolveDrawFactor(DRAW_MODEL, drawMap, _dKey, { course: raceCourse, going: raceGoing, fieldSize: raceEntries.length, raceClass });
             const fWeight = wtMap.get(horseId) ?? { bonus: 0, conf: 0, note: '無體重往績' };
@@ -3354,7 +3336,7 @@ analyzeRoutes.get('/factors', (c) => {
             const daysSince = lastDate ? Math.round((new Date(targetDate!).getTime() - new Date(lastDate).getTime()) / 86400000) : null;
             const recency = recencyBonus(daysSince);
             const fDist = distMap.get(`${horseId}:${distBucket(raceDistance)}`) ?? { bonus: 0, conf: 0, note: '無距離往績' };
-            const fGoing = goingMap.get(`${horseId}:${raceGoing ?? ''}`) ?? { bonus: 0, conf: 0, note: '無場地往績' };
+            const fGoing = goingFitFromRows(goingMap.get(horseId) ?? [], raceGoing, raceTrack);
             const _dKey = `${e.draw}:${meeting.venue}:${distBucket(raceDistance)}`;
             const fDraw = resolveDrawFactor(TP_DRAW_MODEL, drawMap, _dKey, { course: raceCourse, going: raceGoing, fieldSize: raceEntries.length, raceClass });
             const fWeight = wtMap.get(horseId) ?? { bonus: 0, conf: 0, note: '無體重往績' };

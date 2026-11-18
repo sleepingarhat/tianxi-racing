@@ -69,6 +69,12 @@ jobs:
       - name: Regression test — odds 20-minute freshness boundary
         run: bun scripts/test-odds-freshness.ts
 
+      - name: Regression test — lock-time odds append-only and pre-lock only
+        run: bun scripts/test-lock-odds.ts
+
+      - name: Regression test — explanation-only going and trackwork factors
+        run: bun scripts/test-factor-explain.ts
+
       - name: Regression test — CORS allowlist
         run: npx tsx scripts/test-cors-policy.ts
 
