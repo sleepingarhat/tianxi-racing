@@ -669,7 +669,11 @@ def parse_conghua_text(text: str, meeting_date: str, venue: str, race_count: int
         r'^(?:(?P<race>\d+)\s+)?(?:(?P<reserve>Standby)\s+)?(?P<no>\d+)\s+(?P<ch>\S+)\s+(?P<en>.+?)\s+'
         r'(?P<arrived>\d{2}/\d{2}/\d{4})\s+(?P<returned>\d{2}/\d{2}/\d{4})\s*$'
     )
+    # A horse sent to Conghua more than once since its last start gets one extra
+    # line per stay with only the two dates, directly under its own row.
+    stay_re = re.compile(r'^(?P<arrived>\d{2}/\d{2}/\d{4})\s+(?P<returned>\d{2}/\d{2}/\d{4})$')
     rows = []
+    previous = None
     race_no = None
     seen = set()
     for raw_line in text.splitlines():
@@ -678,8 +682,21 @@ def parse_conghua_text(text: str, meeting_date: str, venue: str, race_count: int
             continue
         if re.search(r'年.+月.+日', line) or re.search(r'\d{1,2}\s+[A-Z]+\s+\d{4}', line):
             continue
+        stay = stay_re.match(line)
+        if stay:
+            if previous is None:
+                raise IdentityError('Conghua extra stay has no horse row above it')
+            arrived = dmy(stay.group('arrived'), 'Conghua arrival')
+            returned = dmy(stay.group('returned'), 'Conghua return')
+            if arrived < previous['returned_date'] or arrived > returned or returned > meeting_date:
+                raise IdentityError('Conghua extra stay does not follow the earlier stay')
+            row = {**previous, 'line_no': len(rows) + 1, 'arrived_date': arrived, 'returned_date': returned}
+            rows.append(row)
+            previous = row
+            continue
         match = line_re.match(line)
         if not match:
+            previous = None
             if re.search(r'\d{2}/\d{2}/\d{4}', line):
                 raise ParseMiss(f'Conghua line {line!r} is not a horse row')
             continue
@@ -697,12 +714,13 @@ def parse_conghua_text(text: str, meeting_date: str, venue: str, race_count: int
         returned = dmy(match.group('returned'), 'Conghua return')
         if arrived > returned or returned > meeting_date:
             raise IdentityError('Conghua dates are not arrival, then return, then the meeting')
-        rows.append({
+        previous = {
             'meeting_date': meeting_date, 'venue': venue, 'race_no': race_no, 'line_no': len(rows) + 1,
             'horse_no': horse_no, 'is_reserve': reserve, 'horse_name_ch': match.group('ch'),
             'horse_name_en': match.group('en'), 'arrived_date': arrived, 'returned_date': returned,
             'not_race_result': 1, 'source_sha256': digest, 'scraped_at': scraped_at,
-        })
+        }
+        rows.append(previous)
     if not rows:
         raise ParseMiss('Conghua list has a heading and no horses')
     return rows

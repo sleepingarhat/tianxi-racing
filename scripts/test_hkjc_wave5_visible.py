@@ -215,6 +215,36 @@ WEDNESDAY 11 NOVEMBER 2026 RACE MEETING
         with self.assertRaises(IdentityError):
             parse_conghua_text(text, '2026-11-08', 'ST', 11, 'abc', SCRAPED)
 
+    def test_conghua_second_stay_line_belongs_to_the_horse_above(self):
+        # 2026-11-18 HV: 勁好運 and 通情達理 went to Conghua twice since their last start.
+        text = '''二〇二六年十一月十八日星期三賽事
+HORSES STABLED IN CONGHUA SINCE LAST START
+WEDNESDAY 18 NOVEMBER 2026 RACE MEETING
+4 1 勁好運 SUPER UNICORN 14/10/2026 31/10/2026
+    06/11/2026 14/11/2026
+ 5 大文豪 CLASS 04/11/2026 12/11/2026
+6 3 通情達理 PERFECT ONE 29/04/2026 30/06/2026
+    03/07/2026 12/11/2026
+'''
+        rows = parse_conghua_text(text, '2026-11-18', 'HV', 9, 'abc', SCRAPED)
+        self.assertEqual(
+            [(r['race_no'], r['horse_no'], r['horse_name_ch'], r['arrived_date'], r['returned_date'], r['line_no']) for r in rows],
+            [(4, 1, '勁好運', '2026-10-14', '2026-10-31', 1), (4, 1, '勁好運', '2026-11-06', '2026-11-14', 2),
+             (4, 5, '大文豪', '2026-11-04', '2026-11-12', 3), (6, 3, '通情達理', '2026-04-29', '2026-06-30', 4),
+             (6, 3, '通情達理', '2026-07-03', '2026-11-12', 5)],
+        )
+
+    def test_conghua_extra_stay_without_a_horse_or_out_of_order_fails(self):
+        head = '''二〇二六年十一月十八日星期三賽事
+HORSES STABLED IN CONGHUA SINCE LAST START
+WEDNESDAY 18 NOVEMBER 2026 RACE MEETING
+'''
+        with self.assertRaises(IdentityError):
+            parse_conghua_text(head + '    06/11/2026 14/11/2026\n', '2026-11-18', 'HV', 9, 'abc', SCRAPED)
+        with self.assertRaises(IdentityError):
+            parse_conghua_text(head + '4 1 勁好運 SUPER UNICORN 14/10/2026 31/10/2026\n    20/10/2026 14/11/2026\n',
+                               '2026-11-18', 'HV', 9, 'abc', SCRAPED)
+
     def test_content_file_must_stay_on_the_official_host(self):
         flight = '"jTExcelFile":{"url":"https://example.com/file.xlsx"}'
         with self.assertRaises(IdentityError):
