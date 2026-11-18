@@ -1,0 +1,237 @@
+{
+ "generated_for": "2026-11-18 research gate (report only, no promotion)",
+ "windows": {
+  "train_from": "2025-07-01",
+  "validation": [
+   "2026-05-01",
+   "2026-07-31"
+  ],
+  "test": [
+   "2026-09-01",
+   "2026-11-14"
+  ]
+ },
+ "debut_rows": {
+  "train_to_val": 467,
+  "train_to_test": 585,
+  "base_top4_rate": 0.234
+ },
+ "test_debutants": {
+  "n": 108,
+  "top4": 29,
+  "engine_picked": 1,
+  "auc_engine": 0.6534264513312964,
+  "auc_trial_prior": 0.6442601484068092,
+  "logloss_base": 0.584962660104084,
+  "logloss_engine": 0.6527192502094056,
+  "logloss_trial_prior": 0.580453027739286,
+  "mean_p4_engine": 0.113,
+  "mean_p4_prior": 0.19
+ },
+ "validation_grid": {
+  "-0.1": {
+   "races": 171,
+   "meetings": 17,
+   "engine_avg": 2.0,
+   "overlay_avg": 1.994,
+   "diff": -0.006,
+   "ci95": [
+    -0.041,
+    0.024
+   ],
+   "swaps": 10,
+   "swap_hits": 4,
+   "replaced_hits": 5,
+   "meetings_better": 3,
+   "meetings_worse": 3
+  },
+  "-0.05": {
+   "races": 171,
+   "meetings": 17,
+   "engine_avg": 2.0,
+   "overlay_avg": 2.0,
+   "diff": 0.0,
+   "ci95": [
+    -0.029,
+    0.029
+   ],
+   "swaps": 9,
+   "swap_hits": 4,
+   "replaced_hits": 4,
+   "meetings_better": 3,
+   "meetings_worse": 3
+  },
+  "0.0": {
+   "races": 171,
+   "meetings": 17,
+   "engine_avg": 2.0,
+   "overlay_avg": 2.0,
+   "diff": 0.0,
+   "ci95": [
+    -0.029,
+    0.029
+   ],
+   "swaps": 9,
+   "swap_hits": 4,
+   "replaced_hits": 4,
+   "meetings_better": 3,
+   "meetings_worse": 3
+  },
+  "0.05": {
+   "races": 171,
+   "meetings": 17,
+   "engine_avg": 2.0,
+   "overlay_avg": 2.0,
+   "diff": 0.0,
+   "ci95": [
+    -0.029,
+    0.029
+   ],
+   "swaps": 9,
+   "swap_hits": 4,
+   "replaced_hits": 4,
+   "meetings_better": 3,
+   "meetings_worse": 3
+  },
+  "0.1": {
+   "races": 171,
+   "meetings": 17,
+   "engine_avg": 2.0,
+   "overlay_avg": 2.0,
+   "diff": 0.0,
+   "ci95": [
+    -0.029,
+    0.028
+   ],
+   "swaps": 9,
+   "swap_hits": 4,
+   "replaced_hits": 4,
+   "meetings_better": 3,
+   "meetings_worse": 3
+  },
+  "0.15": {
+   "races": 171,
+   "meetings": 17,
+   "engine_avg": 2.0,
+   "overlay_avg": 2.0,
+   "diff": 0.0,
+   "ci95": [
+    -0.029,
+    0.029
+   ],
+   "swaps": 9,
+   "swap_hits": 4,
+   "replaced_hits": 4,
+   "meetings_better": 3,
+   "meetings_worse": 3
+  },
+  "0.2": {
+   "races": 171,
+   "meetings": 17,
+   "engine_avg": 2.0,
+   "overlay_avg": 2.0,
+   "diff": 0.0,
+   "ci95": [
+    -0.029,
+    0.029
+   ],
+   "swaps": 9,
+   "swap_hits": 4,
+   "replaced_hits": 4,
+   "meetings_better": 3,
+   "meetings_worse": 3
+  }
+ },
+ "chosen_delta": 0.2,
+ "test": {
+  "races": 196,
+  "meetings": 20,
+  "engine_avg": 1.959,
+  "overlay_avg": 1.964,
+  "diff": 0.005,
+  "ci95": [
+   0.0,
+   0.016
+  ],
+  "swaps": 2,
+  "swap_hits": 2,
+  "replaced_hits": 1,
+  "meetings_better": 1,
+  "meetings_worse": 0,
+  "swap_list": [
+   {
+    "date": "2026-10-25",
+    "race": 1,
+    "code": "L509",
+    "hit": 1,
+    "replaced_hit": 1
+   },
+   {
+    "date": "2026-11-04",
+    "race": 5,
+    "code": "L536",
+    "hit": 1,
+    "replaced_hit": 0
+   }
+  ]
+ },
+ "coefficients_std": {
+  "n_trials": -0.128,
+  "last_pos_pct": -0.233,
+  "last_behind": 0.415,
+  "best_pos_pct3": -0.124,
+  "mean_behind3": -0.341,
+  "log_days_last": -0.053,
+  "no_trial": 0.145,
+  "last_failed": 0.0,
+  "last_won": 0.061,
+  "field": -0.124,
+  "draw_pct": 0.05,
+  "cls": 0.289,
+  "jockey_rate": 0.404,
+  "trainer_debut_rate": 0.145,
+  "trainer_rate": 0.121,
+  "wt": -0.256
+ },
+ "supplementary": {
+  "fourth_pick_hit_rate": {
+   "validation": 0.392,
+   "test": 0.403
+  },
+  "prior_top_quintile_test": {
+   "n": 21,
+   "top4": 9,
+   "mean_prior": 0.406
+  },
+  "engine_top_quintile_test": {
+   "n": 21,
+   "top4": 10,
+   "mean_engine_p4": 0.202
+  },
+  "rescale_engine_debut_p4": {
+   "validation_debutants": {
+    "n": 94,
+    "top4": 24,
+    "mean_p4_engine": 0.195
+   },
+   "validation": {
+    "scale": 1.308,
+    "races": 171,
+    "engine_avg": 2.0,
+    "overlay_avg": 1.977,
+    "swaps": 8,
+    "swap_hits": 3,
+    "replaced_hits": 7
+   },
+   "test": {
+    "scale": 1.308,
+    "races": 196,
+    "engine_avg": 1.959,
+    "overlay_avg": 1.954,
+    "swaps": 1,
+    "swap_hits": 0,
+    "replaced_hits": 1
+   }
+  }
+ }
+}
