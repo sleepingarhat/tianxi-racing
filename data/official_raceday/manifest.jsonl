@@ -284,3 +284,5 @@
 {"rows": 20, "scraped_at": "2026-11-19T07:43:04+00:00", "sha256": "261f36da52bf0f32dca99b0de04c5dd17e6990c28314a5e6736af97c36347c78", "surface": "challenge_jkc"}
 {"rows": 24, "scraped_at": "2026-11-19T07:43:04+00:00", "sha256": "60d4777c55004a3482f9ac5b6212e9e4ba0a9995da542ba6cbc7eb2bb72510a4", "surface": "challenge_tnc"}
 {"rows": {"pool_dividend": 145, "pool_status": 97, "track_probe": 2}, "scraped_at": "2026-11-19T07:43:05+00:00", "sha256": "492689dcddd9d0d36ba00fdde21c5f342800aa5b186d636533aef5b55af32a50", "surface": "pools"}
+{"rows": 1, "scraped_at": "2026-11-20T17:04:56+00:00", "sha256": "56ecf2f5210e2c28417cb543e8afbbc8ff6be258dcdd0cf8e07fc9a251367568", "surface": "raceday_focus"}
+{"rows": {"pool_dividend": 0, "pool_status": 118, "track_probe": 0}, "scraped_at": "2026-11-20T17:04:59+00:00", "sha256": "8035145c48de840c46280a60c953c64d7b0573ef10b8f641af283ccf8572c969", "surface": "pools"}
