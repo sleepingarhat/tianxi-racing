@@ -150,3 +150,4 @@
 {"rows": 30, "scraped_at": "2026-11-18T06:12:40+00:00", "sha256": "c373b8d23117c5b37d380fc376ccda808217948fedf08313769ff52628b4b945", "surface": "overoar"}
 {"rows": 35, "scraped_at": "2026-11-18T06:12:40+00:00", "sha256": "c3fc32df0f4ed28fa8e54c5d0a27bc5f5e95ecf92a0ea223b757844ec496d354", "surface": "pool-result"}
 {"rows": 503, "scraped_at": "2026-11-18T06:12:40+00:00", "sha256": "e05deda1becdce20c5b3587a2123311ed48435c53939ac87ddcd7546f2b62ed7", "surface": "draw-adv"}
+{"rows": 124202, "scraped_at": "2026-11-21T02:17:46+00:00", "sha256": "818dd056c5e89e3c111e62659f8b6af0b5279e32a48b091855288209a223e05f", "surface": "horse-record"}
