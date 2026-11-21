@@ -1,8 +1,8 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-11-20T13:16:42+00:00",
+  "generated_at": "2026-11-21T02:15:59+00:00",
   "generator": "tools/build_manifest.py",
-  "git_head": "2d439717955f652dfdad7c631d550b6af9e39636",
+  "git_head": "4e33c98cdd8f6f52e047beff7c4f9f66594cd8c9",
   "repo": "sleepingarhat/tianxi-database",
   "branch": "main",
   "base_url": {
@@ -133,11 +133,11 @@
     "trials": {
       "results": {
         "path": "trials/trial_results.csv",
-        "row_count": 10356
+        "row_count": 10380
       },
       "sessions": {
         "path": "trials/trial_sessions.csv",
-        "row_count": 1280
+        "row_count": 1283
       },
       "note": "HKJC retains ~176 days only; pre-2025-03-13 irrecoverable"
     },
@@ -145,8 +145,8 @@
       "format": "txt",
       "path_template": "entries/entries_{date}.txt",
       "today_pointer": "entries/today_entries.txt",
-      "count": 35,
-      "latest": "entries_2026-11-18.txt",
+      "count": 36,
+      "latest": "entries_2026-11-22.txt",
       "note": "TXT (not CSV); space-delimited; race_number=0 means meeting-level batch"
     },
     "news": {
