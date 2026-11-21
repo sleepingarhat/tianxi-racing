@@ -290,3 +290,9 @@
 {"rows": 130, "scraped_at": "2026-11-21T07:30:13+00:00", "sha256": "ab23bc75c77d77a834b6a1a95bad785a0bec6b2bd28fa7a11b9c52591ce8bbee", "surface": "formline"}
 {"rows": 1, "scraped_at": "2026-11-21T07:31:12+00:00", "sha256": "56ecf2f5210e2c28417cb543e8afbbc8ff6be258dcdd0cf8e07fc9a251367568", "surface": "raceday_focus"}
 {"rows": {"pool_dividend": 0, "pool_status": 118, "track_probe": 0}, "scraped_at": "2026-11-21T07:31:16+00:00", "sha256": "2e587baaab270e0e2cceb11dc5f4b20f413fa3165037d51217f67c7d6be8ee0d", "surface": "pools"}
+{"rows": 147, "scraped_at": "2026-11-21T16:17:29+00:00", "sha256": "c21f4657a1b21d74a095640e18887c6bf8ddddd6f6dd5aaa571a859fb33ee380", "surface": "report"}
+{"rows": 130, "scraped_at": "2026-11-21T16:17:29+00:00", "sha256": "ab23bc75c77d77a834b6a1a95bad785a0bec6b2bd28fa7a11b9c52591ce8bbee", "surface": "formline"}
+{"rows": 23, "scraped_at": "2026-11-21T16:18:05+00:00", "sha256": "22cf7fdb29430df464dfe9bbec47301c2c33241532322fc59463464d92b49420", "surface": "challenge_jkc"}
+{"rows": 24, "scraped_at": "2026-11-21T16:18:05+00:00", "sha256": "9b295f9a2f8b6b63eb32c95c1661151dc7d17e1e22fbbe7a3c24a16401cde352", "surface": "challenge_tnc"}
+{"rows": 1, "scraped_at": "2026-11-21T16:18:06+00:00", "sha256": "b7aa9850bf7cb80996e6ff761ad6494ac73616ccd8ebeb1bbe18659218cff1b8", "surface": "raceday_focus"}
+{"rows": {"pool_dividend": 0, "pool_status": 118, "track_probe": 0}, "scraped_at": "2026-11-21T16:18:08+00:00", "sha256": "fe91233af9f4d03ec26aec8cad88c68c7169fedf784f94ebd9c1d5f0cb6e5c4b", "surface": "pools"}
