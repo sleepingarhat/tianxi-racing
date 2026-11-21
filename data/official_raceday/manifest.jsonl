@@ -286,3 +286,7 @@
 {"rows": {"pool_dividend": 145, "pool_status": 97, "track_probe": 2}, "scraped_at": "2026-11-19T07:43:05+00:00", "sha256": "492689dcddd9d0d36ba00fdde21c5f342800aa5b186d636533aef5b55af32a50", "surface": "pools"}
 {"rows": 1, "scraped_at": "2026-11-20T17:04:56+00:00", "sha256": "56ecf2f5210e2c28417cb543e8afbbc8ff6be258dcdd0cf8e07fc9a251367568", "surface": "raceday_focus"}
 {"rows": {"pool_dividend": 0, "pool_status": 118, "track_probe": 0}, "scraped_at": "2026-11-20T17:04:59+00:00", "sha256": "8035145c48de840c46280a60c953c64d7b0573ef10b8f641af283ccf8572c969", "surface": "pools"}
+{"rows": 147, "scraped_at": "2026-11-21T07:30:13+00:00", "sha256": "c21f4657a1b21d74a095640e18887c6bf8ddddd6f6dd5aaa571a859fb33ee380", "surface": "report"}
+{"rows": 130, "scraped_at": "2026-11-21T07:30:13+00:00", "sha256": "ab23bc75c77d77a834b6a1a95bad785a0bec6b2bd28fa7a11b9c52591ce8bbee", "surface": "formline"}
+{"rows": 1, "scraped_at": "2026-11-21T07:31:12+00:00", "sha256": "56ecf2f5210e2c28417cb543e8afbbc8ff6be258dcdd0cf8e07fc9a251367568", "surface": "raceday_focus"}
+{"rows": {"pool_dividend": 0, "pool_status": 118, "track_probe": 0}, "scraped_at": "2026-11-21T07:31:16+00:00", "sha256": "2e587baaab270e0e2cceb11dc5f4b20f413fa3165037d51217f67c7d6be8ee0d", "surface": "pools"}
