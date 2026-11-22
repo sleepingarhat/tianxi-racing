@@ -527,5 +527,14 @@ class SqlTests(unittest.TestCase):
             self.assertIsNone(gear[2])
 
 
+class ScratchedOddsTests(unittest.TestCase):
+    def test_scr_is_no_price_and_other_text_still_fails(self):
+        pool = {'leg': {'races': [9]}, 'oddsNodes': [{'combString': '03', 'oddsValue': 'SCR'}, {'combString': '04', 'oddsValue': '5.6'}]}
+        self.assertEqual(companions.odds_index([pool]), {9: {3: None, 4: '5.6'}})
+        pool['oddsNodes'][0]['oddsValue'] = 'WD'
+        with self.assertRaises(companions.ParseMiss):
+            companions.odds_index([pool])
+
+
 if __name__ == '__main__':
     unittest.main()
