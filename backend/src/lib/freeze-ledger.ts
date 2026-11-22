@@ -47,6 +47,8 @@ export type LedgerMeeting = {
    */
   source: 'prediction_log' | 'not-locked' | 'missing-log' | 'no-results' | 'blocked' | 'read-error';
   blockedReason?: string | null;
+  /** 'post-lock-rebuild' = owner-approved 鎖後補建 snapshot (label read from the SHA-covered snapshot JSON). */
+  rebuild?: 'post-lock-rebuild' | null;
   racesEvaluated: number;
   top4AvgIntersect: number | null;
   top4CoveragePct: number | null;
@@ -190,6 +192,11 @@ export async function computeFreezeLedgerForDate(
     }
     throw verifyError; // transient read error → caller marks this meeting read-error
   }
+  const provenance = await db
+    .prepare(`SELECT json_extract(snapshot_json,'$.provenance.kind') AS kind FROM prediction_original_snapshots WHERE date = ? AND engine = ?`)
+    .bind(date, engine)
+    .first<{ kind: string | null }>();
+  base.rebuild = provenance?.kind === 'post-lock-rebuild' ? 'post-lock-rebuild' : null;
   const frozenByRace = new Map<number, any[]>();
   for (const r of frozen?.results ?? []) {
     if (!frozenByRace.has(r.race_number)) frozenByRace.set(r.race_number, []);
