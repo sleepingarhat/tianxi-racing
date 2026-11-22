@@ -307,3 +307,8 @@
 {"rows": {"pool_dividend": 174, "pool_status": 118, "track_probe": 2}, "scraped_at": "2026-11-22T16:30:11+00:00", "sha256": "5e8e82a6d18cb6dd28747a25c9a00b1d7121395a81662596ab1d4986f4be7255", "surface": "pools"}
 {"rows": 144, "scraped_at": "2026-11-22T17:11:20+00:00", "sha256": "c21f4657a1b21d74a095640e18887c6bf8ddddd6f6dd5aaa571a859fb33ee380", "surface": "report"}
 {"rows": 130, "scraped_at": "2026-11-22T17:11:20+00:00", "sha256": "ab23bc75c77d77a834b6a1a95bad785a0bec6b2bd28fa7a11b9c52591ce8bbee", "surface": "formline"}
+{"rows": 144, "scraped_at": "2026-11-22T17:19:43+00:00", "sha256": "c21f4657a1b21d74a095640e18887c6bf8ddddd6f6dd5aaa571a859fb33ee380", "surface": "report"}
+{"rows": 130, "scraped_at": "2026-11-22T17:19:43+00:00", "sha256": "ab23bc75c77d77a834b6a1a95bad785a0bec6b2bd28fa7a11b9c52591ce8bbee", "surface": "formline"}
+{"rows": 82, "scraped_at": "2026-11-22T17:19:43+00:00", "sha256": "b0cd3c5cd4ae6dd899ff5900e88277658e3552057b86f57e7573c151d566d028", "surface": "exceptional"}
+{"rows": 134, "scraped_at": "2026-11-22T17:19:43+00:00", "sha256": "6a6e0fed3c0b746a4b608b17bcea1c6e68aecce273ebe7df844b809abc1e4a6d", "surface": "veterinary"}
+{"rows": 5982, "scraped_at": "2026-11-22T17:19:43+00:00", "sha256": "292e5eae757cdc7f93bf5abb08f1509d7187b661b7a83411eb1c942c5c50d51c", "surface": "trackwork"}
