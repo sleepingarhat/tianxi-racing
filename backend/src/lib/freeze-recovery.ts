@@ -1,4 +1,5 @@
 /** Original-only freeze recovery. Never computes predictions or rewrites an existing row. */
+import { starterPredicate } from './starter-entries';
 export const PREDICTION_COLUMNS = ['date','race_number','horse_id','engine','variant','horse_number','draw','horse_elo','elo_source','elo_confidence','elo_composite','factor_bonus','final_score','p_win','p_top3','predicted_rank','generated_at','lgb_score','lgb_model_version','score_source','jockey_elo','trainer_elo','factor_scores','pace_estimate'] as const;
 type Row = Record<string, any>;
 type Snapshot = { schema: 1; date: string; engine: string; venue: string; lockAt: string; rows: Row[]; meta: Row | null };
@@ -81,7 +82,7 @@ export async function recoverOriginalFreeze(db: D1Database, date: string, venue:
       if (new Date(now + 8*3600_000).toISOString().slice(0,10) !== date) throw new Error('historical-original-unavailable');
       const rows = await rowsFor(db,date,engine); validateRows(rows,date,engine);
       if (rows.some(r => Date.parse(r.generated_at) > Date.parse(lockAt))) throw new Error('post-lock-row-cannot-be-original');
-      const fixtures = await db.prepare(`SELECT race_number,horse_id,horse_number FROM entries_upcoming WHERE race_date=? AND venue=? AND race_number>0 AND (priority_order IS NULL OR priority_order='' OR priority_order='正選') ORDER BY race_number,horse_number`).bind(date,venue).all<Row>();
+      const fixtures = await db.prepare(`SELECT race_number,horse_id,horse_number FROM entries_upcoming WHERE race_date=? AND venue=? AND race_number>0 AND ${starterPredicate()} ORDER BY race_number,horse_number`).bind(date,venue).all<Row>();
       const expected = fixtures.results ?? [];
       const keys = (rs: Row[]) => rs.map(r => `${r.race_number}:${r.horse_id}:${r.horse_number}`).sort().join('|');
       if (!expected.length || rows.length !== expected.length || keys(rows) !== keys(expected)) throw new Error('fixture-original-incomplete');

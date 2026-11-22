@@ -99,7 +99,10 @@ function pounds(value: string, label: string): number | null {
  * but a header or cell is not the official shape.
  */
 export function parseRacecardColumns(html: string): Map<number, RacecardColumnRow> | null {
-  const table = /<table\b[^>]*class="[^"]*\bstarter\b[^"]*"[^>]*>([\s\S]*?)<\/table>/i.exec(html);
+  // HKJC leaves commented-out <td> markup inside some rows (the withdrawn-horse
+  // row on 2026-11-22 R9 carried a commented colour cell). Comments are not
+  // cells; strip them before counting so a scratched starter does not fail the card.
+  const table = /<table\b[^>]*class="[^"]*\bstarter\b[^"]*"[^>]*>([\s\S]*?)<\/table>/i.exec(html.replace(/<!--[\s\S]*?-->/g, ''));
   if (!table) return null;
   const parsedRows = rowsOf(table[1]).map(cellsOf).filter((cells) => cells.length > 0);
   const header = parsedRows.find((cells) => cells[0]?.text === '馬匹編號');

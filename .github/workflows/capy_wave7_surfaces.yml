@@ -136,7 +136,7 @@ jobs:
           PY
           for f in $(ls /tmp/wave7_schema/*.sql | sort); do
             echo "--> $f"
-            wrangler d1 execute tianxi-db --remote --file="$f" --yes
+            bash "$GITHUB_WORKSPACE/scripts/d1-execute-file.sh" "$f"
           done
 
       - name: Upsert wave7 surfaces into D1
@@ -170,5 +170,5 @@ jobs:
           fi
           for f in $(ls /tmp/official_wave7_chunks/*.sql | sort); do
             echo "--> $f"
-            wrangler d1 execute tianxi-db --remote --file="$f" --yes
+            bash "$GITHUB_WORKSPACE/scripts/d1-execute-file.sh" "$f"
           done

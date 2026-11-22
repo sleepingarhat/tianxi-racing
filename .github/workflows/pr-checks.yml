@@ -103,6 +103,7 @@ jobs:
           npx tsx scripts/test-d1-official-card-schema.ts
           npx tsx scripts/test-racecard-meta.ts
           npx tsx scripts/test-racecard-columns.ts
+          npx tsx scripts/test-starter-entries.ts
           npx tsx scripts/test-result-course.ts
           npx tsx scripts/test-parse-dividends.ts
           python3 -m unittest discover -s ../scripts -p 'test_racing_changes.py'
@@ -114,12 +115,15 @@ jobs:
           python3 -m pip install --break-system-packages beautifulsoup4==4.14.2
           python3 -m unittest discover -s ../scripts -p 'test_hkjc_raceday_companions.py'
           python3 -m unittest discover -s ../scripts -p 'test_hkjc_wave5_visible.py'
+          python3 -m unittest discover -s ../scripts -p 'test_d1_execute_file.py'
           python3 -m unittest discover -s ../scripts -p 'test_hkjc_wave6_surfaces.py'
           python3 -m unittest discover -s ../scripts -p 'test_hkjc_wave7_surfaces.py'
           npx tsx scripts/test-official-visible.ts
 
       - name: Regression test — TG scripts send X-TG-Reader-Token (Python, no network)
-        run: python3 -m unittest discover -s ../tools -p test_tg_reader_auth.py
+        run: |
+          python3 -m unittest discover -s ../tools -p test_tg_reader_auth.py
+          python3 -m unittest discover -s ../tools -p test_tg_frozen_refusal.py
 
       - name: Extra tests (PR only) — public today-picks, running style, horse career, lab suite, api-v1
         run: |

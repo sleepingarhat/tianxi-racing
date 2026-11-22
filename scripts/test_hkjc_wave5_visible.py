@@ -150,6 +150,24 @@ class Wave5Tests(unittest.TestCase):
         with self.assertRaises(IdentityError):
             parse_combo_rows(rows, '2026-11-11', 'HV', 9, 'abc', SCRAPED)
 
+    def test_combo_dash_pair_means_not_in_that_race(self):
+        rows = [
+            ['騎練配對成績 (2025/26- 21/11/2026)'],
+            ['', '第一場', '', '第二場'],
+            ['馬號', '勝出率 ', '上名率 ', '勝出率 ', '上名率 '],
+            ['1', '0.1', '0.3', '-', '-'],
+            ['最後更新 : 21/11/2026 12:00'],
+            ['練馬師在港初出馬成績 (2025/26 - 21/11/2026)'],
+            ['場次', '馬號', '馬名', '', '進口類別', '', '練馬師', '', '勝出率', '上名率'],
+            ['2', '4', '翠湖烈風', '', '自購馬', '', '呂健威', '', '0.14', '0.14'],
+            ['最後更新 : 21/11/2026 12:00'],
+        ]
+        combo = [row for row in parse_combo_rows(rows, '2026-11-22', 'ST', 2, 'abc', SCRAPED) if row['section'] == 'combo']
+        self.assertEqual([(row['race_no'], row['win_rate']) for row in combo], [(1, '0.1000')])
+        rows[3] = ['1', '0.1', '0.3', '-', '0.2']
+        with self.assertRaises(ParseMiss):
+            parse_combo_rows(rows, '2026-11-22', 'ST', 2, 'abc', SCRAPED)
+
     def combo_with_debut(self, *debut):
         return [
             ['騎練配對成績 (2025/26- 14/11/2026)'],

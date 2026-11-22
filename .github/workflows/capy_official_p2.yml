@@ -153,7 +153,7 @@ jobs:
             echo 'CF_API_TOKEN missing; leaving the CSV projection unsent'
             exit 0
           fi
-          wrangler d1 execute tianxi-db --remote --file=src/db/migrations/20261027_official_p2_boards.sql --yes
+          bash "$GITHUB_WORKSPACE/scripts/d1-execute-file.sh" src/db/migrations/20261027_official_p2_boards.sql
           python3 ../scripts/hkjc_official_boards.py --root=.. --emit-sql /tmp/official_p2.sql
           python3 - << 'PY'
           from pathlib import Path
@@ -174,5 +174,5 @@ jobs:
           fi
           for f in $(ls /tmp/official_p2_chunks/*.sql | sort); do
             echo "--> $f"
-            wrangler d1 execute tianxi-db --remote --file="$f" --yes
+            bash "$GITHUB_WORKSPACE/scripts/d1-execute-file.sh" "$f"
           done

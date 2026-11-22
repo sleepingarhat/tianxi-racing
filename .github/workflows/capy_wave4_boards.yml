@@ -184,8 +184,8 @@ jobs:
             echo 'CF_API_TOKEN missing; leaving the CSV projection unsent'
             exit 0
           fi
-          wrangler d1 execute tianxi-db --remote --file=src/db/migrations/20261027_wave4_boards.sql --yes
-          wrangler d1 execute tianxi-db --remote --file=src/db/migrations/20261103_official_horse_record.sql --yes
+          bash "$GITHUB_WORKSPACE/scripts/d1-execute-file.sh" src/db/migrations/20261027_wave4_boards.sql
+          bash "$GITHUB_WORKSPACE/scripts/d1-execute-file.sh" src/db/migrations/20261103_official_horse_record.sql
           bash ../scripts/d1_add_column.sh official_pool_result dead_heat_places "TEXT NOT NULL DEFAULT ''"
           python3 ../scripts/hkjc_wave4_boards.py --root=.. --emit-sql /tmp/official_wave4.sql
           python3 - << 'PY'
@@ -207,5 +207,5 @@ jobs:
           fi
           for f in $(ls /tmp/official_wave4_chunks/*.sql | sort); do
             echo "--> $f"
-            wrangler d1 execute tianxi-db --remote --file="$f" --yes
+            bash "$GITHUB_WORKSPACE/scripts/d1-execute-file.sh" "$f"
           done

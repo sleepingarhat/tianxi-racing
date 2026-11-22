@@ -75,6 +75,30 @@ def fmt_date(iso):
         return iso
 
 
+class FrozenUnverified(Exception):
+    """The Worker refused to serve picks because the original freeze is blocked or unverified.
+
+    This is a known fail-closed state that the lock tick already alerts once; a channel
+    post must not be sent and the job must not keep retrying or turn red for it.
+    """
+
+
+def _frozen_refusal(err):
+    if err.code not in (409, 503):
+        return None
+    try:
+        body = json.loads(err.read().decode("utf-8"))
+    except Exception:
+        return None
+    if not isinstance(body, dict):
+        return None
+    if body.get("error") == "frozen-evidence-unverified":
+        return str(body.get("reason") or "frozen-evidence-unverified")
+    if err.code == 503 and body.get("frozen") is False and body.get("freezeSource"):
+        return str(body.get("freezeSource"))
+    return None
+
+
 def api_get(path):
     url = API_BASE + path
     req = urllib.request.Request(
@@ -88,6 +112,9 @@ def api_get(path):
                 return json.loads(r.read().decode("utf-8"))
         except urllib.error.HTTPError as err:
             last = err
+            refused = _frozen_refusal(err)
+            if refused:
+                raise FrozenUnverified(refused)
             if err.code < 500 and err.code != 429:
                 raise
         except (urllib.error.URLError, TimeoutError) as err:
@@ -175,7 +202,11 @@ def pick_label(p):
 
 
 def cmd_prerace(args):
-    data = api_get("/api/analyze/today-picks")
+    try:
+        data = api_get("/api/analyze/today-picks")
+    except FrozenUnverified as why:
+        print("::warning::frozen picks are not verified (%s); no pre-race post" % why)
+        return
     date = data.get("date")
     if not date:
         print("no upcoming meeting; skip")
@@ -402,6 +433,9 @@ def cmd_postrace(args):
             try:
                 data = api_get("/api/analyze/hit-rate?date=%s" % date)
                 break
+            except FrozenUnverified as why:
+                print("::warning::%s original freeze is not verified (%s); no recap is posted" % (date, why))
+                return
             except urllib.error.HTTPError as ex:
                 if ex.code != 404:
                     raise
