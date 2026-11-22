@@ -184,6 +184,12 @@ class ExceptionalTests(unittest.TestCase):
         self.assertEqual(rows[3]['weight_loss'], 2)
         self.assertTrue(all(row['not_race_result'] == 1 for row in rows))
 
+    def test_official_no_data_race_is_empty_not_missing(self):
+        raw = shell('<p>沒有資料</p>')
+        self.assertEqual(companions.parse_exceptional(raw, '2026-10-28', 'ST', TODAY, 'abc', SCRAPED), [])
+        with self.assertRaises(companions.ParseMiss):
+            companions.parse_exceptional(shell('<p>其他內容</p>'), '2026-10-28', 'ST', TODAY, 'abc', SCRAPED)
+
     def test_non_numeric_weight_loss_fails(self):
         raw = self.page().replace('<td>2</td>'.encode(), '<td>兩磅</td>'.encode())
         with self.assertRaises(companions.ParseMiss):
