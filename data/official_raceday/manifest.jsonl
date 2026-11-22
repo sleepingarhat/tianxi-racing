@@ -305,3 +305,5 @@
 {"rows": 23, "scraped_at": "2026-11-22T16:30:09+00:00", "sha256": "32d194fd9206b22494f376660d18fa2a450a8078194083bf7a3edfb4bddeeca6", "surface": "challenge_jkc"}
 {"rows": 24, "scraped_at": "2026-11-22T16:30:09+00:00", "sha256": "7a7837b2f261edaf40531c0d475565f88a00e050ff5e8d72809cfb79f7d7b544", "surface": "challenge_tnc"}
 {"rows": {"pool_dividend": 174, "pool_status": 118, "track_probe": 2}, "scraped_at": "2026-11-22T16:30:11+00:00", "sha256": "5e8e82a6d18cb6dd28747a25c9a00b1d7121395a81662596ab1d4986f4be7255", "surface": "pools"}
+{"rows": 144, "scraped_at": "2026-11-22T17:11:20+00:00", "sha256": "c21f4657a1b21d74a095640e18887c6bf8ddddd6f6dd5aaa571a859fb33ee380", "surface": "report"}
+{"rows": 130, "scraped_at": "2026-11-22T17:11:20+00:00", "sha256": "ab23bc75c77d77a834b6a1a95bad785a0bec6b2bd28fa7a11b9c52591ce8bbee", "surface": "formline"}
