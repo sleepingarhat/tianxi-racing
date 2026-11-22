@@ -668,6 +668,11 @@ def parse_exceptional(raw: bytes, requested_date: str, requested_venue: str, tod
     if table is None:
         if pending_page(soup):
             raise BoardPending('exceptional factors are not published')
+        # HKJC prints 沒有資料 in place of the table when no runner in that race has a
+        # special factor (2026-11-22 ST R7). That is an official empty race, not a
+        # missing table: store no rows for it. Any other missing table still fails.
+        if '沒有資料' in soup.get_text(' ', strip=True):
+            return []
         raise ParseMiss('exceptional factor table is missing')
     rows = table.find_all('tr')
     require_header(cells(rows[0]), [
