@@ -634,6 +634,14 @@
       "date": "2026-11-22",
       "kind": "racing-changes",
       "venue": "ST"
+    },
+    {
+      "path": "data/racing-changes/2026-11-22/ST-cfb1b03246baca8eefe54d99353e4d9717c0855cb3ae2c28ecf42bfcf039408a.html",
+      "sha256": "cfb1b03246baca8eefe54d99353e4d9717c0855cb3ae2c28ecf42bfcf039408a",
+      "sourceUrl": "https://racing.hkjc.com/zh-hk/local/information/changes",
+      "date": "2026-11-22",
+      "kind": "racing-changes",
+      "venue": "ST"
     }
   ]
 }
