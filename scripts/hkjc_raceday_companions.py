@@ -946,7 +946,8 @@ def odds_index(pools: list[dict]) -> dict[int, dict[int, str | None]]:
             if horse_no in prices:
                 raise ParseMiss(f'race {race_no} repeats horse {horse_no} odds')
             raw_price = '' if node.get('oddsValue') is None else str(node.get('oddsValue')).strip()
-            if raw_price in BLANK_TOKENS or raw_price == '---':
+            # SCR is HKJC's scratched marker (2026-11-22 R9 #3); no price, same as scrape-odds.ts.
+            if raw_price in BLANK_TOKENS or raw_price == '---' or raw_price == 'SCR':
                 prices[horse_no] = None
             elif re.fullmatch(r'\d+(?:\.\d+)?', raw_price):
                 prices[horse_no] = raw_price
