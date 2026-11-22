@@ -167,7 +167,11 @@ jobs:
       - name: Fail closed when racecard header did not parse
         if: github.event.inputs.dry_run != 'true' && steps.scrape.outputs.scrape_rc == '2'
         run: |
-          echo "::error::Racecard page shows 米 and 全天候/草地 but distance or track is empty. Refusing a green run."
+          if grep -q "runner columns failed" /tmp/scrape-racecard.log; then
+            echo "::error::Racecard runner table did not match the official shape (see the runner columns line below). Refusing a green run."
+          else
+            echo "::error::Racecard page shows 米 and 全天候/草地 but distance or track is empty. Refusing a green run."
+          fi
           tail -40 /tmp/scrape-racecard.log || true
           exit 1
 

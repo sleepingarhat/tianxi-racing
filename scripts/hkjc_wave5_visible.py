@@ -602,6 +602,12 @@ def parse_combo_rows(rows: list[list[str]], meeting_date: str, venue: str, race_
         horse_no = int(row[0])
         numbers.append(horse_no)
         for race_no in range(1, race_count + 1):
+            win_raw = str(row[1 + (race_no - 1) * 2] if len(row) > 1 + (race_no - 1) * 2 else '').strip()
+            place_raw = str(row[2 + (race_no - 1) * 2] if len(row) > 2 + (race_no - 1) * 2 else '').strip()
+            # HKJC prints "-" in both cells when this saddle number is not in that race
+            # (smaller field or a withdrawn starter). No row is stored; one dash alone still fails.
+            if win_raw in ('-', '') and place_raw in ('-', ''):
+                continue
             out.append({
                 'meeting_date': meeting_date, 'venue': venue, 'section': 'combo', 'race_no': race_no,
                 'horse_no': horse_no, 'is_reserve': 0, 'horse_name': None, 'import_type': None, 'trainer_name': None,

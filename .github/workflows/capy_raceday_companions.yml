@@ -268,10 +268,10 @@ jobs:
             echo 'CF_API_TOKEN missing; leaving the CSV projection unsent'
             exit 0
           fi
-          wrangler d1 execute tianxi-db --remote --file=src/db/migrations/20261027_raceday_companions.sql --yes
-          wrangler d1 execute tianxi-db --remote --file=src/db/migrations/20261103_official_challenge_boards.sql --yes
-          wrangler d1 execute tianxi-db --remote --file=src/db/migrations/20261103_official_raceday_articles.sql --yes
-          wrangler d1 execute tianxi-db --remote --file=src/db/migrations/20261104_official_raceday_pools.sql --yes
+          bash "$GITHUB_WORKSPACE/scripts/d1-execute-file.sh" src/db/migrations/20261027_raceday_companions.sql
+          bash "$GITHUB_WORKSPACE/scripts/d1-execute-file.sh" src/db/migrations/20261103_official_challenge_boards.sql
+          bash "$GITHUB_WORKSPACE/scripts/d1-execute-file.sh" src/db/migrations/20261103_official_raceday_articles.sql
+          bash "$GITHUB_WORKSPACE/scripts/d1-execute-file.sh" src/db/migrations/20261104_official_raceday_pools.sql
           : > /tmp/raceday_companions.sql
           if [ "${{ steps.scrape.outcome }}" = "success" ]; then
             python3 ../scripts/hkjc_raceday_companions.py --root=.. --emit-sql /tmp/raceday_companions.sql
@@ -309,7 +309,7 @@ jobs:
           fi
           for f in $(ls /tmp/raceday_chunks/*.sql | sort); do
             echo "--> $f"
-            wrangler d1 execute tianxi-db --remote --file="$f" --yes
+            bash "$GITHUB_WORKSPACE/scripts/d1-execute-file.sh" "$f"
           done
 
       - name: Fail closed on an unparsed board

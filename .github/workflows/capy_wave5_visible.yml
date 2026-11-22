@@ -134,7 +134,7 @@ jobs:
           PY
           for f in $(ls /tmp/wave5_schema/*.sql | sort); do
             echo "--> $f"
-            wrangler d1 execute tianxi-db --remote --file="$f" --yes
+            bash "$GITHUB_WORKSPACE/scripts/d1-execute-file.sh" "$f"
           done
           bash ../scripts/d1_add_column.sh official_jt_combo is_reserve "INTEGER NOT NULL DEFAULT 0 CHECK (is_reserve IN (0, 1))"
 
@@ -169,5 +169,5 @@ jobs:
           fi
           for f in $(ls /tmp/official_wave5_chunks/*.sql | sort); do
             echo "--> $f"
-            wrangler d1 execute tianxi-db --remote --file="$f" --yes
+            bash "$GITHUB_WORKSPACE/scripts/d1-execute-file.sh" "$f"
           done

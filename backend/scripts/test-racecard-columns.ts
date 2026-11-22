@@ -58,6 +58,21 @@ assertRacecardColumns(rows, runners);
 
 assert.equal(parseRacecardColumns('<div>no table</div>'), null);
 
+// 2026-11-22 ST R9: the official withdrawn row keeps a commented-out colour cell,
+// all form cells are "-" and the name carries "(退出)". It must parse, not fail the card.
+const scratchedRow = `<tr><td>3</td><td>-</td>
+  <!-- <td><img src="/racing/content/Images/RaceColor/K902.gif" alt="" /></td> -->
+  <td><img src="/racing/content/Images/RaceColor/K902.gif" alt="" /></td>
+  <td><a href="/zh-hk/local/information/horse?horseid=HK_2024_K902">港邊小區</a><br /><span class="color_red">(退出)</span></td>
+  ${Array.from({ length: 23 }, (_, i) => (i === 0 ? '<td style="display: none;">K902</td>' : '<td>-</td>')).join('')}</tr>`;
+const withScratch = parseRacecardColumns(card([first, scratchedRow]));
+assert.equal(withScratch?.get(3)?.horseId, 'HK_2024_K902');
+assert.equal(withScratch?.get(3)?.ratingChange, null);
+assert.equal(withScratch?.get(3)?.bestTime, null);
+assert.equal(withScratch?.get(3)?.daysSinceRun, null);
+// A real extra cell (not a comment) still fails closed.
+assert.throws(() => parseRacecardColumns(card([scratchedRow.replace('<!-- ', '').replace(' -->', '')])), RacecardColumnError);
+
 assert.throws(() => parseRacecardColumns(card([row(['1', ...'x'.repeat(25).split('')], 'HK_2024_K308')])), RacecardColumnError);
 assert.throws(() => {
   const bad = row(['1', '13/3/10/12/9/11', '', '電路一百', 'K308', '135', '巫顯東', '', '2', '沈集成', '-', '40', '1101', '+29', '1.42.43', '5', '-', '閹', '134,550', '+ 1', '41', 'B', '主', 'S', 'D', 'PPG', 'ISG']);

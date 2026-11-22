@@ -38,6 +38,7 @@ import { todayPicksViewForRequest } from '../lib/tg-reader';
 import { hitRateBodyForNonAdmin } from '../lib/hit-rate-access';
 import { getDataStats } from '../lib/data-stats';
 import { FreezeBlockedError } from '../lib/freeze-recovery';
+import { starterPredicate } from '../lib/starter-entries';
 import { railKey } from '../lib/result-course';
 import { scoreOfficialPools } from '../lib/pool-scores';
 
@@ -2280,7 +2281,7 @@ analyzeRoutes.get('/top-picks', async (c) => {
       const { results: euRows } = await c.env.DB.prepare(`
         SELECT e.horse_id, e.horse_number, h.name_ch, h.name_en
         FROM entries_upcoming e JOIN horses h ON h.id = e.horse_id
-        WHERE e.race_date = ? AND e.venue = ? AND e.venue IN ('ST','HV') AND (e.race_number = ? OR e.race_number IS NULL)
+        WHERE e.race_date = ? AND e.venue = ? AND e.venue IN ('ST','HV') AND (e.race_number = ? OR e.race_number IS NULL) AND ${starterPredicate('e')}
         ORDER BY e.horse_number
       `).bind(race.date, race.venue, race.race_number).all<any>().catch(() => ({ results: [] as any[] }));
       if (euRows?.length) {
@@ -3222,7 +3223,7 @@ analyzeRoutes.get('/factors', (c) => {
                      ${meta},
                      h.name_ch, h.name_en
                FROM entries_upcoming e LEFT JOIN horses h ON h.id = e.horse_id
-               WHERE e.race_date = ? AND e.venue = ? AND e.race_number > 0
+               WHERE e.race_date = ? AND e.venue = ? AND e.race_number > 0 AND ${starterPredicate('e')}
                ORDER BY e.race_number, e.horse_number`
             : `SELECT e.race_number, e.horse_number, e.horse_id, e.horse_code,
                      e.draw, e.declared_weight, e.actual_weight, e.jockey_name, e.jockey_id,
@@ -3231,7 +3232,7 @@ analyzeRoutes.get('/factors', (c) => {
                      ${meta},
                      h.name_ch, h.name_en
                FROM entries_upcoming e LEFT JOIN horses h ON h.id = e.horse_id
-               WHERE e.race_date = ? AND e.venue IN ('ST','HV') AND e.race_number > 0
+               WHERE e.race_date = ? AND e.venue IN ('ST','HV') AND e.race_number > 0 AND ${starterPredicate('e')}
                ORDER BY e.race_number, e.horse_number`;
           const binds = withVenue ? [targetDate, meeting.venue] : [targetDate];
           try {
@@ -3678,7 +3679,7 @@ analyzeRoutes.get('/factors', (c) => {
                     ${meta},
                     h.name_ch, h.name_en
              FROM entries_upcoming e LEFT JOIN horses h ON h.id = e.horse_id
-             WHERE e.race_date = ? AND e.venue IN ('ST','HV') AND e.race_number > 0
+             WHERE e.race_date = ? AND e.venue IN ('ST','HV') AND e.race_number > 0 AND ${starterPredicate('e')}
              ORDER BY e.race_number, e.horse_number`;
           let entries: any[] = [];
           try {
@@ -3932,7 +3933,12 @@ analyzeRoutes.get('/factors', (c) => {
               fromCache: false,
             };
             return c.json(admin ? payload : await hitRateBodyForNonAdmin(c, payload));
-          } catch {
+          } catch (e) {
+            // A blocked or unverified original freeze is a known state, not a server fault:
+            // say so (409) so readers stop retrying and never present unverified picks.
+            if (e instanceof FreezeBlockedError) {
+              return c.json({ error: 'frozen-evidence-unverified', reason: e.message }, 409, { 'Cache-Control': 'no-store' });
+            }
             return c.json({ error: 'hit-rate failed' }, 500);
           }
         });

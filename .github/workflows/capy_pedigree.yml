@@ -118,5 +118,5 @@ jobs:
           python scripts/pedigree_to_d1_sql.py --out /tmp/pedigree-sql --chunk 400
           for f in $(ls /tmp/pedigree-sql/*.sql | sort); do
             echo "--> $f"
-            wrangler d1 execute tianxi-db --remote --file="$f" --yes
+            bash "$GITHUB_WORKSPACE/scripts/d1-execute-file.sh" "$f"
           done
