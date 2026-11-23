@@ -333,3 +333,6 @@
 {"rows": 1, "scraped_at": "2026-11-22T17:34:51+00:00", "sha256": "56ecf2f5210e2c28417cb543e8afbbc8ff6be258dcdd0cf8e07fc9a251367568", "surface": "raceday_focus"}
 {"rows": 15, "scraped_at": "2026-11-22T17:34:51+00:00", "sha256": "4bb6b9cd3703afb63ecf240cf81ea8cceac419e2872ecd09908e96f47cdbe815", "surface": "last_run_reminder"}
 {"rows": {"pool_dividend": 174, "pool_status": 118, "track_probe": 2}, "scraped_at": "2026-11-22T17:34:55+00:00", "sha256": "be7cb2358dd2b3c3a55c6f2529dddf9f3717cdf38b84af22ad3b8cf53f46e3d2", "surface": "pools"}
+{"rows": 23, "scraped_at": "2026-11-23T07:57:18+00:00", "sha256": "fcfd457bd5b97ab05c1ba6bad2c12093469c20ff6c77e2a4e6d21a2be97f43c2", "surface": "challenge_jkc"}
+{"rows": 24, "scraped_at": "2026-11-23T07:57:18+00:00", "sha256": "b88888ec3676df4db2dc584cb5aad42e9d4deb636c4fd122cd0fc0a28f2bbfbf", "surface": "challenge_tnc"}
+{"rows": {"pool_dividend": 174, "pool_status": 118, "track_probe": 2}, "scraped_at": "2026-11-23T07:57:19+00:00", "sha256": "a2f0f018c1f4065774d534fa97c5fd8aa8c9a56af90aa14031ebf5608035b76e", "surface": "pools"}
