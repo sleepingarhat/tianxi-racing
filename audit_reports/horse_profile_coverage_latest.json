@@ -1,132 +1,132 @@
 {
-  "generatedAt": "2026-11-22T03:15:01.214659+00:00",
+  "generatedAt": "2026-11-23T03:39:35.200259+00:00",
   "source": {
     "name": "香港賽馬會公開馬匹資料",
     "archive": "/home/runner/work/tianxi-racing/tianxi-racing/horses/profiles/horse_profiles.csv",
-    "dataAsOf": "2026-11-22"
+    "dataAsOf": "2026-11-23"
   },
   "cohorts": {
     "active": {
-      "horses": 983,
-      "completeProfiles": 983,
+      "horses": 1008,
+      "completeProfiles": 1008,
       "completeCoveragePct": 100.0,
       "fields": {
         "countryOfOrigin": {
-          "present": 983,
+          "present": 1008,
           "missing": 0,
           "coveragePct": 100.0
         },
         "colour": {
-          "present": 983,
+          "present": 1008,
           "missing": 0,
           "coveragePct": 100.0
         },
         "sex": {
-          "present": 983,
+          "present": 1008,
           "missing": 0,
           "coveragePct": 100.0
         },
         "importType": {
-          "present": 983,
+          "present": 1008,
           "missing": 0,
           "coveragePct": 100.0
         },
         "owner": {
-          "present": 983,
+          "present": 1008,
           "missing": 0,
           "coveragePct": 100.0
         },
         "sire": {
-          "present": 983,
+          "present": 1008,
           "missing": 0,
           "coveragePct": 100.0
         },
         "dam": {
-          "present": 983,
+          "present": 1008,
           "missing": 0,
           "coveragePct": 100.0
         },
         "damSire": {
-          "present": 983,
+          "present": 1008,
           "missing": 0,
           "coveragePct": 100.0
         },
         "seasonStakes": {
-          "present": 983,
+          "present": 1008,
           "missing": 0,
           "coveragePct": 100.0
         },
         "totalStakes": {
-          "present": 983,
+          "present": 1008,
           "missing": 0,
           "coveragePct": 100.0
         },
         "currentTrainer": {
-          "present": 983,
+          "present": 1008,
           "missing": 0,
           "coveragePct": 100.0
         }
       }
     },
     "all": {
-      "horses": 6179,
-      "completeProfiles": 1131,
-      "completeCoveragePct": 18.3,
+      "horses": 6201,
+      "completeProfiles": 1153,
+      "completeCoveragePct": 18.6,
       "fields": {
         "countryOfOrigin": {
-          "present": 6179,
+          "present": 6201,
           "missing": 0,
           "coveragePct": 100.0
         },
         "colour": {
-          "present": 6179,
+          "present": 6201,
           "missing": 0,
           "coveragePct": 100.0
         },
         "sex": {
-          "present": 6179,
+          "present": 6201,
           "missing": 0,
           "coveragePct": 100.0
         },
         "importType": {
-          "present": 6179,
+          "present": 6201,
           "missing": 0,
           "coveragePct": 100.0
         },
         "owner": {
-          "present": 6179,
+          "present": 6201,
           "missing": 0,
           "coveragePct": 100.0
         },
         "sire": {
-          "present": 6179,
+          "present": 6201,
           "missing": 0,
           "coveragePct": 100.0
         },
         "dam": {
-          "present": 6179,
+          "present": 6201,
           "missing": 0,
           "coveragePct": 100.0
         },
         "damSire": {
-          "present": 6179,
+          "present": 6201,
           "missing": 0,
           "coveragePct": 100.0
         },
         "seasonStakes": {
-          "present": 1293,
+          "present": 1315,
           "missing": 4886,
-          "coveragePct": 20.9
+          "coveragePct": 21.2
         },
         "totalStakes": {
-          "present": 6179,
+          "present": 6201,
           "missing": 0,
           "coveragePct": 100.0
         },
         "currentTrainer": {
-          "present": 1131,
+          "present": 1153,
           "missing": 5048,
-          "coveragePct": 18.3
+          "coveragePct": 18.6
         }
       }
     }
