@@ -1,10 +1,10 @@
 meeting_date,venue,race_no,horse_no,is_reserve,horse_name_en,horse_name_ch,brand_no,bonus_en,bonus_ch,not_race_result,source_sha256,scraped_at
-2026-11-25,HV,8,5,0,MAKE YOU SMILE,魅力奔騰,K426,PP Bonus of HK$1.5M,「自購曾出賽馬匹特別獎金」一百五十萬港元,1,4dfa92df618e43884c772259b1429bb0d2b5c2e0190e86513c1d9a7c9a908fb6,2026-11-23T03:57:54+00:00
-2026-11-25,HV,8,8,0,MONEY GAMES,金錢遊戲,L402,PP Bonus of HK$1.5M,「自購曾出賽馬匹特別獎金」一百五十萬港元,1,4dfa92df618e43884c772259b1429bb0d2b5c2e0190e86513c1d9a7c9a908fb6,2026-11-23T03:57:54+00:00
-2026-11-25,HV,8,9,0,PASS LINE,傲聖,L384,PP Bonus of HK$1.5M & PS Bonus,「自購曾出賽馬匹特別獎金」一百五十萬港元及「卓越系列」獎金計劃,1,4dfa92df618e43884c772259b1429bb0d2b5c2e0190e86513c1d9a7c9a908fb6,2026-11-23T03:57:54+00:00
-2026-11-25,HV,8,10,0,SMART OINK,叻叻豬,L542,PP Bonus of HK$1.5M,「自購曾出賽馬匹特別獎金」一百五十萬港元,1,4dfa92df618e43884c772259b1429bb0d2b5c2e0190e86513c1d9a7c9a908fb6,2026-11-23T03:57:54+00:00
-2026-11-25,HV,8,1,1,PRECISION TIME,天時威威,M021,PP Bonus of HK$1.5M,「自購曾出賽馬匹特別獎金」一百五十萬港元,1,4dfa92df618e43884c772259b1429bb0d2b5c2e0190e86513c1d9a7c9a908fb6,2026-11-23T03:57:54+00:00
-2026-11-25,HV,9,5,0,DHURANDHAR,天王星,L545,PP Bonus of HK$1.5M,「自購曾出賽馬匹特別獎金」一百五十萬港元,1,4dfa92df618e43884c772259b1429bb0d2b5c2e0190e86513c1d9a7c9a908fb6,2026-11-23T03:57:54+00:00
-2026-11-25,HV,9,7,0,FOUR STARS ALIGN,何方來聲,L481,PP Bonus of HK$1.5M,「自購曾出賽馬匹特別獎金」一百五十萬港元,1,4dfa92df618e43884c772259b1429bb0d2b5c2e0190e86513c1d9a7c9a908fb6,2026-11-23T03:57:54+00:00
-2026-11-25,HV,9,10,0,QUANTUM CLOUD,天馬行雲,L221,PP Bonus of HK$1.5M,「自購曾出賽馬匹特別獎金」一百五十萬港元,1,4dfa92df618e43884c772259b1429bb0d2b5c2e0190e86513c1d9a7c9a908fb6,2026-11-23T03:57:54+00:00
-2026-11-25,HV,9,12,0,TOGETHER WE VALUE,價值傳承,L170,PP Bonus of HK$1.5M,「自購曾出賽馬匹特別獎金」一百五十萬港元,1,4dfa92df618e43884c772259b1429bb0d2b5c2e0190e86513c1d9a7c9a908fb6,2026-11-23T03:57:54+00:00
+2026-11-25,HV,8,5,0,MAKE YOU SMILE,魅力奔騰,K426,PP Bonus of HK$1.5M,「自購曾出賽馬匹特別獎金」一百五十萬港元,1,bfad20446a10cb17f06cea98113dbadaeb5b98ff18f0ed425f3d6adf44ca530f,2026-11-23T20:31:58+00:00
+2026-11-25,HV,8,8,0,MONEY GAMES,金錢遊戲,L402,PP Bonus of HK$1.5M,「自購曾出賽馬匹特別獎金」一百五十萬港元,1,bfad20446a10cb17f06cea98113dbadaeb5b98ff18f0ed425f3d6adf44ca530f,2026-11-23T20:31:58+00:00
+2026-11-25,HV,8,9,0,PASS LINE,傲聖,L384,PP Bonus of HK$1.5M & PS Bonus,「自購曾出賽馬匹特別獎金」一百五十萬港元及「卓越系列」獎金計劃,1,bfad20446a10cb17f06cea98113dbadaeb5b98ff18f0ed425f3d6adf44ca530f,2026-11-23T20:31:58+00:00
+2026-11-25,HV,8,10,0,SMART OINK,叻叻豬,L542,PP Bonus of HK$1.5M,「自購曾出賽馬匹特別獎金」一百五十萬港元,1,bfad20446a10cb17f06cea98113dbadaeb5b98ff18f0ed425f3d6adf44ca530f,2026-11-23T20:31:58+00:00
+2026-11-25,HV,8,1,1,PRECISION TIME,天時威威,M021,PP Bonus of HK$1.5M,「自購曾出賽馬匹特別獎金」一百五十萬港元,1,bfad20446a10cb17f06cea98113dbadaeb5b98ff18f0ed425f3d6adf44ca530f,2026-11-23T20:31:58+00:00
+2026-11-25,HV,9,5,0,DHURANDHAR,天王星,L545,PP Bonus of HK$1.5M,「自購曾出賽馬匹特別獎金」一百五十萬港元,1,bfad20446a10cb17f06cea98113dbadaeb5b98ff18f0ed425f3d6adf44ca530f,2026-11-23T20:31:58+00:00
+2026-11-25,HV,9,7,0,FOUR STARS ALIGN,何方來聲,L481,PP Bonus of HK$1.5M,「自購曾出賽馬匹特別獎金」一百五十萬港元,1,bfad20446a10cb17f06cea98113dbadaeb5b98ff18f0ed425f3d6adf44ca530f,2026-11-23T20:31:58+00:00
+2026-11-25,HV,9,10,0,QUANTUM CLOUD,天馬行雲,L221,PP Bonus of HK$1.5M,「自購曾出賽馬匹特別獎金」一百五十萬港元,1,bfad20446a10cb17f06cea98113dbadaeb5b98ff18f0ed425f3d6adf44ca530f,2026-11-23T20:31:58+00:00
+2026-11-25,HV,9,12,0,TOGETHER WE VALUE,價值傳承,L170,PP Bonus of HK$1.5M,「自購曾出賽馬匹特別獎金」一百五十萬港元,1,bfad20446a10cb17f06cea98113dbadaeb5b98ff18f0ed425f3d6adf44ca530f,2026-11-23T20:31:58+00:00
