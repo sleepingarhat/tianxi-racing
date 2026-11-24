@@ -115,6 +115,22 @@ class ReportTests(unittest.TestCase):
         with self.assertRaises(companions.ParseMiss):
             companions.parse_report(broken, '2026-10-28', 'ST', TODAY, 'abc', SCRAPED)
 
+    def test_header_before_going_or_rail_keeps_distance(self):
+        # 2026-11-24 04:25 HKT: an early HV page refused the whole run because
+        # the going was not yet printed. Missing going / rail is null, not a miss.
+        self.assertEqual(companions.parse_track_line('草地, "C+3" 賽道, 1650米 獎金: $875,000'), ('草地', 'C+3', 1650, None))
+        self.assertEqual(companions.parse_track_line('草地, "C+3" 賽道, 1650米, 好地 獎金'), ('草地', 'C+3', 1650, '好地'))
+        self.assertEqual(companions.parse_track_line('全天候跑道, 1200米 獎金'), ('全天候', None, 1200, None))
+        self.assertEqual(companions.parse_track_line('草地, 1650米, 好地至快地 獎金'), ('草地', None, 1650, '好地至快地'))
+        with self.assertRaises(companions.ParseMiss):
+            companions.parse_track_line('草地, "A" 賽道, 9999米, 好地')
+
+    def test_unparsed_header_refusal_names_the_text(self):
+        broken = shell('<table id="PastRacingIncidentExt"></table>', track='全天候跑道, 好地 米')
+        with self.assertRaises(companions.ParseMiss) as caught:
+            companions.parse_report(broken, '2026-10-28', 'ST', TODAY, 'abc', SCRAPED)
+        self.assertIn('全天候跑道', str(caught.exception))
+
 
 class FormlineTests(unittest.TestCase):
     def page(self):
