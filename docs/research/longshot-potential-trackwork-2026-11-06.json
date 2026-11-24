@@ -1,0 +1,50 @@
+{
+ "longshotRows": 4568,
+ "baseTop4Rate": 0.1653,
+ "years": [
+  {
+   "year": 2026,
+   "train": 1940,
+   "test": 2628,
+   "modelPick": {
+    "races": 703,
+    "top4Rate": 0.192,
+    "winRoi": -0.1679
+   },
+   "marketPick": {
+    "races": 703,
+    "top4Rate": 0.2176,
+    "winRoi": -0.3784
+   },
+   "coef": {
+    "log_odds": -0.612,
+    "days_since": 0.07,
+    "last_place": -0.023,
+    "last_lbw": 0.076,
+    "last3_avg_place": 0.011,
+    "wt_change": -0.029,
+    "rating_change": 0.001,
+    "gear_changed": -0.038,
+    "class_drop": -0.0,
+    "runs_count": -0.056,
+    "trial_30d": -0.141,
+    "trial_best_pos": -0.165,
+    "trial_pass": 0.034,
+    "long_rest_with_trial": -0.096,
+    "tw_gallops_14d": 0.039,
+    "tw_fast_jockey_14d": -0.014,
+    "tw_swims_14d": 0.037,
+    "tw_days_since_gallop": 0.065
+   }
+  }
+ ],
+ "pairedTop4RateDiff": {
+  "mean": -0.0256,
+  "ci95": [
+   -0.0484,
+   -0.0028
+  ],
+  "races": 703
+ },
+ "note": "研究報告；只用賽前紀錄；位置派彩未收所以只計獨贏回報；不改四揀、凍結或戰績，升唔升由用戶決定。"
+}
