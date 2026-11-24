@@ -854,3 +854,140 @@ officialVisibleRoutes.get('/racecard-files', async (c) => {
     })),
   }, 200, HEADERS);
 });
+
+const SNAPSHOT_KIND = /^(freeze|post_race|card_status|pre_freeze_safety)$/;
+const NO_STORE = { 'Cache-Control': 'no-store' };
+const ROW_CAP = 200;
+
+function gapList(raw: unknown): unknown[] {
+  if (typeof raw !== 'string' || raw === '') return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+officialVisibleRoutes.get('/snapshots', async (c) => {
+  const meeting = requireMeeting(c);
+  if (meeting instanceof Response) return meeting;
+  const kind = c.req.query('kind') ?? '';
+  if (kind && !SNAPSHOT_KIND.test(kind)) {
+    return c.json({ error: 'kind must be freeze|post_race|card_status|pre_freeze_safety' }, 400);
+  }
+  const includeRows = c.req.query('includeRows') === '1';
+  const manifest = await rows<Record<string, unknown>>(
+    c.env.DB,
+    `SELECT snapshot_id, snapshot_kind, card_status, captured_at, completeness, content_sha256,
+            lock_at, first_post_at, last_post_at, gaps_json
+       FROM official_snapshot_manifest
+      WHERE meeting_date = ? AND venue = ? AND (? = '' OR snapshot_kind = ?)
+      ORDER BY captured_at`,
+    [meeting.date, meeting.venue, kind, kind],
+  );
+  if (!manifest) return c.json({ source: 'official_snapshot_manifest', available: false, snapshots: [] }, 200, NO_STORE);
+  const snapshots = [];
+  let remaining = ROW_CAP;
+  let rowsTruncated = false;
+  for (const header of manifest) {
+    const surfaces = await rows<Record<string, unknown>>(
+      c.env.DB,
+      `SELECT surface, row_count, captured_at, source_sha256, status, gap_reason
+         FROM official_snapshot_surface WHERE snapshot_id = ? ORDER BY surface`,
+      [header.snapshot_id],
+    );
+    const item: Record<string, unknown> = {
+      snapshotId: header.snapshot_id,
+      kind: header.snapshot_kind,
+      cardStatus: header.card_status,
+      capturedAt: header.captured_at,
+      completeness: header.completeness,
+      contentSha256: header.content_sha256,
+      lockAt: header.lock_at,
+      firstPostAt: header.first_post_at,
+      lastPostAt: header.last_post_at,
+      gapCount: gapList(header.gaps_json).length,
+      gaps: gapList(header.gaps_json),
+      surfaces: (surfaces ?? []).map((surface) => ({
+        surface: surface.surface,
+        rowCount: surface.row_count,
+        capturedAt: surface.captured_at,
+        sourceSha256: surface.source_sha256,
+        status: surface.status,
+        gapReason: surface.gap_reason,
+      })),
+    };
+    if (includeRows && remaining > 0) {
+      const payload = await rows<Record<string, unknown>>(
+        c.env.DB,
+        `SELECT surface, row_no, payload_json FROM official_snapshot_row
+          WHERE snapshot_id = ? ORDER BY surface, row_no LIMIT ?`,
+        [header.snapshot_id, remaining],
+      );
+      const listed = payload ?? [];
+      item.rows = listed.map((row) => ({
+        surface: row.surface,
+        rowNo: row.row_no,
+        payload: typeof row.payload_json === 'string' ? JSON.parse(row.payload_json) : row.payload_json,
+      }));
+      remaining -= listed.length;
+      if (listed.length === ROW_CAP || remaining === 0) rowsTruncated = true;
+    }
+    snapshots.push(item);
+  }
+  return c.json({
+    source: 'official_snapshot_manifest',
+    available: true,
+    date: meeting.date,
+    venue: meeting.venue,
+    rowsTruncated,
+    snapshots,
+  }, 200, NO_STORE);
+});
+
+officialVisibleRoutes.get('/snapshot-health', async (c) => {
+  const meeting = requireMeeting(c);
+  if (meeting instanceof Response) return meeting;
+  const manifest = await rows<Record<string, unknown>>(
+    c.env.DB,
+    `SELECT snapshot_kind, completeness, captured_at, lock_at, first_post_at, gaps_json
+       FROM official_snapshot_manifest
+      WHERE meeting_date = ? AND venue = ? AND snapshot_kind IN ('freeze', 'post_race')`,
+    [meeting.date, meeting.venue],
+  );
+  if (!manifest) {
+    return c.json({
+      source: 'official_snapshot_manifest',
+      available: false,
+      date: meeting.date,
+      venue: meeting.venue,
+      freeze: { exists: false },
+      postRace: { exists: false },
+    }, 200, NO_STORE);
+  }
+  const pick = (kind: string) => manifest.find((row) => row.snapshot_kind === kind);
+  const shape = (row: Record<string, unknown> | undefined) => row ? {
+    exists: true,
+    completeness: row.completeness,
+    gapCount: gapList(row.gaps_json).length,
+    capturedAt: row.captured_at,
+    lockAt: row.lock_at ?? null,
+    firstPostAt: row.first_post_at ?? null,
+  } : {
+    exists: false,
+    completeness: null,
+    gapCount: 0,
+    capturedAt: null,
+    lockAt: null,
+    firstPostAt: null,
+  };
+  return c.json({
+    source: 'official_snapshot_manifest',
+    available: true,
+    date: meeting.date,
+    venue: meeting.venue,
+    freeze: shape(pick('freeze')),
+    postRace: shape(pick('post_race')),
+  }, 200, NO_STORE);
+});

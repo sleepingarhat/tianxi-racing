@@ -3,3 +3,4 @@ __pycache__/
 *.pyo
 .DS_Store
 last_sync.json
+data/official_snapshots/_staging/

@@ -119,6 +119,7 @@ jobs:
           python3 -m unittest discover -s ../scripts -p 'test_hkjc_wave6_surfaces.py'
           python3 -m unittest discover -s ../scripts -p 'test_hkjc_wave7_surfaces.py'
           python3 -m unittest discover -s ../scripts -p 'test_hkjc_wave8_surfaces.py'
+          python3 -m unittest discover -s ../scripts -p 'test_official_snapshot_rules.py'
           npx tsx scripts/test-official-visible.ts
 
       - name: Regression test — TG scripts send X-TG-Reader-Token (Python, no network)
