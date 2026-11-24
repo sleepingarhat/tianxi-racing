@@ -114,3 +114,7 @@
 {"rows": 9, "scraped_at": "2026-11-24T07:04:18+00:00", "sha256": "a81568927a3c1d577ef9313cfa7234fbd0a3fef23614d1ab0fadfe1a53e64509", "surface": "fwb"}
 {"rows": 83, "scraped_at": "2026-11-24T07:04:18+00:00", "sha256": "971062e430fcbdd1a197d506273b15a2bc5e7af145acbb4efb759ee7681d8b3e", "surface": "finish-photo"}
 {"rows": 15, "scraped_at": "2026-11-24T07:04:18+00:00", "sha256": "b5bc15b9c52da0ce8c3ee7a7cec3ae0dedabbc19752d9d1c0f039d204d68d498", "surface": "special-index"}
+{"rows": 1456, "scraped_at": "2026-11-24T19:42:27+00:00", "sha256": "3f240c453faf8a44b73b0686ccfe5497234ac619d9ac6f4c67eed959a9311bae", "surface": "former"}
+{"rows": 9, "scraped_at": "2026-11-24T19:42:27+00:00", "sha256": "4dfa92df618e43884c772259b1429bb0d2b5c2e0190e86513c1d9a7c9a908fb6", "surface": "fwb"}
+{"rows": 83, "scraped_at": "2026-11-24T19:42:27+00:00", "sha256": "417c091fc28fe938b7c676e9e0026bf3688ac4518cf20b051b8b1faeef5dc9e7", "surface": "finish-photo"}
+{"rows": 15, "scraped_at": "2026-11-24T19:42:27+00:00", "sha256": "b5bc15b9c52da0ce8c3ee7a7cec3ae0dedabbc19752d9d1c0f039d204d68d498", "surface": "special-index"}
