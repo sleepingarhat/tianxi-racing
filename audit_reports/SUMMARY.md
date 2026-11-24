@@ -16,5 +16,5 @@
 | jockey_records | 🟢 ok | 65 | 65 | 0 | 0 | 0 |  |
 | trainer_profiles | 🟢 ok | 24 | 24 | 0 | 0 | 0 | total trainer profiles: 68 |
 | trainer_records | 🟢 ok | 68 | 68 | 0 | 0 | 0 |  |
-| trial_results | 🟢 ok | 1 | 1 | 0 | 0 | 0 | trial rows: 10380 |
+| trial_results | 🟢 ok | 1 | 1 | 0 | 0 | 0 | trial rows: 10490 |
 | entries_upcoming | 🟡 warn | 2 | 1 | 1 | 0 | 0 | 1 upcoming race days lack entries file |
