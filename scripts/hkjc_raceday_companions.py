@@ -391,9 +391,9 @@ def parse_header(soup: BeautifulSoup, requested_date: str, requested_venue: str,
     track, course, distance, going = parse_track_line(text)
     shows_surface = '全天候' in text or '草地' in text or '泥地' in text or '沙地' in text
     if shows_surface and '米' in text and (distance is None or track is None):
-        raise ParseMiss('header shows a surface and metres but distance or track is empty')
+        raise ParseMiss(f'header shows a surface and metres but distance or track is empty: {header_snippet(text)!r}')
     if distance is None or track is None:
-        raise ParseMiss('race header has no distance or track')
+        raise ParseMiss(f'race header has no distance or track: {header_snippet(text)!r}')
     return {
         'meeting_date': iso(meeting),
         'venue': venue,
@@ -408,19 +408,38 @@ def parse_header(soup: BeautifulSoup, requested_date: str, requested_venue: str,
     }
 
 
+def header_snippet(text: str) -> str:
+    """Short header excerpt for refusal logs, so a changed layout is diagnosable."""
+    at = text.find('米')
+    if at < 0:
+        at = max(text.find('草地'), text.find('全天候'), 0)
+    return re.sub(r'\s+', ' ', text[max(0, at - 60):at + 40]).strip()
+
+
 def parse_track_line(text: str) -> tuple[str | None, str | None, int | None, str | None]:
     turf = re.search(
-        rf'(草地|泥地|沙地)[^0-9"]{{0,24}}"([^"]+)"\s*賽道[^0-9]{{0,12}}(\d{{3,4}})\s*米[^0-9]{{0,12}}({GOING})',
+        rf'(草地|泥地|沙地)[^0-9"]{{0,24}}"([^"]+)"\s*賽道[^0-9]{{0,12}}(\d{{3,4}})\s*米(?:[^0-9]{{0,12}}?({GOING}))?',
         text,
     )
     if turf:
-        return turf.group(1), turf.group(2), int(turf.group(3)), turf.group(4)
-    awt = re.search(rf'(全天候)跑道?[^0-9]{{0,12}}(\d{{3,4}})\s*米[^0-9]{{0,12}}({GOING})', text)
+        distance = int(turf.group(3))
+        if not 800 <= distance <= 4000:
+            raise ParseMiss(f'distance {distance} is outside the local range')
+        return turf.group(1), turf.group(2), distance, turf.group(4)
+    awt = re.search(rf'(全天候)跑道?[^0-9]{{0,12}}(\d{{3,4}})\s*米(?:[^0-9]{{0,12}}?({GOING}))?', text)
     if awt:
         distance = int(awt.group(2))
         if not 800 <= distance <= 4000:
             raise ParseMiss(f'distance {distance} is outside the local range')
         return '全天候', None, distance, awt.group(3)
+    # Before the rail is allocated the official header can omit the quoted
+    # course; keep the surface and distance and leave the course empty.
+    bare = re.search(rf'(草地|泥地|沙地)[^0-9"]{{0,12}}?(\d{{3,4}})\s*米(?:[^0-9]{{0,12}}?({GOING}))?', text)
+    if bare:
+        distance = int(bare.group(2))
+        if not 800 <= distance <= 4000:
+            raise ParseMiss(f'distance {distance} is outside the local range')
+        return bare.group(1), None, distance, bare.group(3)
     return None, None, None, None
 
 
