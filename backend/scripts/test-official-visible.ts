@@ -189,6 +189,52 @@ async function main(): Promise<void> {
   const badCard = await app.request('/api/official/racecard-files?date=2026-11-11', {}, env);
   assert.equal(badCard.status, 400);
 
+  db.exec(`
+    CREATE TABLE official_snapshot_manifest (
+      snapshot_id TEXT PRIMARY KEY, meeting_date TEXT, venue TEXT, snapshot_kind TEXT,
+      card_status TEXT, first_post_at TEXT, lock_at TEXT, last_post_at TEXT, captured_at TEXT,
+      content_sha256 TEXT, completeness TEXT, gaps_json TEXT, lock_crosscheck_json TEXT,
+      source_commit TEXT, created_at TEXT
+    );
+    CREATE TABLE official_snapshot_surface (
+      snapshot_id TEXT, surface TEXT, row_count INTEGER, captured_at TEXT, source_sha256 TEXT,
+      status TEXT, gap_reason TEXT, repo_path TEXT
+    );
+    CREATE TABLE official_snapshot_row (
+      snapshot_id TEXT, surface TEXT, row_no INTEGER, payload_json TEXT
+    );
+    INSERT INTO official_snapshot_manifest VALUES (
+      'snap1','2026-11-25','HV','freeze',NULL,'2026-11-25T18:40:00+08:00','2026-11-25T09:10:00.000Z',
+      '2026-11-25T14:50:00.000Z','2026-11-25T09:12:00.000Z','abc','partial',
+      '[{"surface":"official_wind_going","status":"gap","reason":"stale_only"}]',NULL,NULL,'2026-11-25T09:12:00.000Z'
+    );
+    INSERT INTO official_snapshot_surface VALUES
+      ('snap1','official_wind_going',0,NULL,NULL,'stale_available','stale_only',NULL),
+      ('snap1','entries_upcoming',1,'2026-11-25T09:12:00.000Z','def','present',NULL,'data/official_snapshots/x.csv');
+    INSERT INTO official_snapshot_row VALUES
+      ('snap1','entries_upcoming',1,'{"rating_change":null,"body_weight":1151}');
+  `);
+  const health = await app.request('/api/official/snapshot-health?date=2026-11-25&venue=HV', {}, env);
+  assert.equal(health.status, 200);
+  assert.equal(health.headers.get('cache-control'), 'no-store');
+  const healthBody = await health.json() as { freeze: { exists: boolean; completeness: string; gapCount: number; lockAt: string }; postRace: { exists: boolean } };
+  assert.equal(healthBody.freeze.exists, true);
+  assert.equal(healthBody.freeze.completeness, 'partial');
+  assert.equal(healthBody.freeze.gapCount, 1);
+  assert.equal(healthBody.freeze.lockAt, '2026-11-25T09:10:00.000Z');
+  assert.equal(healthBody.postRace.exists, false);
+  const listed = await app.request('/api/official/snapshots?date=2026-11-25&venue=HV&kind=freeze', {}, env);
+  const listedBody = await listed.json() as { snapshots: Array<{ surfaces: Array<{ surface: string; status: string; capturedAt: string | null }> }> };
+  assert.equal(listedBody.snapshots.length, 1);
+  assert.equal(listedBody.snapshots[0].surfaces.find((row) => row.surface === 'official_wind_going')?.status, 'stale_available');
+  assert.equal(listedBody.snapshots[0].surfaces.find((row) => row.surface === 'official_wind_going')?.capturedAt, null);
+  const withRows = await app.request('/api/official/snapshots?date=2026-11-25&venue=HV&includeRows=1', {}, env);
+  const withRowsBody = await withRows.json() as { snapshots: Array<{ rows: Array<{ payload: { rating_change: null; body_weight: number } }> }> };
+  assert.equal(withRowsBody.snapshots[0].rows[0].payload.rating_change, null);
+  assert.equal(withRowsBody.snapshots[0].rows[0].payload.body_weight, 1151);
+  const badKind = await app.request('/api/official/snapshots?date=2026-11-25&venue=HV&kind=odds', {}, env);
+  assert.equal(badKind.status, 400);
+
   console.log('official visible read api ok');
 }
 
