@@ -84,6 +84,46 @@ class FixtureTests(unittest.TestCase):
         with self.assertRaises(module.FixtureParseError):
             module.parse_month_html(month("二0二六年十月", [broken]), 2026, 10)
 
+    def test_class_lines_keep_grade_distance_and_course(self):
+        body = '''
+            <p><span><img src="/fixture/class_2.gif" alt="2"/></span>
+                <span class="font_wb">1200(1) -C</span><span>100-80</span></p>
+            <p><span><img src="/fixture/class_G3.gif" alt="G3"/></span>
+                <span class="font_wb">1400(1)</span><span>105-80</span></p>
+            <p><span><img src="/fixture/class_4R.gif" alt="4R"/></span>
+                <span class="font_wb">1650(2)</span><span>60-40</span></p>
+        '''
+        html = month("二0二六年十一月", [f'''<td class="calendar">
+            <p class="f_clear"><span class="f_fl f_fs14">1</span>
+            <span class="f_fr"><img alt="HV"/><img alt="D"/><img alt="TURF"/></span></p>
+            {body}</td>'''])
+        lines = module.parse_month_lines(html, 2026, 11)
+        self.assertEqual([row["class_code"] for row in lines], ["2", "G3", "4R"])
+        self.assertEqual(lines[0]["course_text"], "-C")
+        self.assertEqual(lines[0]["distance"], 1200)
+        self.assertEqual(lines[0]["rating_band"], "100-80")
+        self.assertEqual(lines[1]["course_text"], None)
+        self.assertEqual(sum(row["race_count"] for row in lines), 4)
+        self.assertEqual(lines[0]["meeting_date"], "2026-11-01")
+
+    def test_distance_lines_that_do_not_add_up_fail(self):
+        html = month("二0二六年十一月", [f'''<td class="calendar">
+            <p class="f_clear"><span class="f_fl f_fs14">1</span>
+            <span class="f_fr"><img alt="HV"/><img alt="D"/><img alt="TURF"/></span></p>
+            <p><img src="/fixture/class_5.gif" alt="5"/>
+            <span class="font_wb">1200(1)</span><span>40-0</span></p></td>'''])
+        # Meeting count reads 1 from 1200(1), and the line count is 1. A second
+        # distance printed outside a class line is the existing meeting failure.
+        broken = month("二0二六年十一月", [f'''<td class="calendar">
+            <p class="f_clear"><span class="f_fl f_fs14">1</span>
+            <span class="f_fr"><img alt="HV"/><img alt="D"/><img alt="TURF"/></span></p>
+            <p><img src="/fixture/class_5.gif" alt="5"/>
+            <span class="font_wb">1200(1)</span><span>40-0</span></p>
+            <p><span class="font_wb">1650(1)</span><span>40-0</span></p></td>'''])
+        with self.assertRaises(module.FixtureParseError):
+            module.parse_month_lines(broken, 2026, 11)
+        self.assertEqual(module.parse_month_lines(html, 2026, 11)[0]["class_code"], "5")
+
     def test_merge_keeps_dates_absent_from_the_new_scrape(self):
         old = [{"date": "2025-01-01", "season_year": 2025, "weekday": "Wed"}]
         new = [{"date": "2026-10-28", "season_year": 2026, "venue": "ST", "timing": "night", "surface": "awt", "race_count": "9"}]

@@ -141,6 +141,49 @@ async function main(): Promise<void> {
   assert.equal(profileBody.rows[0].importType, 'PPG');
   assert.equal(profileBody.rows[0].reserve, false);
 
+  db.exec(`
+    CREATE TABLE official_fixture_line (
+      meeting_date TEXT, venue TEXT, line_no INTEGER, class_code TEXT, distance INTEGER,
+      race_count INTEGER, course_text TEXT, rating_band TEXT, not_race_result INTEGER,
+      source_sha256 TEXT, scraped_at TEXT
+    );
+    INSERT INTO official_fixture_line VALUES
+      ('2026-11-01','HV',1,'G3',1800,1,'-C',NULL,1,'abc','2026-11-24T16:00:00+00:00');
+    CREATE TABLE official_same_sire (
+      sire_name TEXT, line_no INTEGER, horse_name TEXT, retired INTEGER, wins INTEGER,
+      seconds INTEGER, thirds INTEGER, starts INTEGER, winning_distance TEXT,
+      not_race_result INTEGER, source_sha256 TEXT, scraped_at TEXT
+    );
+    INSERT INTO official_same_sire VALUES
+      ('Zoustar',1,'好友精神 (已退役)',1,0,0,0,13,NULL,1,'abc','2026-11-24T16:00:00+00:00');
+    CREATE TABLE official_wind_station (
+      racecourse TEXT, location TEXT, observed_date TEXT, observed_time TEXT,
+      wind_direction TEXT, wind_speed TEXT, gust_direction TEXT, gust_speed TEXT,
+      humidity TEXT, temperature TEXT, rain_1min TEXT, rain_10min TEXT, rain_daily TEXT,
+      soil_water TEXT, soil_loss_1min TEXT, soil_loss_daily TEXT, soil_loss_24h TEXT, is_valid INTEGER
+    );
+    INSERT INTO official_wind_station VALUES
+      ('HV','E','2026-11-25','00:02:58.7','S14W','4','S6W','6','70','22.5','0','0',NULL,'12.5',NULL,NULL,NULL,1);
+  `);
+  const lines = await app.request('/api/official/fixture-lines?date=2026-11-01', {}, env);
+  assert.equal(lines.status, 200);
+  const lineBody = await lines.json() as { rows: { classCode: string; ratingBand: string | null }[] };
+  assert.equal(lineBody.rows[0].classCode, 'G3');
+  assert.equal(lineBody.rows[0].ratingBand, null);
+  const sire = await app.request('/api/official/same-sire?sire=Zoustar', {}, env);
+  assert.equal(sire.status, 200);
+  const sireBody = await sire.json() as { rows: { horseName: string; retired: boolean; winningDistance: string | null }[] };
+  assert.equal(sireBody.rows[0].horseName, '好友精神 (已退役)');
+  assert.equal(sireBody.rows[0].retired, true);
+  assert.equal(sireBody.rows[0].winningDistance, null);
+  const wind = await app.request('/api/official/wind', {}, env);
+  assert.equal(wind.status, 200);
+  const windBody = await wind.json() as { stations: { windDirection: string; rainDaily: string | null }[] };
+  assert.equal(windBody.stations[0].windDirection, 'S14W');
+  assert.equal(windBody.stations[0].rainDaily, null);
+  const badSire = await app.request('/api/official/same-sire', {}, env);
+  assert.equal(badSire.status, 400);
+
   const badBoard = await app.request('/api/official/horse-ratings?board=made-up', {}, env);
   assert.equal(badBoard.status, 400);
   const badCard = await app.request('/api/official/racecard-files?date=2026-11-11', {}, env);

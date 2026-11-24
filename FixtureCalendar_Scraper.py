@@ -172,6 +172,98 @@ def parse_calendar_cell(cell_html: str) -> dict | None:
     }
 
 
+CLASS_ICON_RE = re.compile(
+    r'class_([^"./]+)\.gif"[^>]*alt="([^"]+)"',
+    re.IGNORECASE,
+)
+LINE_BLOCK_RE = re.compile(r"<p\b[^>]*>(.*?)</p>", re.IGNORECASE | re.DOTALL)
+FONT_WB_RE = re.compile(r'class="font_wb"[^>]*>(.*?)</span>', re.IGNORECASE | re.DOTALL)
+RATING_BAND_RE = re.compile(r">\s*(\d{1,3}-\d{1,3})\s*<")
+DISTANCE_COUNT_RE = re.compile(r"^(\d{3,4})\((\d+)\)$")
+
+
+def _visible_text(fragment: str) -> str:
+    text = re.sub(r"<[^>]+>", " ", fragment)
+    return re.sub(r"\s+", " ", text).replace("\xa0", " ").strip()
+
+
+def parse_cell_lines(cell_html: str) -> list:
+    """One row per class/distance line inside a race-day cell.
+
+    The meeting row stays in fixtures.csv. G2/G3 and class icons are the alt
+    text on that line, not a second guess from the meeting surface.
+    """
+    identity = parse_calendar_cell(cell_html)
+    if identity is None:
+        return []
+    lines = []
+    for block in LINE_BLOCK_RE.findall(cell_html):
+        icon = CLASS_ICON_RE.search(block)
+        if not icon:
+            continue
+        token, alt = icon.group(1), icon.group(2)
+        if token.upper() != alt.upper():
+            raise FixtureParseError(f"class icon {token!r} does not match alt {alt!r}")
+        bold = FONT_WB_RE.search(block)
+        distance_text = _visible_text(bold.group(1) if bold else "")
+        # "1200(1) -C" keeps the course suffix that sits on the distance.
+        suffix = ""
+        head = distance_text
+        if " " in distance_text:
+            head, suffix = distance_text.split(" ", 1)
+            suffix = suffix.strip()
+        counted = DISTANCE_COUNT_RE.fullmatch(head)
+        if not counted:
+            raise FixtureParseError(f"class {alt} line has no distance(count): {distance_text!r}")
+        rating = RATING_BAND_RE.search(block)
+        # Group races print an empty rating span. A handicap line carries 100-80.
+        lines.append({
+            "class_code": alt,
+            "distance": int(counted.group(1)),
+            "race_count": int(counted.group(2)),
+            "course_text": suffix or None,
+            "rating_band": rating.group(1) if rating else None,
+        })
+    expected = identity["race_count"]
+    if expected:
+        got = sum(line["race_count"] for line in lines)
+        if got != int(expected):
+            raise FixtureParseError(
+                f"day {identity['day']} distance lines add to {got}, calendar count is {expected}"
+            )
+    elif lines:
+        raise FixtureParseError(f"day {identity['day']} has class lines but no meeting count")
+    return lines
+
+
+def parse_month_lines(html: str, year: int, month: int) -> list:
+    """Class/distance/G2–G3 lines for one calendar month.
+
+    A title for a different month yields no lines, the same empty-month guard
+    as the meeting calendar. A race day whose lines do not add up raises.
+    """
+    shown = rendered_month(html)
+    if shown is None or shown != (year, month):
+        return []
+    parsed = []
+    for cell_html in CALENDAR_CELL_RE.findall(html):
+        identity = parse_calendar_cell(cell_html)
+        if not identity:
+            continue
+        try:
+            raceday = date(year, month, identity["day"])
+        except ValueError as exc:
+            raise FixtureParseError(f"bad calendar day {identity['day']}") from exc
+        for index, line in enumerate(parse_cell_lines(cell_html), start=1):
+            parsed.append({
+                "meeting_date": raceday.isoformat(),
+                "venue": identity["venue"],
+                "line_no": index,
+                **line,
+            })
+    return parsed
+
+
 def parse_month_html(html: str, year: int, month: int) -> List[dict]:
     """Race days for one month. A title for a different month yields no days.
 

@@ -1,0 +1,48 @@
+query Weather {
+  weather {
+    racecourse
+    sectional {
+      location
+      date
+      time
+      avgCorrectedWindDirection
+      avgCorrectedWindSpeed
+      correctedGustDirection
+      correctedGustSpeed
+      gpsPosition
+      supplyVoltage
+      status
+      isValid
+    }
+    weatherStation {
+      location
+      date
+      time
+      avgCorrectedWindDirection
+      avgCorrectedWindSpeed
+      correctedGustDirection
+      correctedGustSpeed
+      gpsPosition
+      supplyVoltage
+      relativeHumidity
+      temperature
+      solarRadiation
+      sunshineHour
+      pressure
+      correctedGustSpeedDailyMax
+      relativeHumidityDailyMax
+      relativeHumidityDailyMin
+      temperatureDailyMax
+      temperatureDailyMin
+      rainFallPrecipitation1Min
+      rainFallPrecipitation10Min
+      rainPrecipitationDailyTotal
+      soilVolumeticWaterContent
+      soilMoistureLoss1Min
+      soilMoistureLossDailyTotal
+      soilMoistureLoss24H
+      status
+      isValid
+    }
+  }
+}

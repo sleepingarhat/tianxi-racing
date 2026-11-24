@@ -526,6 +526,308 @@ officialVisibleRoutes.get('/racecard-profile', async (c) => {
   }, 200, HEADERS);
 });
 
+const RESULT_VENUE = /^(ST|HV|S\d{1,2})$/;
+const SIRE = /^[A-Za-z][A-Za-z0-9 .'()\-]{0,40}$/;
+const LIST_KIND = /^(location|stable|age|char)$/;
+const PERSON_ROLE = /^(jockey|trainer)$/;
+const PERSON_ID = /^[A-Z][A-Z0-9]{1,5}$/;
+
+officialVisibleRoutes.get('/fixture-lines', async (c) => {
+  const date = c.req.query('date') ?? '';
+  if (!DATE.test(date)) return c.json({ error: 'date=YYYY-MM-DD is required' }, 400);
+  const list = await rows<Record<string, unknown>>(
+    c.env.DB,
+    `SELECT venue, line_no, class_code, distance, race_count, course_text, rating_band
+       FROM official_fixture_line WHERE meeting_date = ?
+      ORDER BY venue, line_no`,
+    [date],
+  );
+  if (!list) return unavailable(c, 'official_fixture_line');
+  return c.json({
+    source: 'official_fixture_line',
+    available: true,
+    date,
+    rows: list.map((row) => ({
+      venue: row.venue,
+      lineNo: row.line_no,
+      classCode: row.class_code,
+      distance: row.distance,
+      raceCount: row.race_count,
+      courseText: row.course_text,
+      ratingBand: row.rating_band,
+      notRaceResult: true,
+    })),
+  }, 200, HEADERS);
+});
+
+officialVisibleRoutes.get('/results-all', async (c) => {
+  const date = c.req.query('date') ?? '';
+  const venue = c.req.query('venue') ?? '';
+  if (!DATE.test(date) || !RESULT_VENUE.test(venue)) {
+    return c.json({ error: 'date=YYYY-MM-DD and venue=ST|HV|S1 are required' }, 400);
+  }
+  const runners = await rows<Record<string, unknown>>(
+    c.env.DB,
+    `SELECT section, place_label, race_no, line_no, placing_text, horse_no, horse_name,
+            jockey_name, trainer_name, actual_weight, draw
+       FROM official_results_all_runner WHERE meeting_date = ? AND venue = ?
+      ORDER BY race_no, line_no`,
+    [date, venue],
+  );
+  const dividends = await rows<Record<string, unknown>>(
+    c.env.DB,
+    `SELECT race_no, line_no, pool_name, combination, dividend_text
+       FROM official_results_all_dividend WHERE meeting_date = ? AND venue = ?
+      ORDER BY race_no, line_no`,
+    [date, venue],
+  );
+  if (!runners || !dividends) return unavailable(c, 'official_results_all_runner');
+  return c.json({
+    source: 'official_results_all',
+    available: true,
+    date,
+    venue,
+    runners: runners.map((row) => ({
+      section: row.section,
+      placeLabel: row.place_label,
+      raceNo: row.race_no,
+      lineNo: row.line_no,
+      placing: row.placing_text,
+      horseNo: row.horse_no,
+      horseName: row.horse_name,
+      jockey: row.jockey_name,
+      trainer: row.trainer_name,
+      actualWeight: row.actual_weight,
+      draw: row.draw,
+      notRaceResult: true,
+    })),
+    dividends: dividends.map((row) => ({
+      raceNo: row.race_no,
+      lineNo: row.line_no,
+      pool: row.pool_name,
+      combination: row.combination,
+      dividend: row.dividend_text,
+      notRaceResult: true,
+    })),
+  }, 200, HEADERS);
+});
+
+officialVisibleRoutes.get('/same-sire', async (c) => {
+  const sire = c.req.query('sire') ?? '';
+  if (!SIRE.test(sire)) return c.json({ error: 'sire is required' }, 400);
+  const list = await rows<Record<string, unknown>>(
+    c.env.DB,
+    `SELECT line_no, horse_name, retired, wins, seconds, thirds, starts, winning_distance
+       FROM official_same_sire WHERE sire_name = ?
+      ORDER BY line_no`,
+    [sire],
+  );
+  if (!list) return unavailable(c, 'official_same_sire');
+  return c.json({
+    source: 'official_same_sire',
+    available: true,
+    sire,
+    rows: list.map((row) => ({
+      lineNo: row.line_no,
+      horseName: row.horse_name,
+      retired: row.retired === 1,
+      wins: row.wins,
+      seconds: row.seconds,
+      thirds: row.thirds,
+      starts: row.starts,
+      winningDistance: row.winning_distance,
+      notRaceResult: true,
+    })),
+  }, 200, HEADERS);
+});
+
+officialVisibleRoutes.get('/horse-directory', async (c) => {
+  const listKind = c.req.query('list') ?? '';
+  const key = c.req.query('key') ?? '';
+  if (!LIST_KIND.test(listKind) || !key || key.length > 40) {
+    return c.json({ error: 'list=location|stable|age|char and key are required' }, 400);
+  }
+  const list = await rows<Record<string, unknown>>(
+    c.env.DB,
+    `SELECT line_no, horse_id, horse_name, rating, list_label
+       FROM official_horse_directory WHERE list_kind = ? AND list_key = ?
+      ORDER BY line_no`,
+    [listKind, key],
+  );
+  if (!list) return unavailable(c, 'official_horse_directory');
+  return c.json({
+    source: 'official_horse_directory',
+    available: true,
+    list: listKind,
+    key,
+    rows: list.map((row) => ({
+      lineNo: row.line_no,
+      horseId: row.horse_id,
+      horseName: row.horse_name,
+      rating: row.rating,
+      label: row.list_label,
+      notRaceResult: true,
+    })),
+  }, 200, HEADERS);
+});
+
+officialVisibleRoutes.get('/person', async (c) => {
+  const role = c.req.query('role') ?? '';
+  const id = c.req.query('id') ?? '';
+  if (!PERSON_ROLE.test(role) || !PERSON_ID.test(id)) {
+    return c.json({ error: 'role=jockey|trainer and id are required' }, 400);
+  }
+  const season = await rows<Record<string, unknown>>(
+    c.env.DB,
+    `SELECT person_name, season_label, as_of_date, nationality, wins, seconds, thirds, fourths,
+            starts, stakes_hkd, win_rate, last10_wins
+       FROM official_person_season WHERE role = ? AND person_id = ?`,
+    [role, id],
+  );
+  const grid = await rows<Record<string, unknown>>(
+    c.env.DB,
+    `SELECT line_no, venue_label, venue_code, surface_label, surface_code, distance,
+            wins, seconds, thirds, starts
+       FROM official_person_winstat WHERE role = ? AND person_id = ?
+      ORDER BY line_no`,
+    [role, id],
+  );
+  if (!season || !grid) return unavailable(c, 'official_person_season');
+  return c.json({
+    source: 'official_person_season',
+    available: true,
+    role,
+    id,
+    season: season[0] ? {
+      name: season[0].person_name,
+      season: season[0].season_label,
+      asOf: season[0].as_of_date,
+      nationality: season[0].nationality,
+      wins: season[0].wins,
+      seconds: season[0].seconds,
+      thirds: season[0].thirds,
+      fourths: season[0].fourths,
+      starts: season[0].starts,
+      stakesHkd: season[0].stakes_hkd,
+      winRate: season[0].win_rate,
+      last10Wins: season[0].last10_wins,
+      notRaceResult: true,
+    } : null,
+    winStat: grid.map((row) => ({
+      lineNo: row.line_no,
+      venue: row.venue_label,
+      venueCode: row.venue_code,
+      surface: row.surface_label,
+      surfaceCode: row.surface_code,
+      distance: row.distance,
+      wins: row.wins,
+      seconds: row.seconds,
+      thirds: row.thirds,
+      starts: row.starts,
+      notRaceResult: true,
+    })),
+  }, 200, HEADERS);
+});
+
+officialVisibleRoutes.get('/wind', async (c) => {
+  const stations = await rows<Record<string, unknown>>(
+    c.env.DB,
+    `SELECT racecourse, location, observed_date, observed_time, wind_direction, wind_speed,
+            gust_direction, gust_speed, humidity, temperature, rain_1min, rain_10min, rain_daily,
+            soil_water, soil_loss_1min, soil_loss_daily, soil_loss_24h, is_valid
+       FROM official_wind_station a
+      WHERE observed_date || ' ' || observed_time = (
+        SELECT MAX(observed_date || ' ' || observed_time) FROM official_wind_station b
+         WHERE b.racecourse = a.racecourse
+      )
+      ORDER BY racecourse`,
+    [],
+  );
+  if (!stations) return unavailable(c, 'official_wind_station');
+  const sections = await rows<Record<string, unknown>>(
+    c.env.DB,
+    `SELECT racecourse, location, observed_date, observed_time, wind_direction, wind_speed,
+            gust_direction, gust_speed, is_valid
+       FROM official_wind_section a
+      WHERE observed_date || ' ' || observed_time = (
+        SELECT MAX(observed_date || ' ' || observed_time) FROM official_wind_section b
+         WHERE b.racecourse = a.racecourse AND b.location = a.location
+      )
+      ORDER BY racecourse, location`,
+    [],
+  );
+  const going = await rows<Record<string, unknown>>(
+    c.env.DB,
+    `SELECT meeting_date, venue, race_no, going_ch, track_code
+       FROM official_wind_going
+      WHERE meeting_date = (SELECT MAX(meeting_date) FROM official_wind_going)
+      ORDER BY venue, race_no`,
+    [],
+  );
+  const probes = await rows<Record<string, unknown>>(
+    c.env.DB,
+    `SELECT meeting_date, venue, instrument, sequence_no, reading_time, reading
+       FROM official_wind_probe
+      WHERE meeting_date = (SELECT MAX(meeting_date) FROM official_wind_probe)
+      ORDER BY venue, instrument, sequence_no`,
+    [],
+  );
+  return c.json({
+    source: 'official_wind_station',
+    available: true,
+    stations: stations.map((row) => ({
+      racecourse: row.racecourse,
+      location: row.location,
+      observedDate: row.observed_date,
+      observedTime: row.observed_time,
+      windDirection: row.wind_direction,
+      windSpeed: row.wind_speed,
+      gustDirection: row.gust_direction,
+      gustSpeed: row.gust_speed,
+      humidity: row.humidity,
+      temperature: row.temperature,
+      rain1Min: row.rain_1min,
+      rain10Min: row.rain_10min,
+      rainDaily: row.rain_daily,
+      soilWater: row.soil_water,
+      soilLoss1Min: row.soil_loss_1min,
+      soilLossDaily: row.soil_loss_daily,
+      soilLoss24h: row.soil_loss_24h,
+      valid: row.is_valid === 1,
+      notRaceResult: true,
+    })),
+    sections: (sections ?? []).map((row) => ({
+      racecourse: row.racecourse,
+      location: row.location,
+      observedDate: row.observed_date,
+      observedTime: row.observed_time,
+      windDirection: row.wind_direction,
+      windSpeed: row.wind_speed,
+      gustDirection: row.gust_direction,
+      gustSpeed: row.gust_speed,
+      valid: row.is_valid === 1,
+      notRaceResult: true,
+    })),
+    going: (going ?? []).map((row) => ({
+      date: row.meeting_date,
+      venue: row.venue,
+      raceNo: row.race_no,
+      going: row.going_ch,
+      trackCode: row.track_code,
+      notRaceResult: true,
+    })),
+    probes: (probes ?? []).map((row) => ({
+      date: row.meeting_date,
+      venue: row.venue,
+      instrument: row.instrument,
+      sequenceNo: row.sequence_no,
+      readingTime: row.reading_time,
+      reading: row.reading,
+      notRaceResult: true,
+    })),
+  }, 200, HEADERS);
+});
+
 officialVisibleRoutes.get('/racecard-files', async (c) => {
   const meeting = requireMeeting(c);
   if (meeting instanceof Response) return meeting;
