@@ -1,175 +1,175 @@
 race_date,venue,race_number,horse_code,horse_name,trainer_name,race_class,distance,track,rating_range,race_name,section_label,card_stage,draw_status,source_sha256,scraped_at
-2026-11-25,HV,1,K379,長勝隊長 +,伍鵬志,第三班,1200,草地,80-60,野生哈吉斯讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,3,K275,非凡時刻 2,伍鵬志,第四班,1200,草地,60-40,獨角獸讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,4,M006,溫暖旋風 3R6,伍鵬志,第四班,1200,草地,60-40,獨角獸讓賽,2,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,5,H203,添開心,伍鵬志,第四班,1200,草地,60-40,聖安度挑戰碟（讓賽）,3,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,6,J398,金駒永騰 *,伍鵬志,第四班,1650,草地,60-40,紅鹿讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,7,L269,晉步贏 +,伍鵬志,第四班,1800,草地,60-40,高地牛讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,1,K125,富心星 *,方嘉柏,第三班,1200,草地,80-60,野生哈吉斯讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,2,J426,相映紅,方嘉柏,第三班,1650,草地,80-60,金鵰讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,3,K239,順善寶 2,方嘉柏,第四班,1200,草地,60-40,獨角獸讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,4,J503,棒棒糖,方嘉柏,第四班,1200,草地,60-40,獨角獸讓賽,2,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,5,L091,疾風財子 3R9,方嘉柏,第四班,1200,草地,60-40,聖安度挑戰碟（讓賽）,3,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,6,L093,赤風驪 *,方嘉柏,第四班,1650,草地,60-40,紅鹿讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,7,H447,富裕君子 +,方嘉柏,第四班,1800,草地,60-40,高地牛讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,9,K306,堅多福 +,方嘉柏,第五班,1650,草地,40-0,紅松鼠讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,1,L494,駿夢飛凡 R6,游達榮,第三班,1200,草地,80-60,野生哈吉斯讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,2,K453,開心老闆,游達榮,第三班,1650,草地,80-60,金鵰讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,2,L341,祥勝鷹駒 2R3,游達榮,第三班,1650,草地,80-60,金鵰讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,3,K462,龍之尊 +,游達榮,第四班,1200,草地,60-40,獨角獸讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,4,L167,三寶進財 3R8,游達榮,第四班,1200,草地,60-40,獨角獸讓賽,2,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,5,H173,焦點 2R1,游達榮,第四班,1200,草地,60-40,聖安度挑戰碟（讓賽）,3,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,6,J236,奮鬥輝煌 +,游達榮,第四班,1650,草地,60-40,紅鹿讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,7,K300,家樂寶駒 *,游達榮,第四班,1800,草地,60-40,高地牛讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,8,K189,首駿 *,游達榮,第五班,1200,草地,40-0,水獺讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,9,K216,鑽得勝,游達榮,第五班,1650,草地,40-0,紅松鼠讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,1,L545,天王星 *,大衛希斯,第三班,1200,草地,80-60,野生哈吉斯讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,3,M015,魅力飛昇 3R8,大衛希斯,第四班,1200,草地,60-40,獨角獸讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,4,J413,環球英雄,大衛希斯,第四班,1200,草地,60-40,獨角獸讓賽,2,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,5,L074,星威心得 * 2,大衛希斯,第四班,1200,草地,60-40,聖安度挑戰碟（讓賽）,3,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,6,L189,飛躍星伴 + R6,大衛希斯,第四班,1650,草地,60-40,紅鹿讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,7,L329,同樣世界 +,大衛希斯,第四班,1800,草地,60-40,高地牛讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,1,L281,輝灑自如 +,姚本輝,第三班,1200,草地,80-60,野生哈吉斯讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,2,L542,叻叻豬 R1,姚本輝,第三班,1650,草地,80-60,金鵰讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,3,J513,輕功猛男,姚本輝,第四班,1200,草地,60-40,獨角獸讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,4,H321,千杯敬典 3R5,姚本輝,第四班,1200,草地,60-40,獨角獸讓賽,2,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,5,K320,飛輪霸 * 2,姚本輝,第四班,1200,草地,60-40,聖安度挑戰碟（讓賽）,3,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,6,J278,皇仁歡星 + R4,姚本輝,第四班,1650,草地,60-40,紅鹿讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,7,K009,瑞祺威楓 R3,姚本輝,第四班,1800,草地,60-40,高地牛讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,7,G125,得意佳作 2R4,姚本輝,第四班,1800,草地,60-40,高地牛讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,1,K436,駿馬之曲 *,沈集成,第三班,1200,草地,80-60,野生哈吉斯讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,2,K406,知道穩勝,沈集成,第三班,1650,草地,80-60,金鵰讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,3,L233,老鼠斑 2R3,沈集成,第四班,1200,草地,60-40,獨角獸讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,4,J253,至合拍 * 3,沈集成,第四班,1200,草地,60-40,獨角獸讓賽,2,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,5,L115,莊家班,沈集成,第四班,1200,草地,60-40,聖安度挑戰碟（讓賽）,3,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,6,L267,星願無限 +,沈集成,第四班,1650,草地,60-40,紅鹿讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,7,L303,捷駿 +,沈集成,第四班,1800,草地,60-40,高地牛讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,8,K456,嘉嘉友福,沈集成,第五班,1200,草地,40-0,水獺讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,9,L138,鴻圖大展,沈集成,第五班,1650,草地,40-0,紅松鼠讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,1,J370,加州本事 +,巫偉傑,第三班,1200,草地,80-60,野生哈吉斯讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,2,J276,納百川 +,巫偉傑,第三班,1650,草地,80-60,金鵰讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,3,K202,沙井之友,巫偉傑,第四班,1200,草地,60-40,獨角獸讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,3,K064,幸運愉快 4R10,巫偉傑,第四班,1200,草地,60-40,獨角獸讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,4,L447,小吉 3R4,巫偉傑,第四班,1200,草地,60-40,獨角獸讓賽,2,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,5,K126,雙星報喜 2R3,巫偉傑,第四班,1200,草地,60-40,聖安度挑戰碟（讓賽）,3,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,6,K084,翠兒威威 *,巫偉傑,第四班,1650,草地,60-40,紅鹿讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,7,K358,士登 R1,巫偉傑,第四班,1800,草地,60-40,高地牛讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,8,K544,旭能精英 *,巫偉傑,第五班,1200,草地,40-0,水獺讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,9,J115,快樂老撾,巫偉傑,第五班,1650,草地,40-0,紅松鼠讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,1,G268,勇敢巨星 *,呂健威,第三班,1200,草地,80-60,野生哈吉斯讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,2,K426,魅力奔騰 +,呂健威,第三班,1650,草地,80-60,金鵰讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,3,L280,合夥智能 3R9,呂健威,第四班,1200,草地,60-40,獨角獸讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,4,K342,合夥飛馳,呂健威,第四班,1200,草地,60-40,獨角獸讓賽,2,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,5,J158,安康萬里 2R2,呂健威,第四班,1200,草地,60-40,聖安度挑戰碟（讓賽）,3,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,6,K511,開心三寶 +,呂健威,第四班,1650,草地,60-40,紅鹿讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,1,H396,家樂龍駒 R10,賀賢,第三班,1200,草地,80-60,野生哈吉斯讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,2,L384,傲聖 *,賀賢,第三班,1650,草地,80-60,金鵰讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,3,K279,萬里雲 3R6,賀賢,第四班,1200,草地,60-40,獨角獸讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,4,J362,比特星 +,賀賢,第四班,1200,草地,60-40,獨角獸讓賽,2,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,5,K112,飛躍成就 + 2,賀賢,第四班,1200,草地,60-40,聖安度挑戰碟（讓賽）,3,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,7,K397,揀馬之皇,賀賢,第四班,1800,草地,60-40,高地牛讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,8,J288,翠湖烈風,賀賢,第五班,1200,草地,40-0,水獺讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,9,K343,頌星,賀賢,第五班,1650,草地,40-0,紅松鼠讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,2,L402,金錢遊戲,廖康銘,第三班,1650,草地,80-60,金鵰讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,3,L391,盈智多寶 * 2,廖康銘,第四班,1200,草地,60-40,獨角獸讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,4,K105,鋁神 3R9,廖康銘,第四班,1200,草地,60-40,獨角獸讓賽,2,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,5,H057,有你有我,廖康銘,第四班,1200,草地,60-40,聖安度挑戰碟（讓賽）,3,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,6,K307,部族高手 +,廖康銘,第四班,1650,草地,60-40,紅鹿讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,7,J494,領航天子,廖康銘,第四班,1800,草地,60-40,高地牛讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,8,J359,天下寵兒 +,廖康銘,第五班,1200,草地,40-0,水獺讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,1,K314,首飾悟空 + R1,蔡約翰,第三班,1200,草地,80-60,野生哈吉斯讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,2,K562,細水長流 +,蔡約翰,第三班,1650,草地,80-60,金鵰讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,3,J323,鴻圖新星 * 3,蔡約翰,第四班,1200,草地,60-40,獨角獸讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,4,L022,跨境駿馬 * 2,蔡約翰,第四班,1200,草地,60-40,獨角獸讓賽,2,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,5,K038,魅力知福,蔡約翰,第四班,1200,草地,60-40,聖安度挑戰碟（讓賽）,3,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,6,K252,安可 *,蔡約翰,第四班,1650,草地,60-40,紅鹿讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,7,J098,先到先得,蔡約翰,第四班,1800,草地,60-40,高地牛讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,1,M070,偵探之神 R9,文家良,第三班,1200,草地,80-60,野生哈吉斯讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,5,L098,紅海旺 +,文家良,第四班,1200,草地,60-40,聖安度挑戰碟（讓賽）,3,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,6,H207,紅海勁 + *,文家良,第四班,1650,草地,60-40,紅鹿讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,8,H454,良駒好友 *,文家良,第五班,1200,草地,40-0,水獺讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,1,K352,乘數表 + R4,羅富全,第三班,1200,草地,80-60,野生哈吉斯讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,2,L429,極上芳華,羅富全,第三班,1650,草地,80-60,金鵰讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,3,K517,方圓星,羅富全,第四班,1200,草地,60-40,獨角獸讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,4,L260,美麗登場 2R3,羅富全,第四班,1200,草地,60-40,獨角獸讓賽,2,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,5,K552,日出東方 3R10,羅富全,第四班,1200,草地,60-40,聖安度挑戰碟（讓賽）,3,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,6,J137,本領非凡 + R2,羅富全,第四班,1650,草地,60-40,紅鹿讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,9,H087,獎星,羅富全,第五班,1650,草地,40-0,紅松鼠讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,1,L481,何方來聲 +,告東尼,第三班,1200,草地,80-60,野生哈吉斯讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,2,J290,東來欣賞 +,告東尼,第三班,1650,草地,80-60,金鵰讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,3,L077,御登 2R1,告東尼,第四班,1200,草地,60-40,獨角獸讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,4,K159,駿馬之光,告東尼,第四班,1200,草地,60-40,獨角獸讓賽,2,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,5,K364,加州勇勝 3R7,告東尼,第四班,1200,草地,60-40,聖安度挑戰碟（讓賽）,3,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,6,J131,加州活力 *,告東尼,第四班,1650,草地,60-40,紅鹿讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,7,H486,竣誠駒,告東尼,第四班,1800,草地,60-40,高地牛讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,8,L129,雙子美麗 R2,告東尼,第五班,1200,草地,40-0,水獺讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,1,L075,飛馬座 R8,徐雨石,第三班,1200,草地,80-60,野生哈吉斯讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,2,M021,天時威威 R2,徐雨石,第三班,1650,草地,80-60,金鵰讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,3,K228,螢影飛馳 +,徐雨石,第四班,1200,草地,60-40,獨角獸讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,4,L284,銳喜 + 2,徐雨石,第四班,1200,草地,60-40,獨角獸讓賽,2,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,5,L510,宇宙威龍 3R8,徐雨石,第四班,1200,草地,60-40,聖安度挑戰碟（讓賽）,3,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,6,J510,午夜快車 *,徐雨石,第四班,1650,草地,60-40,紅鹿讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,7,H298,巴閉仔 *,徐雨石,第四班,1800,草地,60-40,高地牛讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,8,L034,領袖勁力 *,徐雨石,第五班,1200,草地,40-0,水獺讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,8,J344,歷險大將 2R4,徐雨石,第五班,1200,草地,40-0,水獺讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,9,K569,良言一句,徐雨石,第五班,1650,草地,40-0,紅松鼠讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,9,K035,傳承效應 2R1,徐雨石,第五班,1650,草地,40-0,紅松鼠讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,1,H325,新力 R5,鄭俊偉,第三班,1200,草地,80-60,野生哈吉斯讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,6,L144,頑童 + R1,鄭俊偉,第四班,1650,草地,60-40,紅鹿讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,7,L190,機緣燦爛 R2,鄭俊偉,第四班,1800,草地,60-40,高地牛讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,8,L201,領航多福 +,鄭俊偉,第五班,1200,草地,40-0,水獺讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,9,K435,真叻仔,鄭俊偉,第五班,1650,草地,40-0,紅松鼠讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,1,L469,天賦之才 R7,蘇偉賢,第三班,1200,草地,80-60,野生哈吉斯讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,2,K076,膨才,蘇偉賢,第三班,1650,草地,80-60,金鵰讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,3,L181,電子騰飛 3R5,蘇偉賢,第四班,1200,草地,60-40,獨角獸讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,4,L314,勁駿騰飛 2,蘇偉賢,第四班,1200,草地,60-40,獨角獸讓賽,2,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,5,L344,領駿精彩 +,蘇偉賢,第四班,1200,草地,60-40,聖安度挑戰碟（讓賽）,3,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,6,K093,星價 R8,蘇偉賢,第四班,1650,草地,60-40,紅鹿讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,7,K177,新力飆 +,蘇偉賢,第四班,1800,草地,60-40,高地牛讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,1,J401,競駿非凡 *,韋達,第三班,1200,草地,80-60,野生哈吉斯讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,3,H110,紅愛舍 3R4,韋達,第四班,1200,草地,60-40,獨角獸讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,4,H407,勝多多 2R2,韋達,第四班,1200,草地,60-40,獨角獸讓賽,2,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,5,J458,利不可擋 +,韋達,第四班,1200,草地,60-40,聖安度挑戰碟（讓賽）,3,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,6,L236,銀騎士 + R5,韋達,第四班,1650,草地,60-40,紅鹿讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,8,K565,威威神駒 R1,韋達,第五班,1200,草地,40-0,水獺讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,9,G307,大力猴王,韋達,第五班,1650,草地,40-0,紅松鼠讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,1,J285,超力量 *,黎昭昇,第三班,1200,草地,80-60,野生哈吉斯讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,2,J231,卓越蒨鋒,黎昭昇,第三班,1650,草地,80-60,金鵰讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,2,L155,國千金 2R4,黎昭昇,第三班,1650,草地,80-60,金鵰讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,3,L161,創寶駒 2R2,黎昭昇,第四班,1200,草地,60-40,獨角獸讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,4,J317,騰龍四海 +,黎昭昇,第四班,1200,草地,60-40,獨角獸讓賽,2,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,5,K445,多利旺駒 3R6,黎昭昇,第四班,1200,草地,60-40,聖安度挑戰碟（讓賽）,3,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,6,L415,龍文正道 + R3,黎昭昇,第四班,1650,草地,60-40,紅鹿讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,7,H168,夢照發,黎昭昇,第四班,1800,草地,60-40,高地牛讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,8,J504,飈誌,黎昭昇,第五班,1200,草地,40-0,水獺讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,9,G277,極速滿貫,黎昭昇,第五班,1650,草地,40-0,紅松鼠讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,9,H197,智勝攻略 2R2,黎昭昇,第五班,1650,草地,40-0,紅松鼠讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,1,L336,神鵰 + R3,甘敏斯,第三班,1200,草地,80-60,野生哈吉斯讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,1,L518,假面勇士 2R11,甘敏斯,第三班,1200,草地,80-60,野生哈吉斯讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,3,L135,黃金大亨 +,甘敏斯,第四班,1200,草地,60-40,獨角獸讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,4,J500,閃光燈 * 2,甘敏斯,第四班,1200,草地,60-40,獨角獸讓賽,2,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,5,J299,凝聚美麗 * 3,甘敏斯,第四班,1200,草地,60-40,聖安度挑戰碟（讓賽）,3,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,6,L546,狀元聲價 R9,甘敏斯,第四班,1650,草地,60-40,紅鹿讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,6,L185,喜豐年 2R10,甘敏斯,第四班,1650,草地,60-40,紅鹿讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,9,J037,銳一,甘敏斯,第五班,1650,草地,40-0,紅松鼠讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,1,L221,天馬行雲 *,桂福特,第三班,1200,草地,80-60,野生哈吉斯讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,3,J217,鼓浪好友 +,桂福特,第四班,1200,草地,60-40,獨角獸讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,4,K132,團結戰靈 2R1,桂福特,第四班,1200,草地,60-40,獨角獸讓賽,2,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,5,L254,神箭 3R5,桂福特,第四班,1200,草地,60-40,聖安度挑戰碟（讓賽）,3,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,6,L315,本領多好 R7,桂福特,第四班,1650,草地,60-40,紅鹿讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,8,K150,金風萬里 +,桂福特,第五班,1200,草地,40-0,水獺讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,1,L170,價值傳承 *,葉楚航,第三班,1200,草地,80-60,野生哈吉斯讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,3,K118,戀愛狂 3R7,葉楚航,第四班,1200,草地,60-40,獨角獸讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,4,L387,紫電王 +,葉楚航,第四班,1200,草地,60-40,獨角獸讓賽,2,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,4,K443,好運年 4R10,葉楚航,第四班,1200,草地,60-40,獨角獸讓賽,2,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,5,L253,出類拔萃 2R4,葉楚航,第四班,1200,草地,60-40,聖安度挑戰碟（讓賽）,3,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,6,L158,皇者威楓 *,葉楚航,第四班,1650,草地,60-40,紅鹿讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,6,L426,火流星 2R11,葉楚航,第四班,1650,草地,60-40,紅鹿讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,8,L180,豪邁先登 *,葉楚航,第五班,1200,草地,40-0,水獺讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,9,L048,寫我其誰 +,葉楚航,第五班,1650,草地,40-0,紅松鼠讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,1,H235,幸運星球 + R2,丁冠豪,第三班,1200,草地,80-60,野生哈吉斯讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,3,L537,埗埼豐 * 2,丁冠豪,第四班,1200,草地,60-40,獨角獸讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,4,M081,焰風雲 3R7,丁冠豪,第四班,1200,草地,60-40,獨角獸讓賽,2,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,5,L449,沐風凜凜,丁冠豪,第四班,1200,草地,60-40,聖安度挑戰碟（讓賽）,3,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,8,J308,洛河 +,丁冠豪,第五班,1200,草地,40-0,水獺讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
-2026-11-25,HV,8,K099,皇金合 2R3,丁冠豪,第五班,1200,草地,40-0,水獺讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-23T23:11:53Z
+2026-11-25,HV,1,K379,長勝隊長 +,伍鵬志,第三班,1200,草地,80-60,野生哈吉斯讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,3,K275,非凡時刻 2,伍鵬志,第四班,1200,草地,60-40,獨角獸讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,4,M006,溫暖旋風 3R6,伍鵬志,第四班,1200,草地,60-40,獨角獸讓賽,2,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,5,H203,添開心,伍鵬志,第四班,1200,草地,60-40,聖安度挑戰碟（讓賽）,3,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,6,J398,金駒永騰 *,伍鵬志,第四班,1650,草地,60-40,紅鹿讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,7,L269,晉步贏 +,伍鵬志,第四班,1800,草地,60-40,高地牛讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,1,K125,富心星 *,方嘉柏,第三班,1200,草地,80-60,野生哈吉斯讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,2,J426,相映紅,方嘉柏,第三班,1650,草地,80-60,金鵰讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,3,K239,順善寶 2,方嘉柏,第四班,1200,草地,60-40,獨角獸讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,4,J503,棒棒糖,方嘉柏,第四班,1200,草地,60-40,獨角獸讓賽,2,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,5,L091,疾風財子 3R9,方嘉柏,第四班,1200,草地,60-40,聖安度挑戰碟（讓賽）,3,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,6,L093,赤風驪 *,方嘉柏,第四班,1650,草地,60-40,紅鹿讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,7,H447,富裕君子 +,方嘉柏,第四班,1800,草地,60-40,高地牛讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,9,K306,堅多福 +,方嘉柏,第五班,1650,草地,40-0,紅松鼠讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,1,L494,駿夢飛凡 R6,游達榮,第三班,1200,草地,80-60,野生哈吉斯讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,2,K453,開心老闆,游達榮,第三班,1650,草地,80-60,金鵰讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,2,L341,祥勝鷹駒 2R3,游達榮,第三班,1650,草地,80-60,金鵰讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,3,K462,龍之尊 +,游達榮,第四班,1200,草地,60-40,獨角獸讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,4,L167,三寶進財 3R8,游達榮,第四班,1200,草地,60-40,獨角獸讓賽,2,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,5,H173,焦點 2R1,游達榮,第四班,1200,草地,60-40,聖安度挑戰碟（讓賽）,3,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,6,J236,奮鬥輝煌 +,游達榮,第四班,1650,草地,60-40,紅鹿讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,7,K300,家樂寶駒 *,游達榮,第四班,1800,草地,60-40,高地牛讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,8,K189,首駿 *,游達榮,第五班,1200,草地,40-0,水獺讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,9,K216,鑽得勝,游達榮,第五班,1650,草地,40-0,紅松鼠讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,1,L545,天王星 *,大衛希斯,第三班,1200,草地,80-60,野生哈吉斯讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,3,M015,魅力飛昇 3R8,大衛希斯,第四班,1200,草地,60-40,獨角獸讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,4,J413,環球英雄,大衛希斯,第四班,1200,草地,60-40,獨角獸讓賽,2,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,5,L074,星威心得 * 2,大衛希斯,第四班,1200,草地,60-40,聖安度挑戰碟（讓賽）,3,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,6,L189,飛躍星伴 + R6,大衛希斯,第四班,1650,草地,60-40,紅鹿讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,7,L329,同樣世界 +,大衛希斯,第四班,1800,草地,60-40,高地牛讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,1,L281,輝灑自如 +,姚本輝,第三班,1200,草地,80-60,野生哈吉斯讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,2,L542,叻叻豬 R1,姚本輝,第三班,1650,草地,80-60,金鵰讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,3,J513,輕功猛男,姚本輝,第四班,1200,草地,60-40,獨角獸讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,4,H321,千杯敬典 3R5,姚本輝,第四班,1200,草地,60-40,獨角獸讓賽,2,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,5,K320,飛輪霸 * 2,姚本輝,第四班,1200,草地,60-40,聖安度挑戰碟（讓賽）,3,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,6,J278,皇仁歡星 + R4,姚本輝,第四班,1650,草地,60-40,紅鹿讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,7,K009,瑞祺威楓 R3,姚本輝,第四班,1800,草地,60-40,高地牛讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,7,G125,得意佳作 2R4,姚本輝,第四班,1800,草地,60-40,高地牛讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,1,K436,駿馬之曲 *,沈集成,第三班,1200,草地,80-60,野生哈吉斯讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,2,K406,知道穩勝,沈集成,第三班,1650,草地,80-60,金鵰讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,3,L233,老鼠斑 2R3,沈集成,第四班,1200,草地,60-40,獨角獸讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,4,J253,至合拍 * 3,沈集成,第四班,1200,草地,60-40,獨角獸讓賽,2,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,5,L115,莊家班,沈集成,第四班,1200,草地,60-40,聖安度挑戰碟（讓賽）,3,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,6,L267,星願無限 +,沈集成,第四班,1650,草地,60-40,紅鹿讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,7,L303,捷駿 +,沈集成,第四班,1800,草地,60-40,高地牛讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,8,K456,嘉嘉友福,沈集成,第五班,1200,草地,40-0,水獺讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,9,L138,鴻圖大展,沈集成,第五班,1650,草地,40-0,紅松鼠讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,1,J370,加州本事 +,巫偉傑,第三班,1200,草地,80-60,野生哈吉斯讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,2,J276,納百川 +,巫偉傑,第三班,1650,草地,80-60,金鵰讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,3,K202,沙井之友,巫偉傑,第四班,1200,草地,60-40,獨角獸讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,3,K064,幸運愉快 4R10,巫偉傑,第四班,1200,草地,60-40,獨角獸讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,4,L447,小吉 3R4,巫偉傑,第四班,1200,草地,60-40,獨角獸讓賽,2,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,5,K126,雙星報喜 2R3,巫偉傑,第四班,1200,草地,60-40,聖安度挑戰碟（讓賽）,3,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,6,K084,翠兒威威 *,巫偉傑,第四班,1650,草地,60-40,紅鹿讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,7,K358,士登 R1,巫偉傑,第四班,1800,草地,60-40,高地牛讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,8,K544,旭能精英 *,巫偉傑,第五班,1200,草地,40-0,水獺讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,9,J115,快樂老撾,巫偉傑,第五班,1650,草地,40-0,紅松鼠讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,1,G268,勇敢巨星 *,呂健威,第三班,1200,草地,80-60,野生哈吉斯讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,2,K426,魅力奔騰 +,呂健威,第三班,1650,草地,80-60,金鵰讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,3,L280,合夥智能 3R9,呂健威,第四班,1200,草地,60-40,獨角獸讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,4,K342,合夥飛馳,呂健威,第四班,1200,草地,60-40,獨角獸讓賽,2,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,5,J158,安康萬里 2R2,呂健威,第四班,1200,草地,60-40,聖安度挑戰碟（讓賽）,3,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,6,K511,開心三寶 +,呂健威,第四班,1650,草地,60-40,紅鹿讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,1,H396,家樂龍駒 R10,賀賢,第三班,1200,草地,80-60,野生哈吉斯讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,2,L384,傲聖 *,賀賢,第三班,1650,草地,80-60,金鵰讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,3,K279,萬里雲 3R6,賀賢,第四班,1200,草地,60-40,獨角獸讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,4,J362,比特星 +,賀賢,第四班,1200,草地,60-40,獨角獸讓賽,2,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,5,K112,飛躍成就 + 2,賀賢,第四班,1200,草地,60-40,聖安度挑戰碟（讓賽）,3,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,7,K397,揀馬之皇,賀賢,第四班,1800,草地,60-40,高地牛讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,8,J288,翠湖烈風,賀賢,第五班,1200,草地,40-0,水獺讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,9,K343,頌星,賀賢,第五班,1650,草地,40-0,紅松鼠讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,2,L402,金錢遊戲,廖康銘,第三班,1650,草地,80-60,金鵰讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,3,L391,盈智多寶 * 2,廖康銘,第四班,1200,草地,60-40,獨角獸讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,4,K105,鋁神 3R9,廖康銘,第四班,1200,草地,60-40,獨角獸讓賽,2,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,5,H057,有你有我,廖康銘,第四班,1200,草地,60-40,聖安度挑戰碟（讓賽）,3,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,6,K307,部族高手 +,廖康銘,第四班,1650,草地,60-40,紅鹿讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,7,J494,領航天子,廖康銘,第四班,1800,草地,60-40,高地牛讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,8,J359,天下寵兒 +,廖康銘,第五班,1200,草地,40-0,水獺讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,1,K314,首飾悟空 + R1,蔡約翰,第三班,1200,草地,80-60,野生哈吉斯讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,2,K562,細水長流 +,蔡約翰,第三班,1650,草地,80-60,金鵰讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,3,J323,鴻圖新星 * 3,蔡約翰,第四班,1200,草地,60-40,獨角獸讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,4,L022,跨境駿馬 * 2,蔡約翰,第四班,1200,草地,60-40,獨角獸讓賽,2,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,5,K038,魅力知福,蔡約翰,第四班,1200,草地,60-40,聖安度挑戰碟（讓賽）,3,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,6,K252,安可 *,蔡約翰,第四班,1650,草地,60-40,紅鹿讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,7,J098,先到先得,蔡約翰,第四班,1800,草地,60-40,高地牛讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,1,M070,偵探之神 R9,文家良,第三班,1200,草地,80-60,野生哈吉斯讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,5,L098,紅海旺 +,文家良,第四班,1200,草地,60-40,聖安度挑戰碟（讓賽）,3,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,6,H207,紅海勁 + *,文家良,第四班,1650,草地,60-40,紅鹿讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,8,H454,良駒好友 *,文家良,第五班,1200,草地,40-0,水獺讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,1,K352,乘數表 + R4,羅富全,第三班,1200,草地,80-60,野生哈吉斯讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,2,L429,極上芳華,羅富全,第三班,1650,草地,80-60,金鵰讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,3,K517,方圓星,羅富全,第四班,1200,草地,60-40,獨角獸讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,4,L260,美麗登場 2R3,羅富全,第四班,1200,草地,60-40,獨角獸讓賽,2,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,5,K552,日出東方 3R10,羅富全,第四班,1200,草地,60-40,聖安度挑戰碟（讓賽）,3,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,6,J137,本領非凡 + R2,羅富全,第四班,1650,草地,60-40,紅鹿讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,9,H087,獎星,羅富全,第五班,1650,草地,40-0,紅松鼠讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,1,L481,何方來聲 +,告東尼,第三班,1200,草地,80-60,野生哈吉斯讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,2,J290,東來欣賞 +,告東尼,第三班,1650,草地,80-60,金鵰讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,3,L077,御登 2R1,告東尼,第四班,1200,草地,60-40,獨角獸讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,4,K159,駿馬之光,告東尼,第四班,1200,草地,60-40,獨角獸讓賽,2,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,5,K364,加州勇勝 3R7,告東尼,第四班,1200,草地,60-40,聖安度挑戰碟（讓賽）,3,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,6,J131,加州活力 *,告東尼,第四班,1650,草地,60-40,紅鹿讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,7,H486,竣誠駒,告東尼,第四班,1800,草地,60-40,高地牛讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,8,L129,雙子美麗 R2,告東尼,第五班,1200,草地,40-0,水獺讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,1,L075,飛馬座 R8,徐雨石,第三班,1200,草地,80-60,野生哈吉斯讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,2,M021,天時威威 R2,徐雨石,第三班,1650,草地,80-60,金鵰讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,3,K228,螢影飛馳 +,徐雨石,第四班,1200,草地,60-40,獨角獸讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,4,L284,銳喜 + 2,徐雨石,第四班,1200,草地,60-40,獨角獸讓賽,2,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,5,L510,宇宙威龍 3R8,徐雨石,第四班,1200,草地,60-40,聖安度挑戰碟（讓賽）,3,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,6,J510,午夜快車 *,徐雨石,第四班,1650,草地,60-40,紅鹿讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,7,H298,巴閉仔 *,徐雨石,第四班,1800,草地,60-40,高地牛讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,8,L034,領袖勁力 *,徐雨石,第五班,1200,草地,40-0,水獺讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,8,J344,歷險大將 2R4,徐雨石,第五班,1200,草地,40-0,水獺讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,9,K569,良言一句,徐雨石,第五班,1650,草地,40-0,紅松鼠讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,9,K035,傳承效應 2R1,徐雨石,第五班,1650,草地,40-0,紅松鼠讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,1,H325,新力 R5,鄭俊偉,第三班,1200,草地,80-60,野生哈吉斯讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,6,L144,頑童 + R1,鄭俊偉,第四班,1650,草地,60-40,紅鹿讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,7,L190,機緣燦爛 R2,鄭俊偉,第四班,1800,草地,60-40,高地牛讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,8,L201,領航多福 +,鄭俊偉,第五班,1200,草地,40-0,水獺讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,9,K435,真叻仔,鄭俊偉,第五班,1650,草地,40-0,紅松鼠讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,1,L469,天賦之才 R7,蘇偉賢,第三班,1200,草地,80-60,野生哈吉斯讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,2,K076,膨才,蘇偉賢,第三班,1650,草地,80-60,金鵰讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,3,L181,電子騰飛 3R5,蘇偉賢,第四班,1200,草地,60-40,獨角獸讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,4,L314,勁駿騰飛 2,蘇偉賢,第四班,1200,草地,60-40,獨角獸讓賽,2,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,5,L344,領駿精彩 +,蘇偉賢,第四班,1200,草地,60-40,聖安度挑戰碟（讓賽）,3,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,6,K093,星價 R8,蘇偉賢,第四班,1650,草地,60-40,紅鹿讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,7,K177,新力飆 +,蘇偉賢,第四班,1800,草地,60-40,高地牛讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,1,J401,競駿非凡 *,韋達,第三班,1200,草地,80-60,野生哈吉斯讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,3,H110,紅愛舍 3R4,韋達,第四班,1200,草地,60-40,獨角獸讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,4,H407,勝多多 2R2,韋達,第四班,1200,草地,60-40,獨角獸讓賽,2,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,5,J458,利不可擋 +,韋達,第四班,1200,草地,60-40,聖安度挑戰碟（讓賽）,3,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,6,L236,銀騎士 + R5,韋達,第四班,1650,草地,60-40,紅鹿讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,8,K565,威威神駒 R1,韋達,第五班,1200,草地,40-0,水獺讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,9,G307,大力猴王,韋達,第五班,1650,草地,40-0,紅松鼠讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,1,J285,超力量 *,黎昭昇,第三班,1200,草地,80-60,野生哈吉斯讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,2,J231,卓越蒨鋒,黎昭昇,第三班,1650,草地,80-60,金鵰讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,2,L155,國千金 2R4,黎昭昇,第三班,1650,草地,80-60,金鵰讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,3,L161,創寶駒 2R2,黎昭昇,第四班,1200,草地,60-40,獨角獸讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,4,J317,騰龍四海 +,黎昭昇,第四班,1200,草地,60-40,獨角獸讓賽,2,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,5,K445,多利旺駒 3R6,黎昭昇,第四班,1200,草地,60-40,聖安度挑戰碟（讓賽）,3,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,6,L415,龍文正道 + R3,黎昭昇,第四班,1650,草地,60-40,紅鹿讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,7,H168,夢照發,黎昭昇,第四班,1800,草地,60-40,高地牛讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,8,J504,飈誌,黎昭昇,第五班,1200,草地,40-0,水獺讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,9,G277,極速滿貫,黎昭昇,第五班,1650,草地,40-0,紅松鼠讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,9,H197,智勝攻略 2R2,黎昭昇,第五班,1650,草地,40-0,紅松鼠讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,1,L336,神鵰 + R3,甘敏斯,第三班,1200,草地,80-60,野生哈吉斯讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,1,L518,假面勇士 2R11,甘敏斯,第三班,1200,草地,80-60,野生哈吉斯讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,3,L135,黃金大亨 +,甘敏斯,第四班,1200,草地,60-40,獨角獸讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,4,J500,閃光燈 * 2,甘敏斯,第四班,1200,草地,60-40,獨角獸讓賽,2,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,5,J299,凝聚美麗 * 3,甘敏斯,第四班,1200,草地,60-40,聖安度挑戰碟（讓賽）,3,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,6,L546,狀元聲價 R9,甘敏斯,第四班,1650,草地,60-40,紅鹿讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,6,L185,喜豐年 2R10,甘敏斯,第四班,1650,草地,60-40,紅鹿讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,9,J037,銳一,甘敏斯,第五班,1650,草地,40-0,紅松鼠讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,1,L221,天馬行雲 *,桂福特,第三班,1200,草地,80-60,野生哈吉斯讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,3,J217,鼓浪好友 +,桂福特,第四班,1200,草地,60-40,獨角獸讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,4,K132,團結戰靈 2R1,桂福特,第四班,1200,草地,60-40,獨角獸讓賽,2,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,5,L254,神箭 3R5,桂福特,第四班,1200,草地,60-40,聖安度挑戰碟（讓賽）,3,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,6,L315,本領多好 R7,桂福特,第四班,1650,草地,60-40,紅鹿讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,8,K150,金風萬里 +,桂福特,第五班,1200,草地,40-0,水獺讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,1,L170,價值傳承 *,葉楚航,第三班,1200,草地,80-60,野生哈吉斯讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,3,K118,戀愛狂 3R7,葉楚航,第四班,1200,草地,60-40,獨角獸讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,4,L387,紫電王 +,葉楚航,第四班,1200,草地,60-40,獨角獸讓賽,2,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,4,K443,好運年 4R10,葉楚航,第四班,1200,草地,60-40,獨角獸讓賽,2,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,5,L253,出類拔萃 2R4,葉楚航,第四班,1200,草地,60-40,聖安度挑戰碟（讓賽）,3,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,6,L158,皇者威楓 *,葉楚航,第四班,1650,草地,60-40,紅鹿讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,6,L426,火流星 2R11,葉楚航,第四班,1650,草地,60-40,紅鹿讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,8,L180,豪邁先登 *,葉楚航,第五班,1200,草地,40-0,水獺讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,9,L048,寫我其誰 +,葉楚航,第五班,1650,草地,40-0,紅松鼠讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,1,H235,幸運星球 + R2,丁冠豪,第三班,1200,草地,80-60,野生哈吉斯讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,3,L537,埗埼豐 * 2,丁冠豪,第四班,1200,草地,60-40,獨角獸讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,4,M081,焰風雲 3R7,丁冠豪,第四班,1200,草地,60-40,獨角獸讓賽,2,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,5,L449,沐風凜凜,丁冠豪,第四班,1200,草地,60-40,聖安度挑戰碟（讓賽）,3,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,8,J308,洛河 +,丁冠豪,第五班,1200,草地,40-0,水獺讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
+2026-11-25,HV,8,K099,皇金合 2R3,丁冠豪,第五班,1200,草地,40-0,水獺讓賽,1,entries,unavailable,919cfa1994a1563f740a0221f414bbb117d6faaabc27ce0a6ec60a61629ffec8,2026-11-24T12:06:23Z
