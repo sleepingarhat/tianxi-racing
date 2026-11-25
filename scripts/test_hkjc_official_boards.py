@@ -5,6 +5,7 @@ import tempfile
 import unittest
 from datetime import date
 from pathlib import Path
+from unittest.mock import patch
 
 spec = importlib.util.spec_from_file_location('boards', Path(__file__).with_name('hkjc_official_boards.py'))
 boards = importlib.util.module_from_spec(spec)
@@ -233,6 +234,63 @@ class PoolAndFavouriteTests(unittest.TestCase):
         with self.assertRaises(boards.IdentityError):
             boards.parse_favourite(stray, 'jockey', TODAY, 'fav', SCRAPED)
 
+    def person_after_footer(self, rule=False):
+        rule_row = '<tr><td colspan="10"> --- </td></tr>' if rule else ''
+        return (
+            '<tr class="empty"><td colspan="10"> </td></tr>'
+            '<tr><td class="f_fs14 f_tal" colspan="10">其他</td></tr>'
+            f'{rule_row}'
+            '<tr><td class="f_tal">麥道朗</td><td>7</td><td>0</td><td>2</td>'
+            '<td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>'
+        )
+
+    def test_person_after_official_footer_is_kept(self):
+        people, totals = boards.parse_favourite(
+            self.favourite(footer=self.person_after_footer()), 'jockey', TODAY, 'fav', SCRAPED)
+        self.assertEqual([row['person_name'] for row in people], ['潘頓', '麥道朗'])
+        self.assertEqual(people[1]['starts'], 7)
+        self.assertEqual(people[1]['places'], 2)
+        self.assertEqual(people[1]['hot_count'], 0)
+        self.assertNotIn('其他', [row['person_name'] for row in people])
+        self.assertEqual(totals[0]['label'], '大熱馬匹總數')
+        with_rule, _totals = boards.parse_favourite(
+            self.favourite(footer=self.person_after_footer(rule=True)), 'jockey', TODAY, 'fav', SCRAPED)
+        self.assertEqual([row['person_name'] for row in with_rule], ['潘頓', '麥道朗'])
+
+    def test_deformed_favourite_rows_still_rejected(self):
+        interrupted = (
+            '<tr class="empty"><td colspan="10"></td></tr>'
+            '<tr><td>麥道朗</td><td>7</td><td>0</td><td>2</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>'
+            '<tr><td colspan="10">其他</td></tr>'
+        )
+        short_after = (
+            '<tr><td colspan="10"> </td></tr><tr><td colspan="10">其他</td></tr>'
+            '<tr><td>註</td><td>1</td></tr>'
+        )
+        named_other = (
+            '<tr><td colspan="10"> </td></tr><tr><td colspan="10">其他</td></tr>'
+            '<tr><td>其他</td>' + '<td>0</td>' * 9 + '</tr>'
+        )
+        duplicate = (
+            '<tr><td colspan="10"> </td></tr><tr><td colspan="10">其他</td></tr>'
+            '<tr><td>潘頓</td><td>7</td><td>0</td><td>2</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>'
+        )
+        over_count = (
+            '<tr><td colspan="10"> </td></tr><tr><td colspan="10">其他</td></tr>'
+            '<tr><td>麥道朗</td><td>7</td><td>9</td><td>2</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>'
+        )
+        cases = (
+            self.favourite(footer=interrupted),
+            self.favourite(footer=short_after),
+            self.favourite(footer=named_other),
+            self.favourite(footer=duplicate),
+            self.favourite(footer=over_count),
+            self.favourite().replace('出賽次數'.encode(), '出賽'.encode()),
+        )
+        for html in cases:
+            with self.assertRaises(boards.IdentityError):
+                boards.parse_favourite(html, 'jockey', TODAY, 'fav', SCRAPED)
+
     def test_allowance_blank_is_not_zero(self):
         html = '''<div>本地騎師讓磅</div><table class="table_bd">
             <tr><td>本地騎師讓磅</td><td>(截至賽事日:  25/10/2026)</td></tr>
@@ -358,6 +416,157 @@ class OwnerAndIntroTests(unittest.TestCase):
             self.assertEqual(allowance[1], '--')
             self.assertIn('official_ranking_board', tables)
             self.assertNotIn('race_results', sql)
+
+
+class FavouriteIsolationTests(unittest.TestCase):
+    SURFACES = ['rankings', 'draw', 'pools', 'favourites', 'allowance', 'new-horse']
+
+    def rankings(self, queries, today, scraped_at):
+        board = {
+            'role': 'jockey', 'season_code': '26/27', 'season_scope': 'current', 'as_of_date': '2026-10-25',
+            'as_of_kind': 'last_meeting', 'racecourse': 'ALL', 'view_basis': 'Numbers', 'person_code': 'PZ',
+            'name_ch': '潘頓', 'name_en': 'Z Purton', 'status': 'Active', 'section': 'service', 'wins': 4,
+            'seconds': 0, 'thirds': 0, 'fourths': 0, 'fifths': 0, 'starts': 10, 'stake_won': 100,
+            'dh_wins': 0, 'dh_seconds': 0, 'dh_thirds': 0, 'dh_fourths': 0, 'dh_fifths': 0, 'board_rank': 1,
+            'source_sha256': 'ranksha', 'scraped_at': scraped_at,
+        }
+        slice_row = {
+            'role': 'jockey', 'season_code': '26/27', 'as_of_date': '2026-10-25', 'person_code': 'PZ',
+            'stat_set': 'ssn', 'slice_index': 0, 'ven': 'ALL', 'trk': 'ALL', 'wins': 4, 'seconds': 0,
+            'thirds': 0, 'fourths': 0, 'fifths': 0, 'starts': 10, 'stake_won': 100,
+            'source_sha256': 'ranksha', 'scraped_at': scraped_at,
+        }
+        return [board], [slice_row]
+
+    def trainer_page(self, footer):
+        page = PoolAndFavouriteTests().favourite(footer=footer)
+        return page.replace('騎師大熱'.encode(), '練馬師大熱'.encode()).replace(
+            '出賽次數'.encode(), '出馬'.encode(), 1).replace('騎師'.encode(), '練馬師'.encode(), 1)
+
+    def allowance_page(self):
+        return '''<div>本地騎師讓磅</div><table class="table_bd"><tr><td>本地騎師讓磅</td><td>(截至賽事日:  25/10/2026)</td></tr>
+            <tr><td>騎師</td><td>頭馬次數</td><td>現時讓磅</td></tr>
+            <tr><td>何澤堯</td><td>661</td><td>--</td></tr></table>'''.encode()
+
+    def new_horse_list(self):
+        return {'data': [{
+            'name': '20261028', 'path': '/NewHorse/20261028', 'date': 1793116800000,
+            'children': [{
+                'path': '/NewHorse/20261028/L505', 'brandNo': {'value': 'L505'},
+                'horseName': {'value': '同心華駿'}, 'raceNo': {'value': '9'}, 'horseNo': {'value': '8'},
+                'raceDate': {'dateValue': 1793116800000},
+            }],
+        }]}
+
+    def fetch(self, pages):
+        def inner(url, method='GET', body=None, headers=None, attempts=3):
+            if url.endswith('/information/draw'):
+                return pages['draw']
+            if url.endswith('/jkcstat') or url.endswith('/tncstat'):
+                return pages['pool']
+            if url.endswith('/jockeyfavourite'):
+                return pages['jockey']
+            if url.endswith('/trainerfavourite'):
+                return pages['trainer']
+            if url.endswith('/jockeyallowance'):
+                return pages['allowance']
+            if url.endswith('/getNewHorse'):
+                payload = json.loads(body.decode())
+                if payload.get('detail'):
+                    return json.dumps({'data': {'contents': {'rendered': pages['intro']}}}, ensure_ascii=False).encode()
+                return json.dumps(pages['intros'], ensure_ascii=False).encode()
+            raise AssertionError(url)
+        return inner
+
+    def pages(self, jockey):
+        tests = PoolAndFavouriteTests()
+        return {
+            'draw': DrawTests().page(),
+            'pool': tests.pool_html(),
+            'jockey': jockey,
+            'trainer': self.trainer_page('<tr class="empty"><td colspan="10"></td></tr><tr><td colspan="10">其他</td></tr>'),
+            'allowance': self.allowance_page(),
+            'intros': self.new_horse_list(),
+            'intro': OwnerAndIntroTests().intro_html(),
+        }
+
+    def run_job(self, root, jockey, surfaces=None):
+        with patch.object(boards, 'collect_rankings', self.rankings), patch.object(
+            boards, 'fetch_bytes', self.fetch(self.pages(jockey))
+        ):
+            return boards.run(root, surfaces or self.SURFACES, TODAY)
+
+    def test_footer_then_person_does_not_abort_the_job(self):
+        jockey = PoolAndFavouriteTests().favourite(footer=PoolAndFavouriteTests().person_after_footer())
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            summary = self.run_job(root, jockey)
+            stored = boards.read_csv(root / 'data' / 'official_p2' / 'favourite_stat.csv', boards.FAV_COLUMNS)
+            names = [(row['role'], row['person_name']) for row in stored]
+            manifest = (root / 'data' / 'official_p2' / 'manifest.jsonl').read_text(encoding='utf-8')
+            self.assertEqual(summary['favourites'], 3)
+            self.assertNotIn('favourites_rejected', summary)
+            self.assertEqual(names, [('jockey', '潘頓'), ('jockey', '麥道朗'), ('trainer', '潘頓')])
+            self.assertEqual(summary['rankings'], 1)
+            self.assertEqual(summary['draw'], 2)
+            self.assertGreater(summary['pools'], 0)
+            self.assertEqual(summary['allowance'], 1)
+            self.assertEqual(summary['new-horse'], 1)
+            self.assertIn('同心華駿', (root / 'data' / 'official_p2' / 'new_horse_intro.csv').read_text(encoding='utf-8'))
+            self.assertIn('"surface": "favourites"', manifest)
+            self.assertIn('"surface": "new-horse"', manifest)
+
+    def test_deformed_favourites_leave_the_other_surfaces(self):
+        previous = {
+            'role': 'jockey', 'as_of_date': '2026-10-01', 'person_name': '舊資料', 'starts': 1, 'wins': 0,
+            'places': 0, 'hot_count': 0, 'hot_pct': 0, 'hot_wins': 0, 'hot_win_pct': 0, 'hot_places': 0,
+            'hot_place_pct': 0, 'source_sha256': 'old', 'scraped_at': SCRAPED,
+        }
+        previous_total = {
+            'role': 'jockey', 'as_of_date': '2026-10-01', 'label': '大熱馬匹總數', 'value_text': '1',
+            'source_sha256': 'old', 'scraped_at': SCRAPED,
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            base = root / 'data' / 'official_p2'
+            boards.write_csv(base / 'favourite_stat.csv', boards.FAV_COLUMNS, [previous])
+            boards.write_csv(base / 'favourite_summary.csv', boards.FAV_SUM_COLUMNS, [previous_total])
+            before_people = (base / 'favourite_stat.csv').read_bytes()
+            before_totals = (base / 'favourite_summary.csv').read_bytes()
+            summary = self.run_job(root, PoolAndFavouriteTests().favourite(footer='<tr><td>註</td><td>1</td></tr>'))
+            manifest = (base / 'manifest.jsonl').read_text(encoding='utf-8')
+            self.assertIn('favourite row shape changed', summary['favourites_rejected'])
+            self.assertNotIn('favourites', summary)
+            self.assertEqual((base / 'favourite_stat.csv').read_bytes(), before_people)
+            self.assertEqual((base / 'favourite_summary.csv').read_bytes(), before_totals)
+            self.assertEqual(summary['draw'], 2)
+            self.assertEqual(summary['allowance'], 1)
+            self.assertEqual(summary['new-horse'], 1)
+            self.assertNotIn('"surface": "favourites"', manifest)
+            self.assertTrue((base / 'draw_stat.csv').exists())
+            self.assertTrue((base / 'ranking_board.csv').exists())
+            self.assertTrue((base / 'pool_stat.csv').exists())
+
+    def test_deformed_favourites_alone_still_abort(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            with self.assertRaises(boards.IdentityError):
+                self.run_job(Path(tmp), PoolAndFavouriteTests().favourite(footer='<tr><td>註</td><td>1</td></tr>'), ['favourites'])
+
+    def test_deformed_draw_still_aborts_the_job(self):
+        seen = []
+
+        def fetch(url, method='GET', body=None, headers=None, attempts=3):
+            seen.append(url)
+            if url.endswith('/information/draw'):
+                return DrawTests().page(course='未知跑道')
+            raise AssertionError(url)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            with patch.object(boards, 'collect_rankings', self.rankings), patch.object(boards, 'fetch_bytes', fetch):
+                with self.assertRaises(boards.IdentityError):
+                    boards.run(Path(tmp), self.SURFACES, TODAY)
+        self.assertTrue(any(url.endswith('/information/draw') for url in seen))
+        self.assertFalse(any('favourite' in url for url in seen))
 
 
 if __name__ == '__main__':
