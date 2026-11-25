@@ -1,0 +1,242 @@
+{
+  "captured_at": "2026-11-25T04:07:09.000Z",
+  "card_status": "declared",
+  "completeness": "partial",
+  "content_sha256": "257e892686b2c6fb0e7cc46342970f16622b182b7c410c5294686346f4874ecc",
+  "created_at": "2026-11-25T04:07:09.000Z",
+  "first_post_at": "2026-11-25T18:40:00+08:00",
+  "gaps": [
+    {
+      "reason": "recrawl_failed",
+      "status": "gap",
+      "surface": "official_horse_rating"
+    },
+    {
+      "reason": "recrawl_failed",
+      "status": "gap",
+      "surface": "official_horse_directory"
+    },
+    {
+      "reason": "recrawl_failed",
+      "status": "gap",
+      "surface": "official_person_season"
+    },
+    {
+      "reason": "recrawl_failed",
+      "status": "gap",
+      "surface": "official_person_winstat"
+    },
+    {
+      "reason": "recrawl_failed",
+      "status": "gap",
+      "surface": "official_same_sire"
+    },
+    {
+      "reason": "recrawl_failed",
+      "status": "gap",
+      "surface": "official_same_sire_page"
+    },
+    {
+      "reason": "recrawl_failed",
+      "status": "gap",
+      "surface": "official_wind_meeting"
+    },
+    {
+      "reason": "recrawl_failed",
+      "status": "gap",
+      "surface": "official_wind_going"
+    },
+    {
+      "reason": "recrawl_failed",
+      "status": "gap",
+      "surface": "official_wind_station"
+    },
+    {
+      "reason": "recrawl_failed",
+      "status": "gap",
+      "surface": "official_wind_section"
+    }
+  ],
+  "last_post_at": "2026-11-25T14:50:00.000Z",
+  "lock_at": "2026-11-25T09:10:00.000Z",
+  "lock_crosscheck": {
+    "local": {
+      "firstPostAt": "2026-11-25T18:40:00+08:00",
+      "lockAt": "2026-11-25T09:10:00.000Z"
+    },
+    "remote": {
+      "firstPostAt": "2026-11-25T18:40:00+08:00",
+      "lockAt": "2026-11-25T09:10:00.000Z"
+    },
+    "status": "match"
+  },
+  "meeting_date": "2026-11-25",
+  "snapshot_id": "cdd2ad91ad6f628bbac82221c310d07dcbdfdd81feb777074869b31516e89909",
+  "snapshot_kind": "card_status",
+  "source_commit": "7e390771f8bd8d25a290156c9e68595bd9c6279e",
+  "surfaces": [
+    {
+      "captured_at": "2026-11-25T04:07:32.614Z",
+      "gap_reason": null,
+      "repo_path": "data/official_snapshots/2026-11-25_HV/card_status_declared_20261125T040709Z/entries_upcoming.csv",
+      "row_count": 108,
+      "source_sha256": "881e27f0e24b6e0f397ca1a992084c3740a371d2b00fd98a3939d3e66ee23920",
+      "status": "present",
+      "surface": "entries_upcoming"
+    },
+    {
+      "captured_at": "2026-11-25T04:07:28+00:00",
+      "gap_reason": null,
+      "repo_path": "data/official_snapshots/2026-11-25_HV/card_status_declared_20261125T040709Z/official_racecard_runner.csv",
+      "row_count": 125,
+      "source_sha256": "b74af228e3f4f78299952db352771604895aecfce131190843748fe94c320e72",
+      "status": "present",
+      "surface": "official_racecard_runner"
+    },
+    {
+      "captured_at": "2026-11-25T04:07:15+00:00",
+      "gap_reason": null,
+      "repo_path": "data/official_snapshots/2026-11-25_HV/card_status_declared_20261125T040709Z/official_ove_record.csv",
+      "row_count": 6,
+      "source_sha256": "8d66eb1d512c4e9d437850a30bcd97bd959140b8d6af159bbc1b82226781dee6",
+      "status": "present",
+      "surface": "official_ove_record"
+    },
+    {
+      "captured_at": "2026-11-25T04:07:13+00:00",
+      "gap_reason": null,
+      "repo_path": "data/official_snapshots/2026-11-25_HV/card_status_declared_20261125T040709Z/official_ove_database.csv",
+      "row_count": 836,
+      "source_sha256": "58247a648991687178285ac8512e442e1ebdf02cc78cb0e716cf9f7eb0ca28b1",
+      "status": "present",
+      "surface": "official_ove_database"
+    },
+    {
+      "captured_at": "2026-11-25T04:07:20+00:00",
+      "gap_reason": null,
+      "repo_path": "data/official_snapshots/2026-11-25_HV/card_status_declared_20261125T040709Z/official_conghua_movement.csv",
+      "row_count": 61,
+      "source_sha256": "f98c4c3efe98e67058627f76ea72219aa5c300b0c71dd45ee5ca5e109682a79f",
+      "status": "present",
+      "surface": "official_conghua_movement"
+    },
+    {
+      "captured_at": "2026-11-25T04:07:18+00:00",
+      "gap_reason": null,
+      "repo_path": "data/official_snapshots/2026-11-25_HV/card_status_declared_20261125T040709Z/official_jt_combo.csv",
+      "row_count": 110,
+      "source_sha256": "0b7d1b4bbb0a5d7a580ea685248f7f6716951b908ee9cfc863320338e2bd8b5e",
+      "status": "present",
+      "surface": "official_jt_combo"
+    },
+    {
+      "captured_at": "2026-11-25T04:07:20+00:00",
+      "gap_reason": null,
+      "repo_path": "data/official_snapshots/2026-11-25_HV/card_status_declared_20261125T040709Z/official_fwb_declared.csv",
+      "row_count": 9,
+      "source_sha256": "fae9585bea7fa3540b01cb2fcb61587f37051cd05703ffeb9505976958ee4c60",
+      "status": "present",
+      "surface": "official_fwb_declared"
+    },
+    {
+      "captured_at": null,
+      "gap_reason": "recrawl_failed",
+      "repo_path": null,
+      "row_count": 0,
+      "source_sha256": null,
+      "status": "gap",
+      "surface": "official_horse_rating"
+    },
+    {
+      "captured_at": null,
+      "gap_reason": "recrawl_failed",
+      "repo_path": null,
+      "row_count": 0,
+      "source_sha256": null,
+      "status": "gap",
+      "surface": "official_horse_directory"
+    },
+    {
+      "captured_at": null,
+      "gap_reason": "recrawl_failed",
+      "repo_path": null,
+      "row_count": 0,
+      "source_sha256": null,
+      "status": "gap",
+      "surface": "official_person_season"
+    },
+    {
+      "captured_at": null,
+      "gap_reason": "recrawl_failed",
+      "repo_path": null,
+      "row_count": 0,
+      "source_sha256": null,
+      "status": "gap",
+      "surface": "official_person_winstat"
+    },
+    {
+      "captured_at": null,
+      "gap_reason": "recrawl_failed",
+      "repo_path": null,
+      "row_count": 0,
+      "source_sha256": null,
+      "status": "gap",
+      "surface": "official_same_sire"
+    },
+    {
+      "captured_at": null,
+      "gap_reason": "recrawl_failed",
+      "repo_path": null,
+      "row_count": 0,
+      "source_sha256": null,
+      "status": "gap",
+      "surface": "official_same_sire_page"
+    },
+    {
+      "captured_at": "2026-11-25T04:07:17+00:00",
+      "gap_reason": null,
+      "repo_path": "data/official_snapshots/2026-11-25_HV/card_status_declared_20261125T040709Z/official_ppo_performance.csv",
+      "row_count": 1270,
+      "source_sha256": "8b20ce196e226068650fee748a1c93ad1a9298542ce2948be7a834dbc111b0c6",
+      "status": "present",
+      "surface": "official_ppo_performance"
+    },
+    {
+      "captured_at": null,
+      "gap_reason": "recrawl_failed",
+      "repo_path": null,
+      "row_count": 0,
+      "source_sha256": null,
+      "status": "gap",
+      "surface": "official_wind_meeting"
+    },
+    {
+      "captured_at": null,
+      "gap_reason": "recrawl_failed",
+      "repo_path": null,
+      "row_count": 0,
+      "source_sha256": null,
+      "status": "gap",
+      "surface": "official_wind_going"
+    },
+    {
+      "captured_at": null,
+      "gap_reason": "recrawl_failed",
+      "repo_path": null,
+      "row_count": 0,
+      "source_sha256": null,
+      "status": "gap",
+      "surface": "official_wind_station"
+    },
+    {
+      "captured_at": null,
+      "gap_reason": "recrawl_failed",
+      "repo_path": null,
+      "row_count": 0,
+      "source_sha256": null,
+      "status": "gap",
+      "surface": "official_wind_section"
+    }
+  ],
+  "venue": "HV"
+}
