@@ -184,8 +184,8 @@
 | [檔位進階搜尋](https://racing.hkjc.com/zh-hk/local/information/drawadvsearch) | 已有（研究） | 馬季、馬場－跑道（含從化）、賽道、途程、場地狀況 | `official_draw_adv_stat`（`going=ALL`）。草地場必須逐個 named 賽道收；未開跑組合回空表屬正常（表格頁仍在）。`capy_wave4_boards`：每日今季、星期一補舊季 | 參數 `Year`、`Racecourse`、`Course`、`Distance`、`Going` |
 | [練馬師王統計](https://racing.hkjc.com/zh-hk/local/information/tncstat) | 已有 | 編號、練馬師、近十個賽事日積分、平均、季度 | `official_pool_stat`，`pool=tnc`。`-` 留 NULL。截至最近一欄賽事日。`capy_official_p2` | 欄頭日期係過去賽馬日 |
 | [騎師王統計](https://racing.hkjc.com/zh-hk/local/information/jkcstat) | 已有 | 同上，騎師 | 同表，`pool=jkc` | 同上 |
-| [騎師大熱](https://racing.hkjc.com/zh-hk/local/information/jockeyfavourite) | 已有 | 出賽、頭馬、位置、大熱次數同百分比、大熱勝出、大熱入位。截至賽事日 | `official_favourite_stat`、`official_favourite_summary`。頁尾「其他」冇數字，唔造人。同 `capy_official_p2` | — |
-| [練馬師大熱](https://racing.hkjc.com/zh-hk/local/information/trainerfavourite) | 已有 | 同上 | 同表，`role=trainer` | — |
+| [騎師大熱](https://racing.hkjc.com/zh-hk/local/information/jockeyfavourite) | 已有 | 出賽、頭馬、位置、大熱次數同百分比、大熱勝出、大熱入位。截至賽事日 | `official_favourite_stat`、`official_favourite_summary`。頁尾「其他」冇數字，唔造人。2026-11-22 起官方表可在「其他」後再加完整十欄騎師列，該列照收。這一面變形只拒大熱，唔中止同次的榜、檔位、彩池、讓磅、初出馬。同 `capy_official_p2` | — |
+| [練馬師大熱](https://racing.hkjc.com/zh-hk/local/information/trainerfavourite) | 已有 | 同上 | 同表，`role=trainer`。頁尾可以停在「其他」，後面冇人。 | — |
 | [騎師王賠率走勢](https://racing.hkjc.com/zh-hk/local/page/jkc-odds-chart) | 已有 | 每場開盤同逐場最後賠率、得主、積分。`-` 係未公布 | `official_challenge_odds`（`pool=jkc`）。用該頁的 `getOddsChart`，`requestType=jkc`，唔加欄。開盤係 `race_no=0`。同一日兩位得主各記一行。`not_race_result=1`，唔寫 `odds_snapshots`。`capy_wave5_visible` | 圖上的賽事日早過或等於更新時間 |
 | [練馬師王賠率走勢](https://racing.hkjc.com/zh-hk/local/page/tnc-odds-chart) | 已有 | 同上，練馬師 | 同表，`pool=tnc` | 同上 |
 

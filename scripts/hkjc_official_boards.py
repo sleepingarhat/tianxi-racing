@@ -17,6 +17,7 @@ import io
 import json
 import re
 import sqlite3
+import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal, ROUND_HALF_UP
@@ -652,9 +653,10 @@ FAV_HEADERS = {
 
 
 def favourite_footer_label(values: list[str]) -> str | None:
-    """The live board closes with a blank colspan row, then 其他, and sometimes a rule.
+    """Footer rows publish no counts: a blank colspan, then 其他, and sometimes a rule.
 
-    Those rows publish no counts. A person named 其他 with invented zeros would not be the page.
+    A 10-column row is a person, not a footer. From 2026-11-22 the jockey board
+    places at least one such row after 其他. 其他 itself is still not a person.
     """
     if len(values) == 10:
         return None
@@ -664,6 +666,27 @@ def favourite_footer_label(values: list[str]) -> str | None:
     if label in ('其他', '---'):
         return label
     return None
+
+
+def _favourite_person(values: list[str], role: str, as_of: str, seen: set[str], digest: str, scraped_at: str) -> dict:
+    if len(values) != 10:
+        raise IdentityError('favourite row shape changed')
+    name = values[0]
+    if name in ('其他', '---') or not name or name in seen:
+        raise IdentityError('favourite name missing or duplicated')
+    seen.add(name)
+    numbers = [whole(item, 'favourite') for item in values[1:5]]
+    percents = [percent_number(item, 'favourite') for item in (values[5], values[7], values[9])]
+    counts = [whole(values[6], 'favourite'), whole(values[8], 'favourite')]
+    starts, wins, places, hot_count = numbers
+    if wins > starts or places > starts or hot_count > starts or counts[0] > hot_count or counts[1] > hot_count:
+        raise IdentityError('favourite counts are not inside the official starts')
+    return {
+        'role': role, 'as_of_date': as_of, 'person_name': name, 'starts': numbers[0], 'wins': numbers[1],
+        'places': numbers[2], 'hot_count': numbers[3], 'hot_pct': percents[0], 'hot_wins': counts[0],
+        'hot_win_pct': percents[1], 'hot_places': counts[1], 'hot_place_pct': percents[2],
+        'source_sha256': digest, 'scraped_at': scraped_at,
+    }
 
 
 def parse_favourite(raw: bytes, role: str, today: date, digest: str, scraped_at: str) -> tuple[list[dict], list[dict]]:
@@ -682,35 +705,33 @@ def parse_favourite(raw: bytes, role: str, today: date, digest: str, scraped_at:
         raise IdentityError('favourite as-of date is still in the future')
     if cells(header_rows[1]) != FAV_HEADERS[role]:
         raise IdentityError('favourite columns are not the official header')
-    people, seen, footers = [], set(), []
-    for tr in header_rows[2:]:
-        values = cells(tr)
+    body = header_rows[2:]
+    people, seen = [], set()
+    index = 0
+    while index < len(body):
+        values = cells(body[index])
+        if favourite_footer_label(values) is not None:
+            break
+        people.append(_favourite_person(values, role, as_of, seen, digest, scraped_at))
+        index += 1
+    footers = []
+    while index < len(body):
+        values = cells(body[index])
         footer = favourite_footer_label(values)
-        if footer is not None:
-            footers.append(footer)
-            continue
-        if len(values) != 10:
-            raise IdentityError('favourite row shape changed')
-        if footers:
-            raise IdentityError('favourite person row follows the official footer')
-        name = values[0]
-        if not name or name in seen:
-            raise IdentityError('favourite name missing or duplicated')
-        seen.add(name)
-        numbers = [whole(item, 'favourite') for item in values[1:5]]
-        percents = [percent_number(item, 'favourite') for item in (values[5], values[7], values[9])]
-        counts = [whole(values[6], 'favourite'), whole(values[8], 'favourite')]
-        starts, wins, places, hot_count = numbers
-        if wins > starts or places > starts or hot_count > starts or counts[0] > hot_count or counts[1] > hot_count:
-            raise IdentityError('favourite counts are not inside the official starts')
-        people.append({
-            'role': role, 'as_of_date': as_of, 'person_name': name, 'starts': numbers[0], 'wins': numbers[1],
-            'places': numbers[2], 'hot_count': numbers[3], 'hot_pct': percents[0], 'hot_wins': counts[0],
-            'hot_win_pct': percents[1], 'hot_places': counts[1], 'hot_place_pct': percents[2],
-            'source_sha256': digest, 'scraped_at': scraped_at,
-        })
+        if footer is None:
+            break
+        footers.append(footer)
+        index += 1
     if footers[:2] != ['blank', '其他'] or footers[2:] not in ([], ['---']):
         raise IdentityError('favourite board is missing the official 其他 footer')
+    # The closer stays blank + 其他 (+ optional rule). Full person rows after that
+    # closer are official riders, seen on the jockey board from 2026-11-22.
+    while index < len(body):
+        values = cells(body[index])
+        if favourite_footer_label(values) is not None:
+            raise IdentityError('favourite row shape changed')
+        people.append(_favourite_person(values, role, as_of, seen, digest, scraped_at))
+        index += 1
     if not people:
         raise IdentityError('favourite board is empty')
     totals = []
@@ -1039,6 +1060,7 @@ def run(root: Path, surfaces: list[str], today: date, requested_date: str = '', 
     scraped_at = scraped_now()
     queries = load_queries()
     summary = {}
+    favourites_rejected: IdentityError | None = None
     if 'rankings' in surfaces:
         boards, slices = collect_rankings(queries, today, scraped_at)
         store_surface(root, 'ranking_board', boards)
@@ -1068,16 +1090,23 @@ def run(root: Path, surfaces: list[str], today: date, requested_date: str = '', 
         append_manifest(root, 'pools', pool_rows[0]['source_sha256'], scraped_at, len(pool_rows))
         summary['pools'] = len(pool_rows)
     if 'favourites' in surfaces:
-        people, totals = [], []
-        for role, path in (('jockey', 'jockeyfavourite'), ('trainer', 'trainerfavourite')):
-            raw = fetch_bytes(f'{SITE}/zh-hk/local/information/{path}')
-            person_rows, total_rows = parse_favourite(raw, role, today, sha256(raw), scraped_at)
-            people.extend(person_rows)
-            totals.extend(total_rows)
-        store_surface(root, 'favourite_stat', people)
-        store_surface(root, 'favourite_summary', totals)
-        append_manifest(root, 'favourites', people[0]['source_sha256'], scraped_at, len(people))
-        summary['favourites'] = len(people)
+        try:
+            people, totals = [], []
+            for role, path in (('jockey', 'jockeyfavourite'), ('trainer', 'trainerfavourite')):
+                raw = fetch_bytes(f'{SITE}/zh-hk/local/information/{path}')
+                person_rows, total_rows = parse_favourite(raw, role, today, sha256(raw), scraped_at)
+                people.extend(person_rows)
+                totals.extend(total_rows)
+            store_surface(root, 'favourite_stat', people)
+            store_surface(root, 'favourite_summary', totals)
+            append_manifest(root, 'favourites', people[0]['source_sha256'], scraped_at, len(people))
+            summary['favourites'] = len(people)
+        except IdentityError as exc:
+            # A deformed favourites table is not stored. Rankings, draw, pools,
+            # allowance, and new-horse in this same run still proceed.
+            favourites_rejected = exc
+            summary['favourites_rejected'] = str(exc)
+            print(f'::warning::favourites rejected: {exc}', file=sys.stderr)
     if 'allowance' in surfaces:
         raw = fetch_bytes(SITE + '/zh-hk/local/information/jockeyallowance')
         rows = parse_allowance(raw, today, sha256(raw), scraped_at)
@@ -1126,6 +1155,8 @@ def run(root: Path, surfaces: list[str], today: date, requested_date: str = '', 
         store_surface(root, 'owner_horse', owner_rows)
         append_manifest(root, 'owners', owner_rows[0]['source_sha256'], scraped_at, len(owner_rows))
         summary['owners'] = len(owner_rows)
+    if favourites_rejected is not None and not any(name in summary for name in surfaces if name != 'favourites'):
+        raise favourites_rejected
     return summary
 
 

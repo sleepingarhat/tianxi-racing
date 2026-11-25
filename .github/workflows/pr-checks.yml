@@ -113,6 +113,7 @@ jobs:
           python3 -m unittest discover -s ../scripts -p 'test_results_header_guard.py'
           python3 -m unittest discover -s ../scripts -p 'test_job_ticks.py'
           python3 -m pip install --break-system-packages beautifulsoup4==4.14.2
+          python3 -m unittest discover -s ../scripts -p 'test_hkjc_official_boards.py'
           python3 -m unittest discover -s ../scripts -p 'test_hkjc_raceday_companions.py'
           python3 -m unittest discover -s ../scripts -p 'test_hkjc_wave5_visible.py'
           python3 -m unittest discover -s ../scripts -p 'test_d1_execute_file.py'
