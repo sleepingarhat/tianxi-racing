@@ -1,7 +1,8 @@
 """Join, sentinel, and leakage rules for official point-in-time snapshots.
 
-FWB horse numbers are not rewritten. A reserve row is joined by brand_no, then
-race_no. passed OVE dates are not current risk. last10_wins is last-10-raceday
+FWB horse numbers are not rewritten. A row is joined by brand or horse_id,
+including when the racecard runner is a reserve, then race_no is confirmed.
+passed OVE dates are not current risk. last10_wins is last-10-raceday
 wins and is not capped at 10.
 """
 from __future__ import annotations
@@ -9,7 +10,7 @@ from __future__ import annotations
 import re
 
 BRAND = re.compile(r'^[A-Z]\d{3}$')
-HORSE_ID = re.compile(r'^HK_\d{4}_[A-Z]\d{3}$')
+HORSE_ID = re.compile(r'^HK_\d{4}_(?P<brand>[A-Z]\d{3})$')
 NAME_BRAND = re.compile(r'^(?P<name>.+?)\s*\(([A-Z]\d{3})\)$')
 IMPORT_CODES = frozenset({'PPG', 'PP', 'ISG'})
 
@@ -175,44 +176,84 @@ def leakage_surface(name: str) -> bool:
     return name in LEAKAGE or name in POST_RACE_ONLY
 
 
-def join_fwb(fwb_rows: list[dict], starters: list[dict]) -> list[dict]:
-    """Join FWB by brand_no, then confirm race_no. Never by horse_no alone.
+def _brand_of(row: dict) -> str:
+    """Official brand, or the brand embedded in HK_YYYY_BRAND. Never a saddle number."""
+    brand = str(row.get('brand_no') or row.get('brand') or '')
+    if BRAND.fullmatch(brand):
+        return brand
+    match = HORSE_ID.fullmatch(str(row.get('horse_id') or ''))
+    return match.group('brand') if match else ''
 
-    Reserve horse_no values collide with starter numbers. The FWB horse_no is
-    left as captured; this function does not rewrite it.
+
+def _horse_id_of(row: dict) -> str:
+    horse_id = str(row.get('horse_id') or '')
+    return horse_id if HORSE_ID.fullmatch(horse_id) else ''
+
+
+def join_fwb(fwb_rows: list[dict], starters: list[dict]) -> list[dict]:
+    """Join one FWB row to one runner by brand or horse_id, then confirm race_no.
+
+    Standby numbers (`STBY-1` → horse_no 1, is_reserve 1) reuse declared saddle
+    numbers. A reserve and a declared runner that share a number stay distinct
+    unless they are the same brand. Racecard reserves are eligible matches:
+    a standby bonus follows that brand onto a declared saddle when the card
+    has already given the horse one. The captured FWB horse_no is not rewritten.
     """
-    starters_by_brand: dict[tuple[int, str], list[dict]] = {}
+    by_brand: dict[tuple[int, str], list[dict]] = {}
+    by_id: dict[tuple[int, str], list[dict]] = {}
     for starter in starters:
-        if int(starter.get('is_reserve') or 0) == 1:
-            continue
-        brand = str(starter.get('brand_no') or starter.get('brand') or '')
-        if not BRAND.fullmatch(brand):
-            continue
-        starters_by_brand.setdefault((int(starter['race_no']), brand), []).append(starter)
+        race_no = int(starter['race_no'])
+        brand = _brand_of(starter)
+        if brand:
+            by_brand.setdefault((race_no, brand), []).append(starter)
+        horse_id = _horse_id_of(starter)
+        if horse_id:
+            by_id.setdefault((race_no, horse_id), []).append(starter)
     attached = []
     for row in fwb_rows:
-        brand = str(row.get('brand_no') or '')
+        explicit_brand = str(row.get('brand_no') or row.get('brand') or '')
+        explicit_brand = explicit_brand if BRAND.fullmatch(explicit_brand) else ''
+        brand = explicit_brand or _brand_of(row)
         race_no = int(row['race_no'])
         horse_no = int(row['horse_no'])
-        matches = starters_by_brand.get((race_no, brand), []) if BRAND.fullmatch(brand) else []
+        horse_id = _horse_id_of(row)
+        id_matches = by_id.get((race_no, horse_id), []) if horse_id else []
+        brand_matches = by_brand.get((race_no, brand), []) if brand else []
+        # A brand and a horse_id that name different runners are not a match.
+        # Either identity alone is enough. Saddle number is never enough.
+        if horse_id and explicit_brand:
+            agreed = [runner for runner in id_matches if runner in brand_matches]
+            matches = agreed if len(agreed) == 1 else []
+            matched_by = 'horse_id' if len(agreed) == 1 else None
+        elif horse_id:
+            matches = id_matches if len(id_matches) == 1 else []
+            matched_by = 'horse_id' if len(id_matches) == 1 else None
+        else:
+            matches = brand_matches if len(brand_matches) == 1 else []
+            matched_by = 'brand' if len(brand_matches) == 1 else None
         rejected = []
         for starter in starters:
-            if int(starter.get('is_reserve') or 0) == 1:
-                continue
             if int(starter['race_no']) != race_no or int(starter['horse_no']) != horse_no:
                 continue
-            starter_brand = str(starter.get('brand_no') or starter.get('brand') or '')
+            starter_brand = _brand_of(starter)
             if starter_brand != brand:
-                rejected.append({'horse_no': int(starter['horse_no']), 'brand_no': starter_brand})
-        starter_no = int(matches[0]['horse_no']) if len(matches) == 1 else None
+                rejected.append({
+                    'horse_no': int(starter['horse_no']),
+                    'brand_no': starter_brand,
+                    'is_reserve': int(starter.get('is_reserve') or 0),
+                })
+        match = matches[0] if len(matches) == 1 else None
         attached.append({
             'brand_no': brand,
             'fwb_horse_no': horse_no,
             'fwb_is_reserve': int(row.get('is_reserve') or 0),
             'race_no': race_no,
-            'starter_horse_no': starter_no,
-            'starter_brand': brand if len(matches) == 1 else None,
-            'attached': len(matches) == 1,
+            'starter_horse_no': None if match is None else int(match['horse_no']),
+            'starter_brand': None if match is None else _brand_of(match),
+            'card_is_reserve': None if match is None else int(match.get('is_reserve') or 0),
+            'card_horse_id': None if match is None else (_horse_id_of(match) or None),
+            'matched_by': matched_by if match is not None else None,
+            'attached': match is not None,
             'horse_no_rewritten': False,
             'rejected_same_horse_no': rejected,
         })

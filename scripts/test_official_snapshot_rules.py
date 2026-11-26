@@ -213,8 +213,121 @@ class JoinTests(unittest.TestCase):
         self.assertFalse(joined[0]['horse_no_rewritten'])
         self.assertEqual(joined[0]['starter_horse_no'], 11)
         self.assertEqual(joined[0]['starter_brand'], 'M021')
-        self.assertEqual(joined[0]['rejected_same_horse_no'], [{'horse_no': 1, 'brand_no': 'J290'}])
+        self.assertEqual(joined[0]['rejected_same_horse_no'], [{'horse_no': 1, 'brand_no': 'J290', 'is_reserve': 0}])
+        self.assertEqual(joined[0]['card_is_reserve'], 0)
+        self.assertEqual(joined[0]['card_horse_id'], 'HK_2026_M021')
+        self.assertEqual(joined[0]['matched_by'], 'brand')
         self.assertNotEqual(joined[0]['starter_brand'], 'J290')
+
+    def test_fwb_standby_numbers_stay_off_a_different_brand(self):
+        """11-25 HV R8 and 11-29 ST collisions. Same saddle, different brand, stays distinct.
+
+        Captured list numbers are the reproduction. M021 is bonus-list STBY-1 and
+        racecard 11. M072 is only STBY-1. L435 is STBY-1 and also the racecard
+        reserve 1. L529 is still labelled STBY-1 after the card gave it saddle 3.
+        """
+        cases = [
+            {
+                'name': '2026-11-25 HV R8 M021',
+                'runners': [
+                    {'race_no': 8, 'horse_no': 1, 'is_reserve': 0, 'brand_no': 'J290', 'horse_id': 'HK_2023_J290'},
+                    {'race_no': 8, 'horse_no': 11, 'is_reserve': 0, 'brand_no': 'M021', 'horse_id': 'HK_2026_M021'},
+                ],
+                'fwb': {'race_no': 8, 'horse_no': 1, 'is_reserve': 1, 'brand_no': 'M021', 'horse_name_ch': '天時威威'},
+                'card_no': 11,
+                'card_brand': 'M021',
+                'card_reserve': 0,
+                'card_id': 'HK_2026_M021',
+                'rejected_brand': 'J290',
+            },
+            {
+                'name': '2026-11-29 ST R8 M072',
+                'runners': [
+                    {'race_no': 8, 'horse_no': 1, 'is_reserve': 0, 'brand_no': 'J157', 'horse_id': 'HK_2023_J157'},
+                ],
+                'fwb': {'race_no': 8, 'horse_no': 1, 'is_reserve': 1, 'brand_no': 'M072', 'horse_name_ch': '黃金戰士'},
+                'card_no': None,
+                'card_brand': None,
+                'card_reserve': None,
+                'card_id': None,
+                'rejected_brand': 'J157',
+            },
+            {
+                'name': '2026-11-29 ST R10 L435',
+                'runners': [
+                    {'race_no': 10, 'horse_no': 1, 'is_reserve': 0, 'brand_no': 'L152', 'horse_id': 'HK_2025_L152'},
+                    {'race_no': 10, 'horse_no': 1, 'is_reserve': 1, 'brand_no': 'L435', 'horse_id': 'HK_2025_L435'},
+                ],
+                'fwb': {'race_no': 10, 'horse_no': 1, 'is_reserve': 1, 'brand_no': 'L435', 'horse_name_ch': '風耀奪標'},
+                'card_no': 1,
+                'card_brand': 'L435',
+                'card_reserve': 1,
+                'card_id': 'HK_2025_L435',
+                'rejected_brand': 'L152',
+            },
+            {
+                'name': '2026-11-29 ST R11 L529',
+                'runners': [
+                    {'race_no': 11, 'horse_no': 1, 'is_reserve': 0, 'brand_no': 'L226', 'horse_id': 'HK_2025_L226'},
+                    {'race_no': 11, 'horse_no': 3, 'is_reserve': 0, 'brand_no': 'L529', 'horse_id': 'HK_2025_L529'},
+                ],
+                'fwb': {'race_no': 11, 'horse_no': 1, 'is_reserve': 1, 'brand_no': 'L529', 'horse_name_ch': '賀長勝'},
+                'card_no': 3,
+                'card_brand': 'L529',
+                'card_reserve': 0,
+                'card_id': 'HK_2025_L529',
+                'rejected_brand': 'L226',
+            },
+        ]
+        for case in cases:
+            original = dict(case['fwb'])
+            joined = join_fwb([case['fwb']], case['runners'])[0]
+            self.assertEqual(case['fwb'], original, case['name'])
+            self.assertFalse(joined['horse_no_rewritten'], case['name'])
+            self.assertEqual(joined['fwb_horse_no'], 1, case['name'])
+            self.assertEqual(joined['starter_horse_no'], case['card_no'], case['name'])
+            self.assertEqual(joined['starter_brand'], case['card_brand'], case['name'])
+            self.assertEqual(joined['card_is_reserve'], case['card_reserve'], case['name'])
+            self.assertEqual(joined['card_horse_id'], case['card_id'], case['name'])
+            rejected = {item['brand_no'] for item in joined['rejected_same_horse_no']}
+            self.assertIn(case['rejected_brand'], rejected, case['name'])
+            self.assertNotIn(case['card_brand'], rejected, case['name'])
+            self.assertNotEqual(joined['starter_brand'], case['rejected_brand'], case['name'])
+
+    def test_fwb_same_number_still_joins_when_the_brand_agrees(self):
+        """A shared saddle is the same horse when the brand agrees, and not when it does not."""
+        runners = [
+            {'race_no': 8, 'horse_no': 5, 'is_reserve': 0, 'brand_no': 'L511', 'horse_id': 'HK_2025_L511'},
+            {'race_no': 8, 'horse_no': 5, 'is_reserve': 1, 'brand_no': 'M999', 'horse_id': 'HK_2026_M999'},
+        ]
+        agreed = join_fwb(
+            [{'race_no': 8, 'horse_no': 5, 'is_reserve': 0, 'brand_no': 'L511'}],
+            runners,
+        )[0]
+        self.assertTrue(agreed['attached'])
+        self.assertEqual(agreed['starter_brand'], 'L511')
+        self.assertEqual(agreed['card_is_reserve'], 0)
+        self.assertEqual(agreed['rejected_same_horse_no'], [{'horse_no': 5, 'brand_no': 'M999', 'is_reserve': 1}])
+        other = join_fwb(
+            [{'race_no': 8, 'horse_no': 5, 'is_reserve': 1, 'brand_no': 'M999'}],
+            runners,
+        )[0]
+        self.assertEqual(other['starter_brand'], 'M999')
+        self.assertEqual(other['card_is_reserve'], 1)
+        self.assertEqual(other['rejected_same_horse_no'][0]['brand_no'], 'L511')
+        by_id = join_fwb(
+            [{'race_no': 8, 'horse_no': 1, 'is_reserve': 1, 'brand_no': '', 'horse_id': 'HK_2025_L511'}],
+            runners,
+        )[0]
+        self.assertEqual(by_id['matched_by'], 'horse_id')
+        self.assertEqual(by_id['starter_brand'], 'L511')
+        self.assertEqual(by_id['starter_horse_no'], 5)
+        clash = join_fwb(
+            [{'race_no': 8, 'horse_no': 5, 'is_reserve': 0, 'brand_no': 'J290', 'horse_id': 'HK_2025_L511'}],
+            runners,
+        )[0]
+        self.assertFalse(clash['attached'])
+        self.assertIsNone(clash['starter_brand'])
 
     def test_last10_wins_passed_ove_blank_deltas_and_import_codes(self):
         parsed = interpret_last10_wins({'last10_wins': 19})
