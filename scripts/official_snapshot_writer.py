@@ -93,6 +93,15 @@ def poll_path(repo: Path) -> Path:
     return snapshots_root(repo) / 'poll.jsonl'
 
 
+def ticks_path(repo: Path) -> Path:
+    return snapshots_root(repo) / 'ticks.jsonl'
+
+
+def append_tick(repo: Path, record: dict) -> None:
+    """Append one freeze-window decision. Idle ticks are not recorded."""
+    append_jsonl(ticks_path(repo), record)
+
+
 def load_manifest(repo: Path) -> list[dict]:
     return read_jsonl(manifest_path(repo))
 

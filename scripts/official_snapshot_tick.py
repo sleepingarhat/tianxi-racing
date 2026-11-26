@@ -36,6 +36,7 @@ from official_snapshot_writer import (
     SnapshotConflict,
     append_gap_event,
     append_poll,
+    append_tick,
     assemble_snapshot,
     content_sha256,
     emit_d1_sql,
@@ -411,6 +412,45 @@ def _load_json(path: str | None):
     return json.loads(Path(path).read_text(encoding='utf-8'))
 
 
+def _env_flag(name: str) -> bool:
+    return os.environ.get(name) == 'true'
+
+
+def _env_int(name: str) -> int:
+    raw = os.environ.get(name) or '0'
+    try:
+        return int(raw)
+    except ValueError:
+        return 0
+
+
+def arm_note_from_env() -> dict | None:
+    """Persist a freeze-window decision. Idle plans stay in the Actions log only."""
+    action = os.environ.get('OFFICIAL_SNAPSHOT_ACTION') or ''
+    if action not in ('capture_now', 'record_gap'):
+        return None
+    meeting = os.environ.get('OFFICIAL_SNAPSHOT_MEETING') or ''
+    meeting_date, _, venue = meeting.partition('|')
+    return {
+        'decided_at': os.environ.get('OFFICIAL_SNAPSHOT_NOW') or utc_iso(datetime.now(timezone.utc)),
+        'meeting_date': meeting_date,
+        'venue': venue,
+        'snapshot_kind': 'freeze',
+        'action': action,
+        'phase': os.environ.get('OFFICIAL_SNAPSHOT_PHASE') or '',
+        'reason': os.environ.get('OFFICIAL_SNAPSHOT_REASON') or '',
+        'lock_at': os.environ.get('OFFICIAL_SNAPSHOT_LOCK_AT') or '',
+        'first_post_at': os.environ.get('OFFICIAL_SNAPSHOT_FIRST_POST_AT') or '',
+        'wake_at': os.environ.get('OFFICIAL_SNAPSHOT_WAKE_AT') or '',
+        'slept_seconds': _env_int('OFFICIAL_SNAPSHOT_SLEPT_SECONDS'),
+        'margin_seconds': _env_int('OFFICIAL_SNAPSHOT_MARGIN_SECONDS'),
+        'catch_up': _env_flag('OFFICIAL_SNAPSHOT_CATCH_UP'),
+        'not_backfilled': _env_flag('OFFICIAL_SNAPSHOT_NOT_BACKFILLED'),
+        'trigger': os.environ.get('OFFICIAL_SNAPSHOT_TRIGGER') or '',
+        'source_workflow': os.environ.get('OFFICIAL_SNAPSHOT_SOURCE') or '',
+    }
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description='Write append-only official HKJC snapshots')
     parser.add_argument('--root', default='.')
@@ -455,6 +495,28 @@ def main() -> None:
         repo, now, clocks, lock_state, payloads, card_signals, voids,
         recrawl=recrawl, kinds=kinds, source_commit=os.environ.get('GITHUB_SHA'),
     )
+    note = arm_note_from_env()
+    if note:
+        freeze_status = next((row.get('status') for row in summary['actions'] if row.get('kind') == 'freeze'), '')
+        if freeze_status == 'noop':
+            note = None
+        elif freeze_status == 'freeze_missed_window':
+            note['action'] = 'record_gap'
+            note['reason'] = 'freeze_missed_window'
+            note['not_backfilled'] = True
+            note['catch_up'] = False
+        elif freeze_status and note['action'] == 'capture_now' and freeze_status != 'written':
+            note['reason'] = freeze_status
+    if note:
+        append_tick(repo, note)
+        print(
+            '[official-snapshot] tick-log'
+            f" meeting={note['meeting_date']}|{note['venue']}"
+            f" action={note['action']} reason={note['reason']}"
+            f" catch_up={str(note['catch_up']).lower()}"
+            f" not_backfilled={str(note['not_backfilled']).lower()}"
+            f" slept_seconds={note['slept_seconds']}"
+        )
     # Touching the manifest reader keeps a missed import from looking green.
     load_manifest(repo)
     raise SystemExit(summary['exit'])
