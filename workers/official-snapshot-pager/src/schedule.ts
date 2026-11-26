@@ -1,9 +1,9 @@
 /**
- * Clock for the official T-90 snapshot workflow.
+ * External clock for the official T-90 snapshot workflow.
  *
- * Cloudflare counts each string in a Worker's `crons` array as one account
- * trigger. Workers Free allows 5 triggers per account; Workers Paid allows
- * 1,000. This pager uses one expression so four race-day pokes cost one slot.
+ * This Worker declares zero Cloudflare cron triggers. Workers Free allows 5
+ * per account, and tianxi-backend already declares 6. cron-job.org calls
+ * POST /dispatch on the expression below.
  *
  * Cron fields are UTC. Hong Kong has no daylight-saving time (UTC+8).
  */
@@ -12,14 +12,8 @@
 export const FREE_ACCOUNT_CRON_CAP = 5;
 
 /**
- * 03:35, 08:35, 09:35, and 22:35 UTC.
- * Minute 35 is offset from the GitHub snapshot arms at minute 10 and minute 20.
- */
-export const PAGER_CRON = '35 3,8,9,22 * * *';
-
-/**
- * Second free clock (cron-job.org). Minute 50 avoids the Worker pager and the
- * GitHub arms. Same UTC hours, still zero Cloudflare cron slots.
+ * cron-job.org schedule. Minute 50 is offset from the GitHub snapshot arms
+ * at minute 10 and minute 20. This is not a Cloudflare cron trigger.
  */
 export const CRON_JOB_ORG_CRON = '50 3,8,9,22 * * *';
 

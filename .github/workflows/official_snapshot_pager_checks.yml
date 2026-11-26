@@ -38,7 +38,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Test dispatch, hook auth, and cron cap
+      - name: Test dispatch, hook auth, and zero cron triggers
         run: npm test
 
       - name: Typecheck

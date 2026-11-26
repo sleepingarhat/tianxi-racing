@@ -1,13 +1,13 @@
 /**
  * Free-plan pager for capy_official_snapshot.yml.
  *
- * Cron and POST /dispatch both start the existing GitHub Action with blank
- * inputs. Ingest, the wait until lockAt, and snapshot writes stay in that
- * Action. This Worker returns as soon as GitHub accepts or rejects the
- * dispatch. It has no crawl, no D1 binding, and no sleep.
+ * POST /dispatch starts the existing GitHub Action with blank inputs.
+ * This Worker has no Cloudflare cron trigger. Ingest, the wait until lockAt,
+ * and snapshot writes stay in that Action. It returns as soon as GitHub
+ * accepts or rejects the dispatch. It has no crawl, no D1 binding, and no sleep.
  */
 
-import type { ExportedHandler, ScheduledController } from '@cloudflare/workers-types';
+import type { ExportedHandler } from '@cloudflare/workers-types';
 import {
   HOOK_HEADER,
   configuredSecret,
@@ -56,18 +56,14 @@ export async function handleRequest(request: Request, env: Env, deps: Deps = {})
     writeLog(deps.log ?? defaultLog, '[official-snapshot-pager] source=http result=unauthorized', env);
     return json({ ok: false, error: 'unauthorized' }, 401);
   }
-  return finishDispatch(env, deps, 'http');
+  return finishDispatch(env, deps);
 }
 
-export async function handleScheduled(env: Env, deps: Deps = {}): Promise<void> {
-  await finishDispatch(env, deps, 'cron');
-}
-
-async function finishDispatch(env: Env, deps: Deps, source: 'http' | 'cron'): Promise<Response> {
+async function finishDispatch(env: Env, deps: Deps): Promise<Response> {
   const log = deps.log ?? defaultLog;
   const token = configuredSecret(env.GITHUB_DISPATCH_TOKEN);
   if (!token) {
-    writeLog(log, `[official-snapshot-pager] source=${source} result=dispatch_token_not_configured`, env);
+    writeLog(log, '[official-snapshot-pager] source=http result=dispatch_token_not_configured', env);
     return json({ ok: false, error: 'dispatch_token_not_configured' }, 503);
   }
 
@@ -75,7 +71,7 @@ async function finishDispatch(env: Env, deps: Deps, source: 'http' | 'cron'): Pr
   const status = outcome.githubStatus == null ? '' : ` github_status=${outcome.githubStatus}`;
   const detail = outcome.detail ? ` detail=${outcome.detail}` : '';
   const result = outcome.ok ? 'dispatched' : outcome.error;
-  writeLog(log, `[official-snapshot-pager] source=${source} result=${result}${status}${detail}`, env);
+  writeLog(log, `[official-snapshot-pager] source=http result=${result}${status}${detail}`, env);
 
   if (outcome.ok) {
     return json({
@@ -97,9 +93,6 @@ function writeLog(log: LogFn, line: string, env: Env): void {
 const worker: ExportedHandler<Env> = {
   fetch(request: Request, env: Env): Promise<Response> {
     return handleRequest(request, env);
-  },
-  scheduled(_controller: ScheduledController, env: Env): Promise<void> {
-    return handleScheduled(env);
   },
 };
 

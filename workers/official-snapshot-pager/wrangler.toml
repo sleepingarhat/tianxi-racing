@@ -12,12 +12,5 @@ workers_dev = true
 #   GITHUB_DISPATCH_TOKEN
 #   PAGER_HOOK_SECRET
 
-# One Cron Trigger. Workers Free allows 5 per account, and tianxi-backend
-# already declares 6, so confirm the account total before the first deploy.
-# Minute 35 is offset from the GitHub snapshot crons at :10 and :20.
-#   03:35 UTC = 11:35 HKT  inside a Sha Tin 11:15–12:45 window
-#   08:35 UTC = 16:35 HKT  before a Happy Valley 17:10 lock
-#   09:35 UTC = 17:35 HKT  inside a Happy Valley 17:10–18:40 window
-#   22:35 UTC = 06:35 HKT  before a Sha Tin 11:15 lock (inside the 330-minute arm)
-[triggers]
-crons = ["35 3,8,9,22 * * *"]
+# Workers Free allows 5 cron triggers per account, and tianxi-backend already
+# declares 6. This file declares none. cron-job.org calls POST /dispatch.

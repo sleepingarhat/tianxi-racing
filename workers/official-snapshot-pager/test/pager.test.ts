@@ -10,14 +10,13 @@ import {
   redactSecrets,
   secretMatches,
 } from '../src/dispatch.ts';
-import worker, { handleRequest, handleScheduled, type Env } from '../src/index.ts';
+import worker, { handleRequest, type Env } from '../src/index.ts';
 import {
   ARM_HORIZON_MINUTES,
   CRON_JOB_ORG_CRON,
   FREE_ACCOUNT_CRON_CAP,
   GITHUB_SNAPSHOT_CRONS,
   HAPPY_VALLEY_NIGHT_WINDOW_HKT,
-  PAGER_CRON,
   SHA_TIN_DAY_WINDOW_HKT,
   addMinutes,
   clockInHalfOpenRange,
@@ -42,6 +41,7 @@ function read(path: string): string {
 
 function crons(toml: string): string[] {
   const matches = [...toml.matchAll(/crons\s*=\s*\[/g)];
+  if (matches.length === 0) return [];
   assert.equal(matches.length, 1);
   const start = matches[0].index ?? 0;
   const end = toml.indexOf(']', start);
@@ -55,52 +55,45 @@ function overlap(left: string[], right: string[]): string[] {
 }
 
 describe('schedule and account cron cap', () => {
-  it('uses one pager expression, offset from the GitHub snapshot arms', () => {
+  it('uses cron-job.org only, offset from the GitHub snapshot arms', () => {
     const pagerToml = read(resolve(pagerRoot, 'wrangler.toml'));
     const workflow = read(resolve(repoRoot, '.github/workflows/capy_official_snapshot.yml'));
-    const declared = crons(pagerToml);
-    assert.deepEqual(declared, [PAGER_CRON]);
+    assert.deepEqual(crons(pagerToml), []);
+    assert.equal(pagerToml.includes('[triggers]'), false);
+    assert.equal(pagerToml.includes('crons'), false);
 
     const githubFromWorkflow = [...workflow.matchAll(/cron:\s*'([^']+)'/g)].map((match) => match[1]);
     assert.deepEqual(githubFromWorkflow, [...GITHUB_SNAPSHOT_CRONS]);
 
-    const pagerTimes = expandUtcTimes(PAGER_CRON);
     const hookTimes = expandUtcTimes(CRON_JOB_ORG_CRON);
     const githubTimes = GITHUB_SNAPSHOT_CRONS.flatMap((expr) => expandUtcTimes(expr));
-    assert.deepEqual(pagerTimes, ['03:35', '08:35', '09:35', '22:35']);
     assert.deepEqual(hookTimes, ['03:50', '08:50', '09:50', '22:50']);
-    assert.deepEqual(overlap(pagerTimes, githubTimes), []);
     assert.deepEqual(overlap(hookTimes, githubTimes), []);
-    assert.deepEqual(overlap(pagerTimes, hookTimes), []);
   });
 
   it('covers the Sha Tin day window and the Happy Valley night window in HKT', () => {
-    const morning = addMinutes('22:35', 8 * 60);
-    assert.deepEqual(morning, { hhmm: '06:35', dayDelta: 1 });
-    assert.equal(minutesBetween(morning.hhmm, SHA_TIN_DAY_WINDOW_HKT.lock), 280);
+    const morning = addMinutes('22:50', 8 * 60);
+    assert.deepEqual(morning, { hhmm: '06:50', dayDelta: 1 });
+    assert.equal(minutesBetween(morning.hhmm, SHA_TIN_DAY_WINDOW_HKT.lock), 265);
     assert.ok(minutesBetween(morning.hhmm, SHA_TIN_DAY_WINDOW_HKT.lock) <= ARM_HORIZON_MINUTES);
-    assert.equal(clockInHalfOpenRange(SHA_TIN_DAY_WINDOW_HKT.lock, SHA_TIN_DAY_WINDOW_HKT.firstPost, '11:35'), true);
+    assert.equal(clockInHalfOpenRange(SHA_TIN_DAY_WINDOW_HKT.lock, SHA_TIN_DAY_WINDOW_HKT.firstPost, '11:50'), true);
 
-    const beforeValley = addMinutes('08:35', 8 * 60);
-    const insideValley = addMinutes('09:35', 8 * 60);
-    assert.deepEqual(beforeValley, { hhmm: '16:35', dayDelta: 0 });
-    assert.deepEqual(insideValley, { hhmm: '17:35', dayDelta: 0 });
-    assert.equal(minutesBetween(beforeValley.hhmm, HAPPY_VALLEY_NIGHT_WINDOW_HKT.lock), 35);
+    const beforeValley = addMinutes('08:50', 8 * 60);
+    const insideValley = addMinutes('09:50', 8 * 60);
+    assert.deepEqual(beforeValley, { hhmm: '16:50', dayDelta: 0 });
+    assert.deepEqual(insideValley, { hhmm: '17:50', dayDelta: 0 });
+    assert.equal(minutesBetween(beforeValley.hhmm, HAPPY_VALLEY_NIGHT_WINDOW_HKT.lock), 20);
     assert.ok(minutesBetween(beforeValley.hhmm, HAPPY_VALLEY_NIGHT_WINDOW_HKT.lock) <= ARM_HORIZON_MINUTES);
     assert.equal(
       clockInHalfOpenRange(HAPPY_VALLEY_NIGHT_WINDOW_HKT.lock, HAPPY_VALLEY_NIGHT_WINDOW_HKT.firstPost, insideValley.hhmm),
       true,
     );
-
-    const hookMorning = addMinutes('22:50', 8 * 60);
-    assert.equal(minutesBetween(hookMorning.hhmm, SHA_TIN_DAY_WINDOW_HKT.lock), 265);
-    assert.equal(clockInHalfOpenRange(SHA_TIN_DAY_WINDOW_HKT.lock, SHA_TIN_DAY_WINDOW_HKT.firstPost, '11:50'), true);
-    assert.equal(clockInHalfOpenRange(HAPPY_VALLEY_NIGHT_WINDOW_HKT.lock, HAPPY_VALLEY_NIGHT_WINDOW_HKT.firstPost, '17:50'), true);
   });
 
-  it('adds one trigger on top of the six already declared by tianxi-backend', () => {
-    const reader = crons(read(resolve(repoRoot, 'backend/wrangler.toml')));
-    const pager = crons(read(resolve(pagerRoot, 'wrangler.toml')));
+  it('adds zero Cloudflare cron triggers on top of the six already declared by tianxi-backend', () => {
+    const readerToml = read(resolve(repoRoot, 'backend/wrangler.toml'));
+    const pagerToml = read(resolve(pagerRoot, 'wrangler.toml'));
+    const reader = crons(readerToml);
     assert.deepEqual(reader, [
       '0 19 * * *',
       '0 22 * * *',
@@ -109,12 +102,11 @@ describe('schedule and account cron cap', () => {
       '0 10 * * *',
       '*/5 * * * *',
     ]);
-    assert.equal(pager.length, 1);
-    assert.equal(reader.includes(pager[0]), false);
+    assert.equal(crons(pagerToml).length, 0);
     assert.equal(reader.length, 6);
     assert.equal(FREE_ACCOUNT_CRON_CAP, 5);
     assert.ok(reader.length > FREE_ACCOUNT_CRON_CAP);
-    assert.equal(reader.length + pager.length, 7);
+    assert.equal(reader.length + crons(pagerToml).length, 6);
   });
 
   it('keeps the pager off the reader deploy path and off paid Worker features', () => {
@@ -130,6 +122,9 @@ describe('schedule and account cron cap', () => {
     assert.equal(toml.includes('r2_buckets'), false);
     assert.equal(toml.includes('durable_objects'), false);
     assert.equal(toml.includes('[[queues]]'), false);
+    assert.equal(toml.includes('[triggers]'), false);
+    assert.equal(toml.includes('crons'), false);
+    assert.equal(/\bscheduled\s*\(/.test(read(resolve(pagerRoot, 'src/index.ts'))), false);
     assert.match(read(resolve(repoRoot, 'backend/wrangler.toml')), /account_id = "([^"]+)"/);
     const account = /account_id = "([^"]+)"/.exec(toml);
     const readerAccount = /account_id = "([^"]+)"/.exec(read(resolve(repoRoot, 'backend/wrangler.toml')));
@@ -236,20 +231,26 @@ describe('workflow dispatch contract', () => {
     assert.equal(JSON.stringify(body).includes('test-caller-token'), false);
   });
 
-  it('cron uses the same dispatch and logs no secret', async () => {
+  it('logs a GitHub failure without the token or the hook secret', async () => {
     const lines: string[] = [];
     let calls = 0;
-    await handleScheduled(env(), {
+    const response = await handleRequest(new Request('https://pager.example/dispatch', {
+      method: 'POST',
+      headers: { [HOOK_HEADER]: HOOK },
+    }), env(), {
       fetch: async (_input, init) => {
         calls += 1;
         assert.equal(new Headers(init?.headers).get('authorization'), `Bearer ${TOKEN}`);
+        assert.equal(new Headers(init?.headers).get(HOOK_HEADER), null);
         return new Response(`leaked ${TOKEN} and ${HOOK}`, { status: 401 });
       },
       log: (line) => lines.push(line),
     });
     assert.equal(calls, 1);
+    assert.equal(response.status, 502);
+    assert.equal((await response.text()).includes(TOKEN), false);
     assert.equal(lines.length, 1);
-    assert.match(lines[0], /source=cron result=github_dispatch_failed github_status=401/);
+    assert.match(lines[0], /source=http result=github_dispatch_failed github_status=401/);
     assert.equal(lines[0].includes(TOKEN), false);
     assert.equal(lines[0].includes(HOOK), false);
     assert.match(lines[0], /\[redacted\]/);
@@ -258,15 +259,19 @@ describe('workflow dispatch contract', () => {
   it('does not dispatch when the token is missing', async () => {
     let calls = 0;
     const lines: string[] = [];
-    await handleScheduled(env({ GITHUB_DISPATCH_TOKEN: '' }), {
+    const response = await handleRequest(new Request('https://pager.example/dispatch', {
+      method: 'POST',
+      headers: { [HOOK_HEADER]: HOOK },
+    }), env({ GITHUB_DISPATCH_TOKEN: '' }), {
       fetch: async () => {
         calls += 1;
         return new Response(null, { status: 204 });
       },
       log: (line) => lines.push(line),
     });
+    assert.equal(response.status, 503);
     assert.equal(calls, 0);
-    assert.deepEqual(lines, ['[official-snapshot-pager] source=cron result=dispatch_token_not_configured']);
+    assert.deepEqual(lines, ['[official-snapshot-pager] source=http result=dispatch_token_not_configured']);
   });
 });
 
@@ -349,7 +354,8 @@ describe('HTTP hook', () => {
     assert.match(lines[0], /result=github_fetch_failed/);
   });
 
-  it('wires the default handlers to the same dispatch', async () => {
+  it('wires fetch to the same dispatch and has no scheduled handler', async () => {
+    assert.equal('scheduled' in worker, false);
     const original = globalThis.fetch;
     let calls = 0;
     globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -365,15 +371,20 @@ describe('HTTP hook', () => {
         logged.push(String(line));
       };
       try {
-        await worker.scheduled?.({} as never, env(), {} as never);
+        const health = await worker.fetch?.(new Request('https://pager.example/'), env(), {} as never);
+        assert.equal(health?.status, 200);
+        assert.equal(calls, 0);
+        const dispatched = await worker.fetch?.(new Request('https://pager.example/dispatch', {
+          method: 'POST',
+          headers: { [HOOK_HEADER]: HOOK },
+        }), env(), {} as never);
+        assert.equal(dispatched?.status, 200);
+        assert.equal(calls, 1);
+        assert.equal(logged.join('\n').includes(TOKEN), false);
+        assert.equal(logged.join('\n').includes(HOOK), false);
       } finally {
         console.log = originalLog;
       }
-      assert.equal(calls, 1);
-      assert.equal(logged.join('\n').includes(TOKEN), false);
-      const health = await worker.fetch?.(new Request('https://pager.example/'), env(), {} as never);
-      assert.equal(health?.status, 200);
-      assert.equal(calls, 1);
     } finally {
       globalThis.fetch = original;
     }
@@ -407,9 +418,10 @@ describe('secret handling', () => {
     assert.match(readme, /x-pager-secret/);
     assert.match(readme, /Actions/);
     assert.match(readme, /`repo`/);
-    assert.match(readme, new RegExp(PAGER_CRON.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+    assert.match(readme, /zero Cloudflare cron triggers/);
+    assert.equal(readme.includes('35 3,8,9,22'), false);
     assert.match(readme, new RegExp(CRON_JOB_ORG_CRON.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
-    for (const clock of ['03:35', '08:35', '09:35', '22:35', '06:35', '11:35', '16:35', '17:35']) {
+    for (const clock of ['03:50', '08:50', '09:50', '22:50', '06:50', '11:50', '16:50', '17:50']) {
       assert.equal(readme.includes(clock), true, clock);
     }
     assert.equal(/ghp_[A-Za-z0-9]+|github_pat_[A-Za-z0-9_]+/.test(repoText), false);
