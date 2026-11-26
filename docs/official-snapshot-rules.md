@@ -141,13 +141,32 @@ Kinds are mutually exclusive in meaning. A later kind never mutates an earlier s
 
 ### 3.5 Scheduler
 
-New workflow: `.github/workflows/capy_official_snapshot.yml`.
+Workflow: `.github/workflows/capy_official_snapshot.yml`.
 
-- `schedule`: every 10 minutes (`cron: '*/10 * * * *'`), plus `workflow_dispatch` (`date`, `venue`, `kind` optional; dispatch still obeys idempotency and must not overwrite).
-- Season gate: same fail-open pattern as other `capy_*` workflows (`GET /api/season`; skip only when `off_season` on scheduled runs).
-- Concurrency group `capy-official-snapshot`, `cancel-in-progress: false`.
-- Each tick: compute clocks, decide kinds due, recrawl only what that kind requires, write snapshots, commit append-only repo files, upsert D1 snapshot tables (not live Wave tables except as a side-effect of calling existing scrape functions into a staging dir).
-- Live Wave CSV/D1 projections may still be updated by the existing Wave workflows on their own schedules. This job must write snapshots to **separate** paths/tables so a later Wave run cannot replace a freeze.
+GitHub Actions does **not** deliver a ten-minute cron on this repository. After this workflow merged, `cron: '*/10 * * * *'` created 5 runs in about 34 hours (2026-11-25 04:06 UTC through 2026-11-26 14:44 UTC). The 2026-11-25 Happy Valley freeze window 09:10–10:40 UTC had zero snapshot runs. The 04:06 UTC run wrote `card_status` only. The 14:12 UTC run wrote `freeze_missed_window` with `not_backfilled=true`. The same sparse delivery hit other ten-minute crons in this repo. `workflow_run` from racecard did start inside that missed window (09:26 UTC), and track conditions started at 10:30 UTC.
+
+Triggers that start a run:
+
+- `workflow_run` on `main` when any of these complete: Capy Racecard, Capy Race Day, Capy Track Conditions, Capy Odds. This is the catch-up when the snapshot schedule itself does not start inside the window.
+- Best-effort `schedule` crons at 22:20, 03:20, 04:10, 08:10, and 09:20 UTC. These are arms, not a delivered every-10-minutes clock. A dropped cron leaves no failed run.
+- `workflow_dispatch` (`date`, `venue`, `kind` optional). Dispatch still obeys idempotency and must not overwrite.
+
+Wait rule, in the same job, before the crawl:
+
+- If `kind=freeze` is missing and `now` is inside `[lockAt, firstPostAt)`, crawl and write `kind=freeze` immediately. A start more than 15 minutes after `lockAt` is `catch_up_inside_window`.
+- If `kind=freeze` is missing and `lockAt` is still ahead by at most 330 minutes, the job waits until `lockAt + 90 seconds` (still before `firstPostAt`), re-reads the meeting clock, and writes `kind=freeze` only if that instant is still inside the window. Heartbeats every 15 minutes re-read post times. A retimed meeting that has already reached `firstPostAt` is not frozen.
+- At or after `firstPostAt`, a missing freeze is `freeze_missed_window` with `not_backfilled=true`. The job does not backfill, including 2026-11-25.
+- `card_status`, `pre_freeze_safety`, and `post_race` still follow §3 when the tick runs. A wait that sleeps until `lockAt` does not also write `pre_freeze_safety` for the minutes it slept through.
+
+Each run logs `[official-snapshot]` lines with trigger, source workflow, meeting, phase, action, `lockAt`, `firstPostAt`, sleep, and catch-up. `capture_now` and `record_gap` decisions are appended to `data/official_snapshots/ticks.jsonl`.
+
+Season gate: same fail-open pattern as other `capy_*` workflows (`GET /api/season`; skip only when `off_season` on scheduled runs). `workflow_run` and `workflow_dispatch` are not season-skipped.
+
+Concurrency group `capy-official-snapshot`, `cancel-in-progress: false`, so a later run cannot cancel a job that is waiting for `lockAt`.
+
+The Worker stays a reader. This job remains a `capy_*` GitHub Action. It does not move ingest into tianxi-web, Lovable, or a Worker cron.
+
+Each tick still computes clocks, decides kinds due, recrawls only what that kind requires, writes snapshots, commits append-only repo files, and upserts D1 snapshot tables. Live Wave CSV/D1 projections stay on their own schedules. This job writes snapshots to **separate** paths/tables so a later Wave run cannot replace a freeze.
 
 ---
 
@@ -158,6 +177,9 @@ New workflow: `.github/workflows/capy_official_snapshot.yml`.
 ```
 data/official_snapshots/
   manifest.jsonl                  # append-only, one JSON object per snapshot
+  gaps.jsonl                      # append-only gap events, including freeze_missed_window
+  poll.jsonl                      # append-only post-race stability hashes
+  ticks.jsonl                     # append-only freeze-window decisions (capture or missed)
   YYYY-MM-DD_VE/
     freeze_<captured_at>.json     # header + gap list + surface index
     freeze_<captured_at>/
@@ -412,7 +434,7 @@ Implement in `sleepingarhat/tianxi-racing` on a new branch from current `main`. 
 | `scripts/official_snapshot_join.py` | Join helpers and sentinel rules (FWB brand, passed OVE, last10Wins, null deltas, void races, import codes). |
 | `scripts/official_snapshot_writer.py` | Staging recrawl (call existing Wave parse functions into a staging directory — do not clobber `data/official_waveN` from this job if that would race a Wave workflow; use `data/official_snapshots/_staging/` then copy into the versioned snapshot folder), manifest, D1 SQL emit (`INSERT OR IGNORE` only). |
 | `scripts/official_snapshot_tick.py` | CLI used by the workflow: discover meetings, decide kinds, recrawl, write. |
-| `.github/workflows/capy_official_snapshot.yml` | Schedule, season gate, unit tests, capture, append-only commit, D1 apply via existing `scripts/d1-execute-file.sh`. Requires `CF_API_TOKEN` / `CF_ACCOUNT_ID` on schedule (same pattern as Wave jobs). Do not add or rotate secrets. |
+| `.github/workflows/capy_official_snapshot.yml` | `workflow_run` catch-up, best-effort arms, in-job wait until `lockAt`, season gate, unit tests, capture, append-only commit, D1 apply via existing `scripts/d1-execute-file.sh`. Requires `CF_API_TOKEN` / `CF_ACCOUNT_ID` on schedule (same pattern as Wave jobs). Do not add or rotate secrets. A ten-minute cron is not the capture clock. |
 | `scripts/test_official_snapshot_rules.py` | All regressions in §6.3. |
 | `backend/src/routes/official-visible.ts` | Read-only snapshot routes. |
 | `backend` tests for the new routes if a TS test harness already exists for official-visible. | |

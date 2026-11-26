@@ -3,6 +3,11 @@ name: Capy Official Snapshot — append-only T-90 and post-race evidence
 # Point-in-time copies of official HKJC surfaces. Not the prediction lock,
 # not the A-line, and not a Worker crawl. Live Wave tables stay latest-state.
 # Freeze time is entries_upcoming MIN(post_time) minus 90 minutes.
+#
+# GitHub does not deliver a */10 cron here (5 runs in ~34h after the workflow
+# landed; the 2026-11-25 17:10–18:40 HKT window had zero runs). This workflow
+# waits until lockAt when a run starts early, and writes kind=freeze immediately
+# when a run starts inside the window. It does not backfill after first post.
 
 on:
   workflow_dispatch:
@@ -10,8 +15,21 @@ on:
       date: { description: 'Race date YYYY-MM-DD (blank = in-window meetings)', required: false, default: '' }
       venue: { description: 'ST or HV (blank = every in-window venue)', required: false, default: '' }
       kind: { description: 'freeze, post_race, card_status, pre_freeze_safety, or blank', required: false, default: '' }
+  workflow_run:
+    workflows:
+      - "Capy Racecard — enrich entries_upcoming via hkjc-api"
+      - "Capy Race Day — RacingData Results"
+      - "Capy Track Conditions — research evidence only"
+      - "Capy Odds — live snapshot (hkjc-api GraphQL)"
+    types: [completed]
+    branches: [main]
   schedule:
-    - cron: '*/10 * * * *'
+    # Best-effort arms. A dropped slot creates no run; workflow_run above is the catch-up.
+    - cron: '20 22 * * *'   # 06:20 HKT, about five hours before a Sha Tin 11:15 lock
+    - cron: '20 3 * * *'    # 11:20 HKT, inside an 11:15–12:45 window when this slot is delivered
+    - cron: '10 4 * * *'    # 12:10 HKT, second chance inside that window
+    - cron: '10 8 * * *'    # 16:10 HKT, about one hour before a Happy Valley 17:10 lock
+    - cron: '20 9 * * *'    # 17:20 HKT, inside a 17:10–18:40 window when this slot is delivered
 
 permissions:
   contents: write
@@ -45,13 +63,24 @@ jobs:
     needs: season_gate
     if: needs.season_gate.outputs.skip != 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 360
     steps:
       - uses: actions/checkout@v4
         with: { ref: main, fetch-depth: 1 }
 
       - uses: actions/setup-python@v5
         with: { python-version: '3.12' }
+
+      - name: Test official snapshot rules
+        run: python3 -m unittest discover -s scripts -p test_official_snapshot_rules.py
+
+      - name: Wait until the freeze window, or catch up inside it
+        id: plan
+        env:
+          OFFICIAL_SNAPSHOT_TRIGGER: ${{ github.event_name }}
+          OFFICIAL_SNAPSHOT_SOURCE: ${{ github.event.workflow_run.name }}
+          OFFICIAL_SNAPSHOT_SOURCE_URL: ${{ github.event.workflow_run.html_url }}
+        run: python3 scripts/official_snapshot_arm.py --root=.
 
       - uses: actions/setup-node@v4
         with: { node-version: '20' }
@@ -63,21 +92,34 @@ jobs:
         working-directory: backend
         run: npm ci --no-audit --no-fund || npm install --no-audit --no-fund
 
-      - name: Test official snapshot rules
-        run: python3 -m unittest discover -s scripts -p test_official_snapshot_rules.py
-
       - name: Test read-only snapshot routes
+        if: steps.plan.outputs.fast_capture != 'true'
         working-directory: backend
         run: npx tsx scripts/test-official-visible.ts
 
       - name: Capture snapshots
         id: capture
         env:
-          DATE: ${{ github.event.inputs.date || '' }}
-          VENUE: ${{ github.event.inputs.venue || '' }}
-          KIND: ${{ github.event.inputs.kind || '' }}
+          DATE: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.date || '' }}
+          VENUE: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.venue || '' }}
+          KIND: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.kind || '' }}
+          OFFICIAL_SNAPSHOT_TRIGGER: ${{ github.event_name }}
+          OFFICIAL_SNAPSHOT_SOURCE: ${{ github.event.workflow_run.name }}
+          OFFICIAL_SNAPSHOT_ACTION: ${{ steps.plan.outputs.action }}
+          OFFICIAL_SNAPSHOT_PHASE: ${{ steps.plan.outputs.phase }}
+          OFFICIAL_SNAPSHOT_REASON: ${{ steps.plan.outputs.reason }}
+          OFFICIAL_SNAPSHOT_MEETING: ${{ steps.plan.outputs.meeting }}
+          OFFICIAL_SNAPSHOT_LOCK_AT: ${{ steps.plan.outputs.lock_at }}
+          OFFICIAL_SNAPSHOT_FIRST_POST_AT: ${{ steps.plan.outputs.first_post_at }}
+          OFFICIAL_SNAPSHOT_WAKE_AT: ${{ steps.plan.outputs.wake_at }}
+          OFFICIAL_SNAPSHOT_NOW: ${{ steps.plan.outputs.now }}
+          OFFICIAL_SNAPSHOT_SLEPT_SECONDS: ${{ steps.plan.outputs.slept_seconds }}
+          OFFICIAL_SNAPSHOT_MARGIN_SECONDS: ${{ steps.plan.outputs.margin_seconds }}
+          OFFICIAL_SNAPSHOT_CATCH_UP: ${{ steps.plan.outputs.catch_up }}
+          OFFICIAL_SNAPSHOT_NOT_BACKFILLED: ${{ steps.plan.outputs.not_backfilled }}
         run: |
           set +e
+          echo "[official-snapshot] capture trigger=${OFFICIAL_SNAPSHOT_TRIGGER} source=${OFFICIAL_SNAPSHOT_SOURCE} meeting=${OFFICIAL_SNAPSHOT_MEETING} phase=${OFFICIAL_SNAPSHOT_PHASE} action=${OFFICIAL_SNAPSHOT_ACTION} reason=${OFFICIAL_SNAPSHOT_REASON} lockAt=${OFFICIAL_SNAPSHOT_LOCK_AT} firstPostAt=${OFFICIAL_SNAPSHOT_FIRST_POST_AT} slept_seconds=${OFFICIAL_SNAPSHOT_SLEPT_SECONDS} margin_seconds=${OFFICIAL_SNAPSHOT_MARGIN_SECONDS} catch_up=${OFFICIAL_SNAPSHOT_CATCH_UP} not_backfilled=${OFFICIAL_SNAPSHOT_NOT_BACKFILLED}"
           ARGS="--root=."
           if [ -n "$DATE" ]; then ARGS="$ARGS --date=$DATE"; fi
           if [ -n "$VENUE" ]; then ARGS="$ARGS --venue=$VENUE"; fi
@@ -102,7 +144,7 @@ jobs:
           if [ -n "$(git diff --cached --name-only --diff-filter=D)" ]; then echo 'snapshot deletion refused'; exit 1; fi
           for f in $(git diff --cached --name-only --diff-filter=M); do
             case "$f" in
-              data/official_snapshots/manifest.jsonl|data/official_snapshots/gaps.jsonl|data/official_snapshots/poll.jsonl)
+              data/official_snapshots/manifest.jsonl|data/official_snapshots/gaps.jsonl|data/official_snapshots/poll.jsonl|data/official_snapshots/ticks.jsonl)
                 if git diff --cached "$f" | grep -qE '^-[^-]'; then echo "append-only log rewrite refused: $f"; exit 1; fi
                 ;;
               *) echo "modified existing snapshot: $f"; exit 1 ;;

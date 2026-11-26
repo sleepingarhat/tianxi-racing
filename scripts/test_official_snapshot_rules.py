@@ -4,9 +4,17 @@ from __future__ import annotations
 import json
 import tempfile
 import unittest
-from datetime import timezone
+import os
+from datetime import timedelta, timezone
 from pathlib import Path
 
+from official_snapshot_arm import (
+    MAX_ARM_SLEEP_SECONDS,
+    WAKE_SKEW_SECONDS,
+    format_plan,
+    freeze_arm_plan,
+    wait_until_freeze,
+)
 from official_snapshot_clock import (
     LOCK_LEAD_MINUTES,
     MeetingClock,
@@ -41,7 +49,7 @@ from official_snapshot_join import (
     wind_probes_block_freeze,
 )
 from official_snapshot_recrawl import assert_staging_isolated, live_wave_dir, staging_wave_dir
-from official_snapshot_tick import run
+from official_snapshot_tick import arm_note_from_env, run
 from official_snapshot_writer import (
     OverwriteRefused,
     SnapshotConflict,
@@ -558,6 +566,201 @@ class TickTests(unittest.TestCase):
         rules = Path(__file__).resolve().parents[1].joinpath('docs/official-snapshot-rules.md').read_text(encoding='utf-8')
         self.assertIn('LOCK_LEAD_MINUTES = 90', rules)
         self.assertIn('does **not** rewrite FWB', rules)
+        self.assertIn('does **not** deliver a ten-minute cron', rules)
+        self.assertIn('catch_up_inside_window', rules)
+        self.assertIn('workflow_run', rules)
+
+
+def _nov29():
+    return meeting_clock('2026-11-29', 'ST', ['2026-11-29T12:45:00+08:00', '2026-11-29T18:20:00+08:00'], [1, 11])
+
+
+class FreezeArmTests(unittest.TestCase):
+    def test_sha_tin_2026_11_29_window(self):
+        clock = _nov29()
+        self.assertEqual(hkt_hhmm(clock.lock_at), '11:15')
+        self.assertEqual(hkt_hhmm(clock.first_post_at), '12:45')
+        self.assertEqual(utc_iso(clock.lock_at), '2026-11-29T03:15:00.000Z')
+        self.assertEqual(utc_iso(clock.first_post_at), '2026-11-29T04:45:00.000Z')
+
+    def test_early_run_waits_until_lock_and_does_not_freeze(self):
+        clock = _nov29()
+        now = parse_instant('2026-11-28T22:20:00Z')
+        plan = freeze_arm_plan(now, [clock], set())
+        wake = clock.lock_at + timedelta(seconds=WAKE_SKEW_SECONDS)
+        self.assertEqual(plan['action'], 'sleep')
+        self.assertEqual(plan['reason'], 'arm_until_lock')
+        self.assertEqual(plan['phase'], 'before_freeze')
+        self.assertEqual(plan['wake_at'], utc_iso(wake))
+        self.assertEqual(plan['wake_at'], '2026-11-29T03:16:30.000Z')
+        self.assertEqual(plan['sleep_seconds'], 17790)
+        self.assertFalse(plan['catch_up'])
+        self.assertFalse(plan['not_backfilled'])
+        self.assertLess(parse_instant(plan['wake_at']), clock.first_post_at)
+        self.assertGreaterEqual(parse_instant(plan['wake_at']), clock.lock_at)
+
+    def test_nov25_0406_run_would_have_waited_for_happy_valley(self):
+        clock = hv_clock()
+        now = parse_instant('2026-11-25T04:06:36Z')
+        plan = freeze_arm_plan(now, [clock], set())
+        wake = clock.lock_at + timedelta(seconds=WAKE_SKEW_SECONDS)
+        self.assertEqual(plan['action'], 'sleep')
+        self.assertEqual(plan['wake_at'], '2026-11-25T09:11:30.000Z')
+        self.assertEqual(plan['sleep_seconds'], int((wake - now).total_seconds()))
+        self.assertLess(plan['sleep_seconds'], MAX_ARM_SLEEP_SECONDS)
+        self.assertFalse(plan['not_backfilled'])
+
+    def test_inside_window_captures_and_a_late_start_is_catch_up(self):
+        clock = _nov29()
+        early = freeze_arm_plan(parse_instant('2026-11-29T03:16:30Z'), [clock], set())
+        self.assertEqual(early['action'], 'capture_now')
+        self.assertEqual(early['reason'], 'inside_window')
+        self.assertFalse(early['catch_up'])
+        late = freeze_arm_plan(parse_instant('2026-11-29T04:10:00Z'), [clock], set())
+        self.assertEqual(late['action'], 'capture_now')
+        self.assertEqual(late['reason'], 'catch_up_inside_window')
+        self.assertTrue(late['catch_up'])
+        self.assertFalse(late['not_backfilled'])
+        self.assertFalse(late['fast_capture'])
+        tight = freeze_arm_plan(parse_instant('2026-11-29T04:40:00Z'), [clock], set())
+        self.assertTrue(tight['fast_capture'])
+        self.assertGreater(tight['margin_seconds'], 0)
+
+    def test_after_first_post_records_a_gap_and_does_not_backfill(self):
+        day = _nov29()
+        missed = freeze_arm_plan(parse_instant('2026-11-29T04:45:00Z'), [day], set())
+        self.assertEqual(missed['action'], 'record_gap')
+        self.assertEqual(missed['reason'], 'freeze_missed_window')
+        self.assertTrue(missed['not_backfilled'])
+        self.assertEqual(missed['sleep_seconds'], 0)
+        self.assertFalse(missed['catch_up'])
+        night = hv_clock()
+        later = freeze_arm_plan(parse_instant('2026-11-25T14:12:50Z'), [night], set())
+        self.assertEqual(later['action'], 'record_gap')
+        self.assertTrue(later['not_backfilled'])
+        self.assertEqual(later['sleep_seconds'], 0)
+        text = format_plan(later)
+        self.assertIn('not_backfilled=true', text)
+        self.assertIn('action=record_gap', text)
+        self.assertNotIn('action=capture_now', text)
+
+    def test_existing_freeze_and_far_meetings_do_not_arm(self):
+        clock = _nov29()
+        held = freeze_arm_plan(parse_instant('2026-11-29T04:10:00Z'), [clock], {('2026-11-29', 'ST')})
+        self.assertEqual(held['action'], 'idle')
+        self.assertEqual(held['reason'], 'freeze_already_recorded')
+        self.assertEqual(held['sleep_seconds'], 0)
+        wake = clock.lock_at + timedelta(seconds=WAKE_SKEW_SECONDS)
+        on_budget = wake - timedelta(seconds=MAX_ARM_SLEEP_SECONDS)
+        self.assertEqual(freeze_arm_plan(on_budget, [clock], set())['action'], 'sleep')
+        too_early = freeze_arm_plan(on_budget - timedelta(seconds=1), [clock], set())
+        self.assertEqual(too_early['reason'], 'beyond_arm_horizon')
+        self.assertEqual(too_early['action'], 'idle')
+        self.assertEqual(too_early['sleep_seconds'], 0)
+
+    def test_wait_wakes_inside_the_window(self):
+        clock = _nov29()
+        start = parse_instant('2026-11-28T22:20:00Z')
+        box = {'now': start}
+
+        def now_fn():
+            return box['now']
+
+        def sleep_fn(seconds):
+            box['now'] = box['now'] + timedelta(seconds=seconds)
+
+        plan = wait_until_freeze(now_fn, lambda: ([clock], set()), sleep_fn, lambda _line: None, heartbeat_seconds=10000)
+        self.assertEqual(plan['action'], 'capture_now')
+        self.assertEqual(plan['slept_seconds'], 17790)
+        self.assertGreaterEqual(box['now'], clock.lock_at)
+        self.assertLess(box['now'], clock.first_post_at)
+
+    def test_wait_does_not_capture_when_the_meeting_is_retimed_past_first_post(self):
+        clock = _nov29()
+        start = parse_instant('2026-11-28T22:20:00Z')
+        box = {'now': start}
+        seen = {'n': 0}
+
+        def now_fn():
+            return box['now']
+
+        def sleep_fn(seconds):
+            box['now'] = box['now'] + timedelta(seconds=seconds)
+
+        def state_fn():
+            seen['n'] += 1
+            if seen['n'] == 1:
+                return [clock], set()
+            return [meeting_clock('2026-11-29', 'ST', ['2026-11-29T06:30:00+08:00'], [1])], set()
+
+        plan = wait_until_freeze(now_fn, state_fn, sleep_fn, lambda _line: None, heartbeat_seconds=1000)
+        self.assertEqual(plan['action'], 'record_gap')
+        self.assertTrue(plan['not_backfilled'])
+        self.assertLess(plan['slept_seconds'], 17790)
+        self.assertNotEqual(plan['action'], 'capture_now')
+
+    def test_unread_clock_does_not_invent_a_freeze(self):
+        def fail():
+            raise RuntimeError('offline')
+
+        plan = wait_until_freeze(lambda: parse_instant('2026-11-29T03:20:00Z'), fail, lambda _seconds: None, lambda _line: None)
+        self.assertEqual(plan['action'], 'idle')
+        self.assertEqual(plan['reason'], 'clock_unread')
+        self.assertEqual(plan['sleep_seconds'], 0)
+
+    def test_tick_log_records_catch_up_and_refuses_idle(self):
+        keys = [
+            'OFFICIAL_SNAPSHOT_ACTION', 'OFFICIAL_SNAPSHOT_PHASE', 'OFFICIAL_SNAPSHOT_REASON',
+            'OFFICIAL_SNAPSHOT_MEETING', 'OFFICIAL_SNAPSHOT_LOCK_AT', 'OFFICIAL_SNAPSHOT_FIRST_POST_AT',
+            'OFFICIAL_SNAPSHOT_WAKE_AT', 'OFFICIAL_SNAPSHOT_NOW', 'OFFICIAL_SNAPSHOT_SLEPT_SECONDS',
+            'OFFICIAL_SNAPSHOT_MARGIN_SECONDS', 'OFFICIAL_SNAPSHOT_CATCH_UP',
+            'OFFICIAL_SNAPSHOT_NOT_BACKFILLED', 'OFFICIAL_SNAPSHOT_TRIGGER', 'OFFICIAL_SNAPSHOT_SOURCE',
+        ]
+        previous = {key: os.environ.get(key) for key in keys}
+        try:
+            os.environ['OFFICIAL_SNAPSHOT_ACTION'] = 'idle'
+            self.assertIsNone(arm_note_from_env())
+            os.environ.update({
+                'OFFICIAL_SNAPSHOT_ACTION': 'record_gap',
+                'OFFICIAL_SNAPSHOT_PHASE': 'after_first_post',
+                'OFFICIAL_SNAPSHOT_REASON': 'freeze_missed_window',
+                'OFFICIAL_SNAPSHOT_MEETING': '2026-11-25|HV',
+                'OFFICIAL_SNAPSHOT_LOCK_AT': '2026-11-25T09:10:00.000Z',
+                'OFFICIAL_SNAPSHOT_FIRST_POST_AT': '2026-11-25T10:40:00.000Z',
+                'OFFICIAL_SNAPSHOT_WAKE_AT': '',
+                'OFFICIAL_SNAPSHOT_NOW': '2026-11-25T14:12:50.000Z',
+                'OFFICIAL_SNAPSHOT_SLEPT_SECONDS': '0',
+                'OFFICIAL_SNAPSHOT_MARGIN_SECONDS': '-5530',
+                'OFFICIAL_SNAPSHOT_CATCH_UP': 'false',
+                'OFFICIAL_SNAPSHOT_NOT_BACKFILLED': 'true',
+                'OFFICIAL_SNAPSHOT_TRIGGER': 'workflow_run',
+                'OFFICIAL_SNAPSHOT_SOURCE': 'Capy Track Conditions — research evidence only',
+            })
+            note = arm_note_from_env()
+            self.assertIsNotNone(note)
+            self.assertTrue(note['not_backfilled'])
+            self.assertFalse(note['catch_up'])
+            self.assertEqual(note['meeting_date'], '2026-11-25')
+            self.assertEqual(note['venue'], 'HV')
+            self.assertEqual(note['snapshot_kind'], 'freeze')
+        finally:
+            for key, value in previous.items():
+                if value is None:
+                    os.environ.pop(key, None)
+                else:
+                    os.environ[key] = value
+
+    def test_workflow_does_not_claim_a_ten_minute_cron(self):
+        text = Path(__file__).resolve().parents[1].joinpath('.github/workflows/capy_official_snapshot.yml').read_text(encoding='utf-8')
+        self.assertNotIn("cron: '*/10 * * * *'", text)
+        self.assertIn('workflow_run:', text)
+        self.assertIn('Capy Racecard — enrich entries_upcoming via hkjc-api', text)
+        self.assertIn('Capy Race Day — RacingData Results', text)
+        self.assertIn('Capy Track Conditions — research evidence only', text)
+        self.assertIn('official_snapshot_arm.py', text)
+        self.assertIn('data/official_snapshots/ticks.jsonl', text)
+        self.assertIn('timeout-minutes: 360', text)
+        self.assertIn("branches: [main]", text)
 
 
 if __name__ == '__main__':
