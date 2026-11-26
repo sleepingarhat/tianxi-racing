@@ -5,6 +5,7 @@
  */
 import { Hono } from 'hono';
 import type { Env } from '../types';
+import { alignFwb, type FwbIdentity } from '../lib/fwb-align';
 
 export const officialVisibleRoutes = new Hono<{ Bindings: Env }>();
 
@@ -309,22 +310,39 @@ officialVisibleRoutes.get('/fwb-declared', async (c) => {
     [meeting.date, meeting.venue],
   );
   if (!list) return unavailable(c, 'official_fwb_declared');
+  // Racecard identity is optional. A missing card leaves the list number in place
+  // and does not invent a saddle. Alignment never keys off horse_no.
+  const card = await rows<FwbIdentity>(
+    c.env.DB,
+    `SELECT race_no, horse_no, is_reserve, horse_id, brand_no
+       FROM official_racecard_runner WHERE meeting_date = ? AND venue = ?`,
+    [meeting.date, meeting.venue],
+  );
+  const runners = card ?? [];
   return c.json({
     source: 'official_fwb_declared',
     available: true,
     date: meeting.date,
     venue: meeting.venue,
-    rows: list.map((row) => ({
-      raceNo: row.race_no,
-      horseNo: row.horse_no,
-      reserve: row.is_reserve === 1,
-      horseNameEn: row.horse_name_en,
-      horseNameCh: row.horse_name_ch,
-      brand: row.brand_no,
-      bonusEn: row.bonus_en,
-      bonusCh: row.bonus_ch,
-      notRaceResult: true,
-    })),
+    rows: list.map((row) => {
+      const aligned = alignFwb(row, runners);
+      return {
+        raceNo: row.race_no,
+        horseNo: row.horse_no,
+        reserve: row.is_reserve === 1,
+        horseNameEn: row.horse_name_en,
+        horseNameCh: row.horse_name_ch,
+        brand: row.brand_no,
+        bonusEn: row.bonus_en,
+        bonusCh: row.bonus_ch,
+        cardHorseNo: aligned.cardHorseNo,
+        cardReserve: aligned.cardReserve,
+        cardHorseId: aligned.cardHorseId,
+        cardBrand: aligned.cardBrand,
+        alignedBy: aligned.alignedBy,
+        notRaceResult: true,
+      };
+    }),
   }, 200, HEADERS);
 });
 

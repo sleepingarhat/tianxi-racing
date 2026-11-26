@@ -450,7 +450,11 @@ These would produce a wrong snapshot or a wrong identity if invented. Leave them
 
 ### 12.1 FWB 11-25 R8 ingest vs join
 
-The live FWB row already marks `M021` 天時威威 as **reserve horseNo 1** (`STBY-1` in the parser). The racecard lists `M021` as **starter #11** and `J290` as starter #1. This specification treats that as a **join** hazard (horseNo collision + ignore reserve/brand). It does **not** rewrite FWB `horse_no` to 11 inside this PR, because that would be guessing whether the official bonus list is stale, whether the horse moved from standby to the card, or whether a parser bug remains. If a raw HKJC `fwb-declared-starters` capture from the same instant proves the parser dropped a starter number, a follow-up ingest fix may be opened separately, with a regression test against that raw fixture.
+The live FWB row already marks `M021` 天時威威 as **reserve horseNo 1** (`STBY-1` in the parser). The racecard lists `M021` as **starter #11** and `J290` as starter #1. Joining that row by horse number maps it onto `J290`. This join does **not** rewrite FWB `horse_no` to 11. `STBY-1` remains `horse_no=1`, `is_reserve=1`, and the parser keeps it as a separate row from declared `#1`.
+
+`join_fwb` (and `GET /api/official/fwb-declared`) attaches by `brand_no` or `horse_id`, including a racecard reserve. Same saddle and a different brand stay unattached. 2026-11-29 examples covered by the same rule: R8 `M072` does not attach to official `#1` `J157`; R10 `L435` attaches to the racecard reserve of that brand, not to official `#1` `L152`; R11 `L529` attaches to official `#3`, where the card already lists that brand.
+
+To refresh a live row, rerun `capy_wave6_surfaces` (or `python3 scripts/hkjc_wave6_surfaces.py --root=. --surfaces=fwb`). That job replaces `official_fwb_declared` from the current official page. Do not edit files under `data/official_snapshots/`, and do not backfill the missed 2026-11-25 freeze. The 2026-11-25 `card_status` copy already stores `M021` as reserve horse 1; that captured list number stays, and readers align it by brand.
 
 ### 12.2 Post-race dividend “fully settled”
 

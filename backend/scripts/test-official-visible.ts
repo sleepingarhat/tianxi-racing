@@ -235,6 +235,74 @@ async function main(): Promise<void> {
   const badKind = await app.request('/api/official/snapshots?date=2026-11-25&venue=HV&kind=odds', {}, env);
   assert.equal(badKind.status, 400);
 
+  db.exec(`
+    CREATE TABLE official_fwb_declared (
+      meeting_date TEXT, venue TEXT, race_no INTEGER, horse_no INTEGER, is_reserve INTEGER,
+      horse_name_en TEXT, horse_name_ch TEXT, brand_no TEXT, bonus_en TEXT, bonus_ch TEXT,
+      not_race_result INTEGER, source_sha256 TEXT, scraped_at TEXT
+    );
+    INSERT INTO official_fwb_declared VALUES
+      ('2026-11-25','HV',8,1,1,'PRECISION TIME','天時威威','M021','PP Bonus of HK$1.5M','「自購曾出賽馬匹特別獎金」一百五十萬港元',1,'abc','2026-11-25T04:07:20+00:00'),
+      ('2026-11-29','ST',8,1,1,'GOLD LIGHTAN','黃金戰士','M072','PP Bonus of HK$1.5M','「自購曾出賽馬匹特別獎金」一百五十萬港元',1,'abc','2026-11-26T05:24:30+00:00'),
+      ('2026-11-29','ST',10,1,1,'ENTERPRISE TRIUMPH','風耀奪標','L435','PP Bonus of HK$1.5M','「自購曾出賽馬匹特別獎金」一百五十萬港元',1,'abc','2026-11-26T05:24:30+00:00'),
+      ('2026-11-29','ST',11,1,1,'HAPPY YOUMZAIN','賀長勝','L529','PP Bonus of HK$1.5M','「自購曾出賽馬匹特別獎金」一百五十萬港元',1,'abc','2026-11-26T05:24:30+00:00'),
+      ('2026-11-29','ST',8,5,0,'FRANKFIELD','雪毽神駒','L511','PP Bonus of HK$1.5M','「自購曾出賽馬匹特別獎金」一百五十萬港元',1,'abc','2026-11-26T05:24:30+00:00');
+    INSERT INTO official_racecard_runner VALUES
+      ('2026-11-25','HV',8,1,0,'HK_2023_J290','J290','東來欣賞',6,'閹',176700,'曾向東與曾向欣','Wrote','O''Sabrina','PPG',1,'abc','2026-11-25T05:30:18+00:00'),
+      ('2026-11-25','HV',8,11,0,'HK_2026_M021','M021','天時威威',5,'閹',0,'周傑浩','Super Seth','Sound Of Music','PP',1,'abc','2026-11-25T05:30:18+00:00'),
+      ('2026-11-29','ST',8,1,0,'HK_2023_J157','J157','熾烈神駒',6,'閹',111600,'余嘉權','Deep Field','Secretly Discreet','PPG',1,'abc','2026-11-26T05:10:58+00:00'),
+      ('2026-11-29','ST',8,5,0,'HK_2025_L511','L511','雪毽神駒',4,'閹',0,'余國賢','Gidu','Garua Key','PP',1,'abc','2026-11-26T05:10:58+00:00'),
+      ('2026-11-29','ST',8,5,1,'HK_2026_M999','M999','另一後備',4,NULL,NULL,NULL,NULL,NULL,NULL,1,'abc','2026-11-26T05:10:58+00:00'),
+      ('2026-11-29','ST',10,1,0,'HK_2025_L152','L152','開心指數',5,'閹',213900,'陳國民','I Am Invincible','Heatherly','PP',1,'abc','2026-11-26T05:10:58+00:00'),
+      ('2026-11-29','ST',10,1,1,'HK_2025_L435','L435','風耀奪標',4,NULL,NULL,NULL,NULL,NULL,NULL,1,'abc','2026-11-26T05:10:58+00:00'),
+      ('2026-11-29','ST',11,1,0,'HK_2025_L226','L226','超和平',4,'閹',1432200,'胡超倫','Bivouac','Folk Song','PPG',1,'abc','2026-11-26T05:10:58+00:00'),
+      ('2026-11-29','ST',11,3,0,'HK_2025_L529','L529','賀長勝',4,'閹',37200,'賀賢','Hello Youmzain','Waterfalls','PP',1,'abc','2026-11-26T05:10:58+00:00');
+  `);
+  type FwbApiRow = {
+    horseNo: number;
+    reserve: boolean;
+    brand: string;
+    cardHorseNo: number | null;
+    cardReserve: boolean | null;
+    cardBrand: string | null;
+    cardHorseId: string | null;
+    alignedBy: string | null;
+  };
+  const hv = await app.request('/api/official/fwb-declared?date=2026-11-25&venue=HV', {}, env);
+  assert.equal(hv.status, 200);
+  const hvBody = await hv.json() as { rows: FwbApiRow[] };
+  assert.equal(hvBody.rows.length, 1);
+  assert.deepEqual(
+    [hvBody.rows[0].horseNo, hvBody.rows[0].reserve, hvBody.rows[0].brand],
+    [1, true, 'M021'],
+  );
+  assert.equal(hvBody.rows[0].cardHorseNo, 11);
+  assert.equal(hvBody.rows[0].cardReserve, false);
+  assert.equal(hvBody.rows[0].cardBrand, 'M021');
+  assert.equal(hvBody.rows[0].cardHorseId, 'HK_2026_M021');
+  assert.notEqual(hvBody.rows[0].cardBrand, 'J290');
+  const st = await app.request('/api/official/fwb-declared?date=2026-11-29&venue=ST', {}, env);
+  const stRows = ((await st.json()) as { rows: FwbApiRow[] }).rows;
+  const byBrand = Object.fromEntries(stRows.map((row) => [row.brand, row]));
+  assert.equal(byBrand.M072.horseNo, 1);
+  assert.equal(byBrand.M072.cardHorseNo, null);
+  assert.equal(byBrand.M072.cardBrand, null);
+  assert.equal(byBrand.L435.cardBrand, 'L435');
+  assert.equal(byBrand.L435.cardHorseNo, 1);
+  assert.equal(byBrand.L435.cardReserve, true);
+  assert.notEqual(byBrand.L435.cardBrand, 'L152');
+  assert.equal(byBrand.L529.horseNo, 1);
+  assert.equal(byBrand.L529.reserve, true);
+  assert.equal(byBrand.L529.cardHorseNo, 3);
+  assert.equal(byBrand.L529.cardReserve, false);
+  assert.equal(byBrand.L529.cardBrand, 'L529');
+  assert.notEqual(byBrand.L529.cardBrand, 'L226');
+  assert.equal(byBrand.L511.horseNo, 5);
+  assert.equal(byBrand.L511.cardHorseNo, 5);
+  assert.equal(byBrand.L511.cardBrand, 'L511');
+  assert.equal(byBrand.L511.cardReserve, false);
+  assert.equal(byBrand.L511.alignedBy, 'brand');
+
   console.log('official visible read api ok');
 }
 

@@ -95,6 +95,21 @@ class Wave6Tests(unittest.TestCase):
         self.assertEqual(rows[1]['horse_no'], 2)
         self.assertEqual(rows[1]['brand_no'], 'L399')
 
+    def test_bonus_list_keeps_standby_one_distinct_from_starter_one(self):
+        """STBY-1 and declared #1 share a number and stay two rows with their own brands."""
+        value = (
+            '25/11/2026\r\n'
+            '08,1,EASTERN DELIGHT,東來欣賞,J290,PPG Bonus of HK$1M,「自購新馬特別獎金」一百萬港元\r\n'
+            '08,STBY-1,PRECISION TIME,天時威威,M021,PP Bonus of HK$1.5M,「自購曾出賽馬匹特別獎金」一百五十萬港元\r\n'
+        )
+        flight = '"pP_PPG_and_ISG_Bonuses":{"value":' + json.dumps(value) + '}'
+        rows = parse_fwb(flight, self._bonus_root('2026-11-25', 'HV'), 'abc', SCRAPED)
+        self.assertEqual([(row['brand_no'], row['horse_no'], row['is_reserve']) for row in rows], [
+            ('J290', 1, 0),
+            ('M021', 1, 1),
+        ])
+        self.assertEqual(len({(row['race_no'], row['is_reserve'], row['horse_no'], row['brand_no']) for row in rows}), 2)
+
     def _bonus_root(self, day='2026-11-11', venue='HV'):
         root = Path(tempfile.mkdtemp())
         (root / 'data' / 'fixtures').mkdir(parents=True)
