@@ -1,0 +1,45 @@
+name: Official snapshot pager checks
+
+# Tests only. No deploy, no Cloudflare auth, no secret values.
+on:
+  pull_request:
+    paths:
+      - 'workers/official-snapshot-pager/**'
+      - '.github/workflows/official_snapshot_pager_checks.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'workers/official-snapshot-pager/**'
+      - '.github/workflows/official_snapshot_pager_checks.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: official-snapshot-pager-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pager:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: workers/official-snapshot-pager
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: workers/official-snapshot-pager/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Test dispatch, hook auth, and zero cron triggers
+        run: npm test
+
+      - name: Typecheck
+        run: npm run typecheck

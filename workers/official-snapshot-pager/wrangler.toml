@@ -1,0 +1,16 @@
+# Clock only. POSTs workflow_dispatch for capy_official_snapshot.yml.
+# Ingest stays in that GitHub Action. This file has no routes, so it does not
+# attach to tianxi.racing, and backend_deploy.yml does not publish this Worker.
+name = "tianxi-official-snapshot-pager"
+main = "src/index.ts"
+account_id = "653a13852ac331972d14432741113f6f"
+compatibility_date = "2025-04-14"
+workers_dev = true
+
+# Secrets. Set them with wrangler after this change is approved.
+# Values do not belong in this file.
+#   GITHUB_DISPATCH_TOKEN
+#   PAGER_HOOK_SECRET
+
+# Workers Free allows 5 cron triggers per account, and tianxi-backend already
+# declares 6. This file declares none. cron-job.org calls POST /dispatch.
