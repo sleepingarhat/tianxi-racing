@@ -1567,6 +1567,14 @@
       "date": "2026-11-25",
       "kind": "racing-dividends",
       "venue": "HV"
+    },
+    {
+      "path": "data/racing-dividends/2026-11-25/HV-5e4772661d9dc5bb5a7c14a409670f85af94379bb68238dabbec9bb0ac3a0696.html",
+      "sha256": "5e4772661d9dc5bb5a7c14a409670f85af94379bb68238dabbec9bb0ac3a0696",
+      "sourceUrl": "https://racing.hkjc.com/zh-hk/local/information/resultsall?RaceDate=2026/11/25",
+      "date": "2026-11-25",
+      "kind": "racing-dividends",
+      "venue": "HV"
     }
   ]
 }
