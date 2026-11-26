@@ -1,130 +1,130 @@
 {
-  "generatedAt": "2026-11-25T06:30:42.687315+00:00",
+  "generatedAt": "2026-11-26T05:19:03.700914+00:00",
   "source": {
     "name": "香港賽馬會公開馬匹資料",
     "archive": "/home/runner/work/tianxi-racing/tianxi-racing/horses/profiles/horse_profiles.csv",
-    "dataAsOf": "2026-11-25"
+    "dataAsOf": "2026-11-26"
   },
   "cohorts": {
     "active": {
-      "horses": 1001,
-      "completeProfiles": 1001,
+      "horses": 1004,
+      "completeProfiles": 1004,
       "completeCoveragePct": 100.0,
       "fields": {
         "countryOfOrigin": {
-          "present": 1001,
+          "present": 1004,
           "missing": 0,
           "coveragePct": 100.0
         },
         "colour": {
-          "present": 1001,
+          "present": 1004,
           "missing": 0,
           "coveragePct": 100.0
         },
         "sex": {
-          "present": 1001,
+          "present": 1004,
           "missing": 0,
           "coveragePct": 100.0
         },
         "importType": {
-          "present": 1001,
+          "present": 1004,
           "missing": 0,
           "coveragePct": 100.0
         },
         "owner": {
-          "present": 1001,
+          "present": 1004,
           "missing": 0,
           "coveragePct": 100.0
         },
         "sire": {
-          "present": 1001,
+          "present": 1004,
           "missing": 0,
           "coveragePct": 100.0
         },
         "dam": {
-          "present": 1001,
+          "present": 1004,
           "missing": 0,
           "coveragePct": 100.0
         },
         "damSire": {
-          "present": 1001,
+          "present": 1004,
           "missing": 0,
           "coveragePct": 100.0
         },
         "seasonStakes": {
-          "present": 1001,
+          "present": 1004,
           "missing": 0,
           "coveragePct": 100.0
         },
         "totalStakes": {
-          "present": 1001,
+          "present": 1004,
           "missing": 0,
           "coveragePct": 100.0
         },
         "currentTrainer": {
-          "present": 1001,
+          "present": 1004,
           "missing": 0,
           "coveragePct": 100.0
         }
       }
     },
     "all": {
-      "horses": 6201,
-      "completeProfiles": 1153,
+      "horses": 6203,
+      "completeProfiles": 1155,
       "completeCoveragePct": 18.6,
       "fields": {
         "countryOfOrigin": {
-          "present": 6201,
+          "present": 6203,
           "missing": 0,
           "coveragePct": 100.0
         },
         "colour": {
-          "present": 6201,
+          "present": 6203,
           "missing": 0,
           "coveragePct": 100.0
         },
         "sex": {
-          "present": 6201,
+          "present": 6203,
           "missing": 0,
           "coveragePct": 100.0
         },
         "importType": {
-          "present": 6201,
+          "present": 6203,
           "missing": 0,
           "coveragePct": 100.0
         },
         "owner": {
-          "present": 6201,
+          "present": 6203,
           "missing": 0,
           "coveragePct": 100.0
         },
         "sire": {
-          "present": 6201,
+          "present": 6203,
           "missing": 0,
           "coveragePct": 100.0
         },
         "dam": {
-          "present": 6201,
+          "present": 6203,
           "missing": 0,
           "coveragePct": 100.0
         },
         "damSire": {
-          "present": 6201,
+          "present": 6203,
           "missing": 0,
           "coveragePct": 100.0
         },
         "seasonStakes": {
-          "present": 1315,
+          "present": 1317,
           "missing": 4886,
           "coveragePct": 21.2
         },
         "totalStakes": {
-          "present": 6201,
+          "present": 6203,
           "missing": 0,
           "coveragePct": 100.0
         },
         "currentTrainer": {
-          "present": 1153,
+          "present": 1155,
           "missing": 5048,
           "coveragePct": 18.6
         }
