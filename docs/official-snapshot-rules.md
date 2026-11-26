@@ -97,7 +97,7 @@ There is no fixed wall clock such as 07:40. Timing is always first official post
 
 This snapshot system must recapture required surfaces in the freeze window itself. It must not label a 07:40 Wave row as a freeze value. An optional later change to add a Wave8 afternoon ingest is **out of this PR**; the snapshot job recrawls wind at freeze time.
 
-The Worker `*/5 * * * *` cron is the prediction lock tick only (`lockMeetingIfDue`). Official snapshot ingest must remain a `capy_*` GitHub Action.
+The Worker `*/5 * * * *` cron is the prediction lock tick only (`lockMeetingIfDue`). Official snapshot ingest remains the `capy_official_snapshot.yml` GitHub Action. `workers/official-snapshot-pager` is a separate clock that only dispatches that Action.
 
 ---
 
@@ -164,7 +164,7 @@ Season gate: same fail-open pattern as other `capy_*` workflows (`GET /api/seaso
 
 Concurrency group `capy-official-snapshot`, `cancel-in-progress: false`, so a later run cannot cancel a job that is waiting for `lockAt`.
 
-The Worker stays a reader. This job remains a `capy_*` GitHub Action. It does not move ingest into tianxi-web, Lovable, or a Worker cron.
+`tianxi-backend` stays a reader. This job remains a `capy_*` GitHub Action, and ingest stays in this workflow. `tianxi-official-snapshot-pager` (`workers/official-snapshot-pager`) only POSTs `workflow_dispatch` for this file on `main` with blank `date`, `venue`, and `kind`, from one Cloudflare cron trigger and from `POST /dispatch`. Crawl, snapshot writes, and the wait until `lockAt` stay in this Action. Operator steps are in `workers/official-snapshot-pager/README.md`.
 
 Each tick still computes clocks, decides kinds due, recrawls only what that kind requires, writes snapshots, commits append-only repo files, and upserts D1 snapshot tables. Live Wave CSV/D1 projections stay on their own schedules. This job writes snapshots to **separate** paths/tables so a later Wave run cannot replace a freeze.
 
@@ -435,6 +435,7 @@ Implement in `sleepingarhat/tianxi-racing` on a new branch from current `main`. 
 | `scripts/official_snapshot_writer.py` | Staging recrawl (call existing Wave parse functions into a staging directory — do not clobber `data/official_waveN` from this job if that would race a Wave workflow; use `data/official_snapshots/_staging/` then copy into the versioned snapshot folder), manifest, D1 SQL emit (`INSERT OR IGNORE` only). |
 | `scripts/official_snapshot_tick.py` | CLI used by the workflow: discover meetings, decide kinds, recrawl, write. |
 | `.github/workflows/capy_official_snapshot.yml` | `workflow_run` catch-up, best-effort arms, in-job wait until `lockAt`, season gate, unit tests, capture, append-only commit, D1 apply via existing `scripts/d1-execute-file.sh`. Requires `CF_API_TOKEN` / `CF_ACCOUNT_ID` on schedule (same pattern as Wave jobs). Do not add or rotate secrets. A ten-minute cron is not the capture clock. |
+| `workers/official-snapshot-pager/` | Separate free-plan clock. POSTs `workflow_dispatch` on `main` with blank inputs. One cron trigger. `backend_deploy.yml` does not publish it. |
 | `scripts/test_official_snapshot_rules.py` | All regressions in §6.3. |
 | `backend/src/routes/official-visible.ts` | Read-only snapshot routes. |
 | `backend` tests for the new routes if a TS test harness already exists for official-visible. | |
@@ -451,7 +452,7 @@ Do **not** change: prediction lock tick, `prediction_log`, A-line training scrip
 - **Freeze clock:** Hooked to `entries_upcoming.post_time` and `LOCK_LEAD_MINUTES`, the same sources as `getMeetingLockState` / the 5-minute Worker lock tick. Not 07:40, not report-refresh crons (11:00 / 12:00 / 18:00 HKT in `wrangler.toml`, which are race-day report refreshes).
 - **Wave 5/6/7/8:** Remain the live ingest. Snapshots are a second, append-only store. Afternoon Wave runs after a day-meeting freeze will keep overwriting live tables; that is expected and is why snapshots exist.
 - **D1:** New tables only. No change to live official table PKs. No secret rotation.
-- **Worker:** Serves already-ingested snapshot rows. No Worker cron ingest.
+- **Worker:** `tianxi-backend` serves already-ingested snapshot rows. Its cron list is unchanged. `tianxi-official-snapshot-pager` only dispatches this workflow.
 - **Existing racecard snapshot:** Orthogonal research history.
 - **Lock-odds:** Orthogonal market comparison record; not a freeze official surface.
 - **Cancelled meetings:** Honour `isCancelledMeeting` (`2026-09-19`) and void-race labels (`race-cancellation` / 2026-11-14 ST R6).

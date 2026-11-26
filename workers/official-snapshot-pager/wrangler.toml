@@ -1,0 +1,23 @@
+# Clock only. POSTs workflow_dispatch for capy_official_snapshot.yml.
+# Ingest stays in that GitHub Action. This file has no routes, so it does not
+# attach to tianxi.racing, and backend_deploy.yml does not publish this Worker.
+name = "tianxi-official-snapshot-pager"
+main = "src/index.ts"
+account_id = "653a13852ac331972d14432741113f6f"
+compatibility_date = "2025-04-14"
+workers_dev = true
+
+# Secrets. Set them with wrangler after this change is approved.
+# Values do not belong in this file.
+#   GITHUB_DISPATCH_TOKEN
+#   PAGER_HOOK_SECRET
+
+# One Cron Trigger. Workers Free allows 5 per account, and tianxi-backend
+# already declares 6, so confirm the account total before the first deploy.
+# Minute 35 is offset from the GitHub snapshot crons at :10 and :20.
+#   03:35 UTC = 11:35 HKT  inside a Sha Tin 11:15–12:45 window
+#   08:35 UTC = 16:35 HKT  before a Happy Valley 17:10 lock
+#   09:35 UTC = 17:35 HKT  inside a Happy Valley 17:10–18:40 window
+#   22:35 UTC = 06:35 HKT  before a Sha Tin 11:15 lock (inside the 330-minute arm)
+[triggers]
+crons = ["35 3,8,9,22 * * *"]
