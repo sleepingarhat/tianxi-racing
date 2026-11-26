@@ -382,3 +382,6 @@
 {"rows": 20, "scraped_at": "2026-11-25T20:32:57+00:00", "sha256": "ceebf16d7c44feaf66ce9c1797510d02f9b398692d5a65db6875ee60f9cadd04", "surface": "challenge_jkc"}
 {"rows": 24, "scraped_at": "2026-11-25T20:32:57+00:00", "sha256": "23504e4990da2e5cd491a6441f12df35d9ee92e27511b63f1c45ca0fc1d3c405", "surface": "challenge_tnc"}
 {"rows": {"pool_dividend": 144, "pool_status": 97, "track_probe": 2}, "scraped_at": "2026-11-25T20:32:59+00:00", "sha256": "7d213cbc255de6206c56539cb62aca2eb280726df5786a2197074a5371f8e3e2", "surface": "pools"}
+{"rows": 20, "scraped_at": "2026-11-26T08:41:53+00:00", "sha256": "c27ed896affe9e76288ae49b9fd5ea39412d3bf92bd7bd9b50a59e5cb559729b", "surface": "challenge_jkc"}
+{"rows": 24, "scraped_at": "2026-11-26T08:41:53+00:00", "sha256": "79dee2246cc4a0d39b8cba79efde6383d2bfa6ca3873ce5b645c52c34f9ee687", "surface": "challenge_tnc"}
+{"rows": {"pool_dividend": 144, "pool_status": 97, "track_probe": 2}, "scraped_at": "2026-11-26T08:41:54+00:00", "sha256": "ec85e801c58de60f952e8387b02211b08762654598f925accd5f3ed64adbab17", "surface": "pools"}
