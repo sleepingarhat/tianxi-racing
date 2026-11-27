@@ -135,3 +135,7 @@
 {"rows": 31, "scraped_at": "2026-11-26T18:38:24+00:00", "sha256": "881017b65fa877682f79d72ceb2a7e5dde5b9509eadc5602d7ee82d2170d5119", "surface": "fwb"}
 {"rows": 93, "scraped_at": "2026-11-26T18:38:24+00:00", "sha256": "8f11c6e8be6ff44afb28f1dd8a490020aa3e7e994d5ccdf2460b941d2d579909", "surface": "finish-photo"}
 {"rows": 15, "scraped_at": "2026-11-26T18:38:24+00:00", "sha256": "c560e486c261b6c38c30ce178d5fa7a1b5c60de9ffdbc33155ddbbb6693dc5bb", "surface": "special-index"}
+{"rows": 1484, "scraped_at": "2026-11-27T05:18:49+00:00", "sha256": "91c4011aa545bc05d2c67a8bf17b602217c94226114c1a84d27978971157c96d", "surface": "former"}
+{"rows": 31, "scraped_at": "2026-11-27T05:18:49+00:00", "sha256": "e154726499941ea780a3904aa6dba51b95a78e6ff9730efc09c5e7379a700c41", "surface": "fwb"}
+{"rows": 93, "scraped_at": "2026-11-27T05:18:49+00:00", "sha256": "1ab147475a1d32e48185eb68168b3d37fe954f7b87a55b58364107a6b0982d4d", "surface": "finish-photo"}
+{"rows": 15, "scraped_at": "2026-11-27T05:18:49+00:00", "sha256": "e405ed5dcf205b169b7e070b063cc58ff17a15be9386c39b1dd32bcad9384faa", "surface": "special-index"}
