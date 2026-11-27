@@ -128,3 +128,7 @@
 {"rows": 140, "scraped_at": "2026-11-27T05:08:58+00:00", "sha256": "d24780d621653f35f7875a3e20e6451aba0dcc08f3e4f1e0961671140f82015d", "surface": "horse-news"}
 {"rows": 103, "scraped_at": "2026-11-27T05:08:58+00:00", "sha256": "288448536e2ee85bb9b794367fc609eae60de725aa0bc7e44befd4e8f3a53bad", "surface": "import"}
 {"rows": 848, "scraped_at": "2026-11-27T05:08:58+00:00", "sha256": "26b4d6e2699ac811cd5f855b6722b0472a052384157e9bc2c17a6390e92c8691", "surface": "racecard"}
+{"rows": 2, "scraped_at": "2026-11-27T18:20:48+00:00", "sha256": "95aaf7e08f0505545e442308fc9ee5b2936620b999d6663923b11bdfb313053a", "surface": "stats"}
+{"rows": 140, "scraped_at": "2026-11-27T18:20:48+00:00", "sha256": "2e1fc3551b1c76df696d4959ff9491d9135c812fa257399b3491b777aab368e4", "surface": "horse-news"}
+{"rows": 103, "scraped_at": "2026-11-27T18:20:48+00:00", "sha256": "adcac59573aef366567fbb2fa69449060c00b48edd96faf2c6be1169bce467c1", "surface": "import"}
+{"rows": 848, "scraped_at": "2026-11-27T18:20:48+00:00", "sha256": "acaf8b11e5a5bf5e859cb188c55bac38b47cfa3cb869ae47396d4944786b626e", "surface": "racecard"}
