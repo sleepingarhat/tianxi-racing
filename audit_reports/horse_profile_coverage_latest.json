@@ -1,9 +1,9 @@
 {
-  "generatedAt": "2026-11-26T05:19:03.700914+00:00",
+  "generatedAt": "2026-11-27T05:57:04.629494+00:00",
   "source": {
     "name": "香港賽馬會公開馬匹資料",
     "archive": "/home/runner/work/tianxi-racing/tianxi-racing/horses/profiles/horse_profiles.csv",
-    "dataAsOf": "2026-11-26"
+    "dataAsOf": "2026-11-27"
   },
   "cohorts": {
     "active": {
