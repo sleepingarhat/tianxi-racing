@@ -385,3 +385,12 @@
 {"rows": 20, "scraped_at": "2026-11-26T08:41:53+00:00", "sha256": "c27ed896affe9e76288ae49b9fd5ea39412d3bf92bd7bd9b50a59e5cb559729b", "surface": "challenge_jkc"}
 {"rows": 24, "scraped_at": "2026-11-26T08:41:53+00:00", "sha256": "79dee2246cc4a0d39b8cba79efde6383d2bfa6ca3873ce5b645c52c34f9ee687", "surface": "challenge_tnc"}
 {"rows": {"pool_dividend": 144, "pool_status": 97, "track_probe": 2}, "scraped_at": "2026-11-26T08:41:54+00:00", "sha256": "ec85e801c58de60f952e8387b02211b08762654598f925accd5f3ed64adbab17", "surface": "pools"}
+{"rows": 156, "scraped_at": "2026-11-27T20:06:36+00:00", "sha256": "054b545daa4eceef09809343eabef0f6064ce48918f31f9e9341189c6cd5c304", "surface": "report"}
+{"rows": 128, "scraped_at": "2026-11-27T20:06:36+00:00", "sha256": "cb57015752aed18d94e14f4574dc2fe592157991327c50ed2cc3650ebaf03e7a", "surface": "formline"}
+{"rows": 85, "scraped_at": "2026-11-27T20:06:36+00:00", "sha256": "cbf240a84bac678a297c3ee3f358c1e9bc8118c85e0ac9c6ddd676950684c8d3", "surface": "exceptional"}
+{"rows": 129, "scraped_at": "2026-11-27T20:06:36+00:00", "sha256": "66b9f9a90ee2765b3cd464239c556d39c5043e4510bf2dd701d408e7d90251d7", "surface": "veterinary"}
+{"rows": 5706, "scraped_at": "2026-11-27T20:06:36+00:00", "sha256": "5f262620d75a1866daff5512b32429dc6ab53c752d7b6edf5dfb806485f03d75", "surface": "trackwork"}
+{"rows": 312, "scraped_at": "2026-11-27T20:06:36+00:00", "sha256": "f9ef5d47ae286884317496316c188bcc5afe1771c02cbc5ca44f7e58926b0ea7", "surface": "rides"}
+{"rows": 1, "scraped_at": "2026-11-27T20:06:36+00:00", "sha256": "bdd224fa74f345da55b143c20302ed53e19df31f6214cd66faa5d76aac7e0598", "surface": "summary"}
+{"rows": 1, "scraped_at": "2026-11-27T20:07:33+00:00", "sha256": "0c55d0d3ff4940977e119fa58a21defd34a7422e2ac8e0ac63a87255828f3518", "surface": "raceday_focus"}
+{"rows": {"pool_dividend": 0, "pool_status": 119, "track_probe": 0}, "scraped_at": "2026-11-27T20:07:35+00:00", "sha256": "bdd224fa74f345da55b143c20302ed53e19df31f6214cd66faa5d76aac7e0598", "surface": "pools"}
