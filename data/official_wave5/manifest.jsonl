@@ -130,3 +130,9 @@
 {"rows": 522, "scraped_at": "2026-11-27T18:30:35+00:00", "sha256": "c191c814975467332a3d282095dc12916ad5ca74208b202c6936af1bc8258254", "surface": "odds-chart"}
 {"rows": 110, "scraped_at": "2026-11-27T18:30:35+00:00", "sha256": "f1ebbc90e716ce40ff07ed4b99d19d459c4d9a28025abba8407573bdb1978c84", "surface": "jtcombo"}
 {"rows": 71, "scraped_at": "2026-11-27T18:30:35+00:00", "sha256": "c731b6df56ef8311dfdc3f32d58c9683bddf9fd60de36164cffd810fe01394fe", "surface": "conghua"}
+{"rows": 841, "scraped_at": "2026-11-28T05:01:57+00:00", "sha256": "fc98c54ea58072e6fcc1893e87c6fc8ae8120c428a6da4ca4b347e127b0db9e2", "surface": "ove-database"}
+{"rows": 13, "scraped_at": "2026-11-28T05:01:57+00:00", "sha256": "c95423ca047fdb87ae3bf16d50542135efe18b7207e3209a59a462a58c002e75", "surface": "ove-record"}
+{"rows": 1270, "scraped_at": "2026-11-28T05:01:57+00:00", "sha256": "9e7bb31a9b525a8ab242a1f9168158af49f2ca04d4ce597844429119a22973e4", "surface": "ppo"}
+{"rows": 522, "scraped_at": "2026-11-28T05:01:57+00:00", "sha256": "1ea31552166d500c8723160b3d979d5e0280cb520df1a8c54ad701068b1c5b75", "surface": "odds-chart"}
+{"rows": 158, "scraped_at": "2026-11-28T05:01:57+00:00", "sha256": "6a2585b13aa8625e6044069b57d974d441e14bcab831438a03e8423d81403931", "surface": "jtcombo"}
+{"rows": 71, "scraped_at": "2026-11-28T05:01:57+00:00", "sha256": "c731b6df56ef8311dfdc3f32d58c9683bddf9fd60de36164cffd810fe01394fe", "surface": "conghua"}
