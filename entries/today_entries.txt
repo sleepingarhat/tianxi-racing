@@ -1,4 +1,4 @@
-# meeting=2026-11-29 racecourse=ST written=2026-11-27
+# meeting=2026-11-29 racecourse=ST written=2026-11-28
 H070
 H092
 H293
@@ -111,7 +111,6 @@ L279
 L280
 L286
 L287
-L302
 L311
 L315
 L326
