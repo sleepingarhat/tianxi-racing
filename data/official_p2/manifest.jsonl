@@ -142,3 +142,9 @@
 {"rows": 48, "scraped_at": "2026-11-27T05:07:46+00:00", "sha256": "455e92351d912449014b3236740f0f034160df35c3c1073ac9d60469061a72d8", "surface": "favourites"}
 {"rows": 11, "scraped_at": "2026-11-27T05:07:46+00:00", "sha256": "010f95473c3e57692b565665eccaaec7e805734284d7367f33d9975e4235ee80", "surface": "allowance"}
 {"rows": 67, "scraped_at": "2026-11-27T05:07:46+00:00", "sha256": "f9dd2a627a318c9e16c1d8c047474c69332bcf3b0b4ab6bf11becdad69b5c5d3", "surface": "new-horse"}
+{"rows": 475, "scraped_at": "2026-11-28T04:45:59+00:00", "sha256": "df660aa270d43a4897482678aa4a08b9a75fe67d6ff247cd6f99cea46dd5249f", "surface": "rankings"}
+{"rows": 146, "scraped_at": "2026-11-28T04:45:59+00:00", "sha256": "cb64de261e7cdf9fff5d79d944287e19d313ef18cd0c8a5f967564c9a3f27745", "surface": "draw"}
+{"rows": 546, "scraped_at": "2026-11-28T04:45:59+00:00", "sha256": "772de89610762a382f13b0710aa419a0019c72a273f283f0ecad4e85f6576741", "surface": "pools"}
+{"rows": 48, "scraped_at": "2026-11-28T04:45:59+00:00", "sha256": "455e92351d912449014b3236740f0f034160df35c3c1073ac9d60469061a72d8", "surface": "favourites"}
+{"rows": 11, "scraped_at": "2026-11-28T04:45:59+00:00", "sha256": "010f95473c3e57692b565665eccaaec7e805734284d7367f33d9975e4235ee80", "surface": "allowance"}
+{"rows": 67, "scraped_at": "2026-11-28T04:45:59+00:00", "sha256": "f9dd2a627a318c9e16c1d8c047474c69332bcf3b0b4ab6bf11becdad69b5c5d3", "surface": "new-horse"}
