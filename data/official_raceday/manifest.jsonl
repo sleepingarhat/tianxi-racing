@@ -394,3 +394,13 @@
 {"rows": 1, "scraped_at": "2026-11-27T20:06:36+00:00", "sha256": "bdd224fa74f345da55b143c20302ed53e19df31f6214cd66faa5d76aac7e0598", "surface": "summary"}
 {"rows": 1, "scraped_at": "2026-11-27T20:07:33+00:00", "sha256": "0c55d0d3ff4940977e119fa58a21defd34a7422e2ac8e0ac63a87255828f3518", "surface": "raceday_focus"}
 {"rows": {"pool_dividend": 0, "pool_status": 119, "track_probe": 0}, "scraped_at": "2026-11-27T20:07:35+00:00", "sha256": "bdd224fa74f345da55b143c20302ed53e19df31f6214cd66faa5d76aac7e0598", "surface": "pools"}
+{"rows": 155, "scraped_at": "2026-11-28T08:12:38+00:00", "sha256": "142a6a6535a0321e6a791004de41f6797e2d68b0d622feb7079e46c117dca93d", "surface": "report"}
+{"rows": 130, "scraped_at": "2026-11-28T08:12:38+00:00", "sha256": "df5da21614b93dc1cc9eb515b27f73479c34d9ab5d0bdafc46386300a8e14c1d", "surface": "formline"}
+{"rows": 85, "scraped_at": "2026-11-28T08:12:38+00:00", "sha256": "04ac7981748c9759c05ae303d5cf0befdc00b150721c2610d3f50a49a544caa9", "surface": "exceptional"}
+{"rows": 129, "scraped_at": "2026-11-28T08:12:38+00:00", "sha256": "80afd62607d187cb691484fe884d2bfae45549132380c76a734db55bcf4d608c", "surface": "veterinary"}
+{"rows": 5936, "scraped_at": "2026-11-28T08:12:38+00:00", "sha256": "7d434498c1322991ee71025a1c73c0f3b6784b8870e9120d673b7cc0dc64dcba", "surface": "trackwork"}
+{"rows": 310, "scraped_at": "2026-11-28T08:12:38+00:00", "sha256": "ab5f10fe7d11b08d10406347ca92a202b5ea283d5e2c58f249c73fac888599ed", "surface": "rides"}
+{"rows": 1, "scraped_at": "2026-11-28T08:12:38+00:00", "sha256": "12bfde4c2e2935662623625ed791a6139e3bf55c69ad565aa18d8a587abd33ff", "surface": "summary"}
+{"rows": 1, "scraped_at": "2026-11-28T08:14:41+00:00", "sha256": "ff2459d9b85dcafd1a1e1411cdecd30a2d8919f01ea9430fc51819ea30bf520c", "surface": "raceday_focus"}
+{"rows": 14, "scraped_at": "2026-11-28T08:14:41+00:00", "sha256": "1f988ce52c8678f7dfe0c8fdef81df3b207632fe32d07afe712101ef1cb5ce51", "surface": "last_run_reminder"}
+{"rows": {"pool_dividend": 0, "pool_status": 119, "track_probe": 0}, "scraped_at": "2026-11-28T08:14:46+00:00", "sha256": "12bfde4c2e2935662623625ed791a6139e3bf55c69ad565aa18d8a587abd33ff", "surface": "pools"}
