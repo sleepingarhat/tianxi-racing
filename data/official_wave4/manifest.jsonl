@@ -193,3 +193,4 @@
 {"rows": 31, "scraped_at": "2026-11-27T05:24:31+00:00", "sha256": "e59cd0c33fbb9eb82d77af41f3393812dd959fafed4f620792386db1b9796992", "surface": "overoar"}
 {"rows": 35, "scraped_at": "2026-11-27T05:24:31+00:00", "sha256": "a63bddbd806f9ca2daa72a2ceb9ee2cefc56e25712e9cc8de458ea8ff5bd39cb", "surface": "pool-result"}
 {"rows": 577, "scraped_at": "2026-11-27T05:24:31+00:00", "sha256": "ff23b0a984f30c238b6a26bfe7c8eb70e7446766191cf2f0330f5ddca18d48c4", "surface": "draw-adv"}
+{"rows": 124514, "scraped_at": "2026-11-28T03:19:39+00:00", "sha256": "007b9f47aa33bb9aa414c4a09a6c9aa8a2188bf119d72c5fc95b357fe88b5af3", "surface": "horse-record"}
